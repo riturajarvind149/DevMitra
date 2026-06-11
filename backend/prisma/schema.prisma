@@ -18,4 +18,23 @@ model User {
   avatarUrl  String?
 
   createdAt  DateTime @default(now())
+
+  projects   Project[]
+}
+
+model Project {
+  id             String   @id @default(cuid())
+
+  title          String
+  description    String
+
+  deployedUrl    String
+
+  githubRepoUrl  String?
+  isRepoPrivate  Boolean  @default(true)
+
+  ownerId        String
+  owner          User     @relation(fields: [ownerId], references: [id])
+
+  createdAt      DateTime @default(now())
 }
