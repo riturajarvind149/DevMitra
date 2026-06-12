@@ -64,6 +64,11 @@ const githubCallback = async (req, res) => {
 
     const token = generateToken(user.id);
 
+    res.cookie("token", token, {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     res.json({
       user,
       token,
@@ -78,7 +83,21 @@ const githubCallback = async (req, res) => {
   }
 };
 
+
+const getCurrentUser = async (req, res) => {
+  try {
+    res.status(200).json(req.user);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Failed to fetch current user",
+    });
+  }
+};
+
 module.exports = {
   loginWithGithub,
   githubCallback,
+  getCurrentUser,
 };

@@ -7,8 +7,9 @@ const createProject = async (req, res) => {
       description,
       deployedUrl,
       githubRepoUrl,
-      ownerId,
     } = req.body;
+
+    const ownerId = req.user.id;
 
     const project = await prisma.project.create({
       data: {
