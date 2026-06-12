@@ -20,6 +20,8 @@ model User {
   createdAt  DateTime @default(now())
 
   projects   Project[]
+
+  accessRequests ProjectAccessRequest[]
 }
 
 model Project {
@@ -37,4 +39,24 @@ model Project {
   owner          User     @relation(fields: [ownerId], references: [id])
 
   createdAt      DateTime @default(now())
+
+  accessRequests ProjectAccessRequest[]
+}
+
+
+model ProjectAccessRequest {
+  id          String   @id @default(cuid())
+
+  reason      String
+  suggestion  String
+
+  status      String   @default("PENDING")
+
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+
+  requesterId String
+  requester   User     @relation(fields: [requesterId], references: [id])
+
+  createdAt   DateTime @default(now())
 }
