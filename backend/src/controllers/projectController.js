@@ -78,6 +78,22 @@ const updateProject = async (req, res) => {
   try {
     const { id } = req.params;
 
+    const existingProject = await prisma.project.findUnique({
+      where: { id },
+    });
+
+    if (!existingProject) {
+      return res.status(404).json({
+        message: "Project not found",
+      });
+    }
+
+    if (existingProject.ownerId !== req.user.id) {
+      return res.status(403).json({
+        message: "Not authorized",
+      });
+    }
+
     const {
       title,
       description,
@@ -111,6 +127,22 @@ const updateProject = async (req, res) => {
 const deleteProject = async (req, res) => {
   try {
     const { id } = req.params;
+
+    const existingProject = await prisma.project.findUnique({
+      where: { id },
+    });
+
+    if (!existingProject) {
+      return res.status(404).json({
+        message: "Project not found",
+      });
+    }
+
+    if (existingProject.ownerId !== req.user.id) {
+      return res.status(403).json({
+        message: "Not authorized",
+      });
+    }
 
     await prisma.project.delete({
       where: {
