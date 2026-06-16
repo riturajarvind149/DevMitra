@@ -88,14 +88,20 @@ const createAccessRequest = async (req, res) => {
 // GET /access-requests/mine
 // Returns all requests submitted by the logged-in user
 // Auth: required
+// Query params: status (PENDING, APPROVED, REJECTED)
 const getMyAccessRequests = async (req, res) => {
   try {
     const requesterId = req.user.id;
+    const { status } = req.query;
+
+    const where = { requesterId };
+    
+    if (status && ["PENDING", "APPROVED", "REJECTED"].includes(status.toUpperCase())) {
+      where.status = status.toUpperCase();
+    }
 
     const requests = await prisma.projectAccessRequest.findMany({
-      where: {
-        requesterId,
-      },
+      where,
       include: {
         project: {
           select: {
@@ -125,16 +131,24 @@ const getMyAccessRequests = async (req, res) => {
 // GET /access-requests/incoming
 // Returns all requests submitted to projects owned by the logged-in user
 // Auth: required
+// Query params: status (PENDING, APPROVED, REJECTED)
 const getIncomingAccessRequests = async (req, res) => {
   try {
     const ownerId = req.user.id;
+    const { status } = req.query;
+
+    const where = {
+      project: {
+        ownerId,
+      },
+    };
+
+    if (status && ["PENDING", "APPROVED", "REJECTED"].includes(status.toUpperCase())) {
+      where.status = status.toUpperCase();
+    }
 
     const requests = await prisma.projectAccessRequest.findMany({
-      where: {
-        project: {
-          ownerId,
-        },
-      },
+      where,
       include: {
         project: {
           select: {

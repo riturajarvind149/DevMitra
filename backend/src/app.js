@@ -8,12 +8,19 @@ const projectMemberRoutes = require("./routes/projectMemberRoutes");
 const accessRequestRoutes = require("./routes/accessRequestRoutes");
 const authRoutes = require("./routes/authRoutes");
 const activityRoutes = require("./routes/activityRoutes");
+const { getPlatformStats } = require("./controllers/statsController");
+const { errorHandler, notFound } = require("./middleware/errorHandler");
+const { apiLimiter } = require("./middleware/rateLimiter");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
+
+// Apply rate limiting to all routes
+app.use(apiLimiter);
+
 app.use("/projects", projectRoutes);
 app.use("/projects", projectMemberRoutes);
 app.use("/access-requests", accessRequestRoutes);
@@ -28,5 +35,11 @@ app.get("/", (req, res) => {
     message: "DevMitra API Running",
   });
 });
+
+app.get("/stats", getPlatformStats);
+
+// Error handling middleware (must be last)
+app.use(notFound);
+app.use(errorHandler);
 
 module.exports = app;

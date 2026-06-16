@@ -333,6 +333,58 @@ const updateProject = async (req, res) => {
 };
 
 
+// GET /projects/:id/stats
+// Get project statistics (members, requests, activities)
+const getProjectStats = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const project = await prisma.project.findUnique({
+      where: { id },
+    });
+
+    if (!project) {
+      return res.status(404).json({
+        message: "Project not found",
+      });
+    }
+
+    // Get various counts
+    const [
+      totalMembers,
+      pendingRequests,
+      approvedRequests,
+      rejectedRequests,
+      totalActivities,
+    ] = await Promise.all([
+      prisma.projectMember.count({ where: { projectId: id } }),
+      prisma.projectAccessRequest.count({ where: { projectId: id, status: "PENDING" } }),
+      prisma.projectAccessRequest.count({ where: { projectId: id, status: "APPROVED" } }),
+      prisma.projectAccessRequest.count({ where: { projectId: id, status: "REJECTED" } }),
+      prisma.activityLog.count({ where: { projectId: id } }),
+    ]);
+
+    res.status(200).json({
+      projectId: id,
+      members: totalMembers,
+      accessRequests: {
+        pending: pendingRequests,
+        approved: approvedRequests,
+        rejected: rejectedRequests,
+        total: pendingRequests + approvedRequests + rejectedRequests,
+      },
+      activities: totalActivities,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Failed to fetch project stats",
+    });
+  }
+};
+
+
 const deleteProject = async (req, res) => {
   try {
     const { id } = req.params;
@@ -385,6 +437,7 @@ module.exports = {
   getProjects,
   getMyProjects,
   getProjectById,
+  getProjectStats,
   updateProject,
   deleteProject,
 };
