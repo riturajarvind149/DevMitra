@@ -1,4 +1,5 @@
 const prisma = require("../config/db");
+const { logActivity } = require("../utils/activityLogger");
 
 // POST /access-requests
 // Create a new access request for a project
@@ -62,6 +63,15 @@ const createAccessRequest = async (req, res) => {
           requesterId,
         },
       });
+
+    // Log activity
+    await logActivity(
+      "ACCESS_REQUEST_CREATED",
+      `${req.user.username} requested access to "${project.title}"`,
+      projectId,
+      req.user.id,
+      { reason }
+    );
 
     res.status(201).json(request);
 
@@ -195,6 +205,9 @@ const approveAccessRequest = async (req, res) => {
         data: {
           status: "APPROVED",
         },
+        include: {
+          requester: true,
+        },
       });
 
       // Create project membership for the requester
@@ -216,6 +229,23 @@ const approveAccessRequest = async (req, res) => {
 
       return request;
     });
+
+    // Log activity
+    await logActivity(
+      "ACCESS_REQUEST_APPROVED",
+      `${req.user.username} approved ${result.requester.username}'s access request to "${existingRequest.project.title}"`,
+      existingRequest.projectId,
+      req.user.id,
+      { requesterId: existingRequest.requesterId }
+    );
+
+    await logActivity(
+      "MEMBER_JOINED",
+      `${result.requester.username} joined "${existingRequest.project.title}"`,
+      existingRequest.projectId,
+      existingRequest.requesterId,
+      { role: "CONTRIBUTOR" }
+    );
 
     res.status(200).json(result);
 
@@ -261,7 +291,19 @@ const rejectAccessRequest = async (req, res) => {
       data: {
         status: "REJECTED",
       },
+      include: {
+        requester: true,
+      },
     });
+
+    // Log activity
+    await logActivity(
+      "ACCESS_REQUEST_REJECTED",
+      `${req.user.username} rejected ${request.requester.username}'s access request to "${existingRequest.project.title}"`,
+      existingRequest.projectId,
+      req.user.id,
+      { requesterId: existingRequest.requesterId }
+    );
 
     res.status(200).json(request);
 

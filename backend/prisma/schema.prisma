@@ -26,6 +26,7 @@ model User {
   projects          Project[]
   accessRequests    ProjectAccessRequest[]
   projectMemberships ProjectMember[]
+  activities        ActivityLog[]
 }
 
 model Project {
@@ -33,6 +34,7 @@ model Project {
 
   title          String
   description    String
+  tags           String[] @default([])  // Tech stack tags like ["React", "Node.js", "PostgreSQL"]
 
   deployedUrl    String
 
@@ -46,6 +48,7 @@ model Project {
 
   accessRequests ProjectAccessRequest[]
   members        ProjectMember[]
+  activities     ActivityLog[]
 }
 
 
@@ -80,4 +83,25 @@ model ProjectMember {
   joinedAt  DateTime @default(now())
 
   @@unique([projectId, userId])
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+
+  action      String   // "PROJECT_CREATED", "MEMBER_JOINED", "MEMBER_LEFT", "ACCESS_REQUEST_CREATED", "ACCESS_REQUEST_APPROVED", "ACCESS_REQUEST_REJECTED", "PROJECT_UPDATED", "PROJECT_DELETED"
+  description String
+
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  metadata    Json?    // Additional data about the activity
+
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([createdAt])
 }

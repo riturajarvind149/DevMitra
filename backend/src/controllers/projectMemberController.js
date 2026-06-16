@@ -1,4 +1,5 @@
 const prisma = require("../config/db");
+const { logActivity } = require("../utils/activityLogger");
 
 // GET /projects/:projectId/members
 // Get all members of a project
@@ -92,6 +93,9 @@ const removeMember = async (req, res) => {
           userId,
         },
       },
+      include: {
+        user: true,
+      },
     });
 
     if (!member) {
@@ -108,6 +112,15 @@ const removeMember = async (req, res) => {
         },
       },
     });
+
+    // Log activity
+    await logActivity(
+      "MEMBER_LEFT",
+      `${member.user.username} was removed from "${project.title}"`,
+      projectId,
+      userId,
+      { removedBy: req.user.id }
+    );
 
     res.status(200).json({
       message: "Member removed successfully",

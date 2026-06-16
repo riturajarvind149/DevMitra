@@ -7,6 +7,8 @@ const {
   createUser,
   getUsers,
   getUserById,
+  getUserProjects,
+  getUserMemberships,
   updateUser,
   deleteUser,
 } = require("../controllers/userController");
@@ -14,6 +16,8 @@ const {
 // Public routes
 router.get("/", getUsers);
 router.get("/:id", getUserById);
+router.get("/:id/projects", getUserProjects);
+router.get("/:id/memberships", getUserMemberships);
 router.post("/", createUser);
 
 // Protected routes - user can only modify their own data

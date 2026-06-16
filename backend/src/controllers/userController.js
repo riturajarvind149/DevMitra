@@ -59,7 +59,7 @@ const getUsers = async (req, res) => {
 
 
 // GET /users/:id
-// Get user by ID (public endpoint)
+// Get user by ID with project stats
 const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -76,6 +76,12 @@ const getUserById = async (req, res) => {
         githubUsername: true,
         githubProfileUrl: true,
         createdAt: true,
+        _count: {
+          select: {
+            projects: true,
+            projectMemberships: true,
+          },
+        },
       },
     });
 
@@ -91,6 +97,104 @@ const getUserById = async (req, res) => {
 
     res.status(500).json({
       message: "Failed to fetch user",
+    });
+  }
+};
+
+
+// GET /users/:id/projects
+// Get all projects owned by a specific user
+const getUserProjects = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const projects = await prisma.project.findMany({
+      where: {
+        ownerId: id,
+      },
+      include: {
+        _count: {
+          select: {
+            members: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    res.status(200).json(projects);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Failed to fetch user projects",
+    });
+  }
+};
+
+
+// GET /users/:id/memberships
+// Get all projects where user is a member
+const getUserMemberships = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const memberships = await prisma.projectMember.findMany({
+      where: {
+        userId: id,
+      },
+      include: {
+        project: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                username: true,
+                avatarUrl: true,
+                githubUsername: true,
+              },
+            },
+            _count: {
+              select: {
+                members: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        joinedAt: "desc",
+      },
+    });
+
+    res.status(200).json(memberships);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Failed to fetch user memberships",
     });
   }
 };
@@ -177,6 +281,8 @@ module.exports = {
   createUser,
   getUsers,
   getUserById,
+  getUserProjects,
+  getUserMemberships,
   updateUser,
   deleteUser,
 };

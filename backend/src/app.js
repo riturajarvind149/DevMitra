@@ -7,6 +7,7 @@ const projectRoutes = require("./routes/projectRoutes");
 const projectMemberRoutes = require("./routes/projectMemberRoutes");
 const accessRequestRoutes = require("./routes/accessRequestRoutes");
 const authRoutes = require("./routes/authRoutes");
+const activityRoutes = require("./routes/activityRoutes");
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use("/projects", projectRoutes);
 app.use("/projects", projectMemberRoutes);
 app.use("/access-requests", accessRequestRoutes);
 app.use("/auth", authRoutes);
+app.use("/", activityRoutes);
 
 app.use("/users", userRoutes);
 
