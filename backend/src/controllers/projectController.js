@@ -11,14 +11,28 @@ const createProject = async (req, res) => {
 
     const ownerId = req.user.id;
 
-    const project = await prisma.project.create({
-      data: {
-        title,
-        description,
-        deployedUrl,
-        githubRepoUrl,
-        ownerId,
-      },
+    // Create project and owner membership in a transaction
+    const project = await prisma.$transaction(async (tx) => {
+      const newProject = await tx.project.create({
+        data: {
+          title,
+          description,
+          deployedUrl,
+          githubRepoUrl,
+          ownerId,
+        },
+      });
+
+      // Automatically add owner as a project member with OWNER role
+      await tx.projectMember.create({
+        data: {
+          projectId: newProject.id,
+          userId: ownerId,
+          role: "OWNER",
+        },
+      });
+
+      return newProject;
     });
 
     res.status(201).json(project);

@@ -4,6 +4,7 @@ const cookieParser = require("cookie-parser");
 
 const userRoutes = require("./routes/userRoutes");
 const projectRoutes = require("./routes/projectRoutes");
+const projectMemberRoutes = require("./routes/projectMemberRoutes");
 const accessRequestRoutes = require("./routes/accessRequestRoutes");
 const authRoutes = require("./routes/authRoutes");
 
@@ -13,6 +14,7 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 app.use("/projects", projectRoutes);
+app.use("/projects", projectMemberRoutes);
 app.use("/access-requests", accessRequestRoutes);
 app.use("/auth", authRoutes);
 

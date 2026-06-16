@@ -25,6 +25,7 @@ model User {
 
   projects          Project[]
   accessRequests    ProjectAccessRequest[]
+  projectMemberships ProjectMember[]
 }
 
 model Project {
@@ -44,6 +45,7 @@ model Project {
   createdAt      DateTime @default(now())
 
   accessRequests ProjectAccessRequest[]
+  members        ProjectMember[]
 }
 
 
@@ -62,4 +64,20 @@ model ProjectAccessRequest {
   requester   User     @relation(fields: [requesterId], references: [id])
 
   createdAt   DateTime @default(now())
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role      String   @default("CONTRIBUTOR")  // "OWNER" | "CONTRIBUTOR"
+
+  joinedAt  DateTime @default(now())
+
+  @@unique([projectId, userId])
 }
