@@ -9,6 +9,13 @@ const createProject = async (req, res) => {
       githubRepoUrl,
     } = req.body;
 
+    // Validate required fields
+    if (!title || !description || !deployedUrl) {
+      return res.status(400).json({
+        message: "Title, description, and deployed URL are required",
+      });
+    }
+
     const ownerId = req.user.id;
 
     // Create project and owner membership in a transaction
@@ -46,9 +53,30 @@ const createProject = async (req, res) => {
 };
 
 
+// GET /projects
+// Get all projects with owner info and member count
 const getProjects = async (req, res) => {
   try {
-    const projects = await prisma.project.findMany();
+    const projects = await prisma.project.findMany({
+      include: {
+        owner: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+            githubUsername: true,
+          },
+        },
+        _count: {
+          select: {
+            members: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
     res.status(200).json(projects);
   } catch (error) {
@@ -61,6 +89,8 @@ const getProjects = async (req, res) => {
 };
 
 
+// GET /projects/:id
+// Get project by ID with owner info, members, and access requests
 const getProjectById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -68,6 +98,34 @@ const getProjectById = async (req, res) => {
     const project = await prisma.project.findUnique({
       where: {
         id,
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+            githubUsername: true,
+            githubProfileUrl: true,
+          },
+        },
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                avatarUrl: true,
+                githubUsername: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            accessRequests: true,
+          },
+        },
       },
     });
 
@@ -83,6 +141,41 @@ const getProjectById = async (req, res) => {
 
     res.status(500).json({
       message: "Failed to fetch project",
+    });
+  }
+};
+
+
+// GET /projects/my
+// Get all projects owned by the logged-in user
+// Auth: required
+const getMyProjects = async (req, res) => {
+  try {
+    const ownerId = req.user.id;
+
+    const projects = await prisma.project.findMany({
+      where: {
+        ownerId,
+      },
+      include: {
+        _count: {
+          select: {
+            members: true,
+            accessRequests: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    res.status(200).json(projects);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Failed to fetch your projects",
     });
   }
 };
@@ -115,16 +208,24 @@ const updateProject = async (req, res) => {
       githubRepoUrl,
     } = req.body;
 
+    // Validate at least one field is provided
+    if (!title && !description && !deployedUrl && !githubRepoUrl) {
+      return res.status(400).json({
+        message: "At least one field is required to update",
+      });
+    }
+
+    const updateData = {};
+    if (title) updateData.title = title;
+    if (description) updateData.description = description;
+    if (deployedUrl) updateData.deployedUrl = deployedUrl;
+    if (githubRepoUrl !== undefined) updateData.githubRepoUrl = githubRepoUrl;
+
     const project = await prisma.project.update({
       where: {
         id,
       },
-      data: {
-        title,
-        description,
-        deployedUrl,
-        githubRepoUrl,
-      },
+      data: updateData,
     });
 
     res.status(200).json(project);
@@ -179,6 +280,7 @@ const deleteProject = async (req, res) => {
 module.exports = {
   createProject,
   getProjects,
+  getMyProjects,
   getProjectById,
   updateProject,
   deleteProject,

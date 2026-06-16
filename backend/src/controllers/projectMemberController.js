@@ -122,7 +122,60 @@ const removeMember = async (req, res) => {
   }
 };
 
+
+// GET /projects/:projectId/membership
+// Check if the logged-in user is a member of this project
+// Auth: required
+const checkMembership = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const userId = req.user.id;
+
+    const project = await prisma.project.findUnique({
+      where: {
+        id: projectId,
+      },
+    });
+
+    if (!project) {
+      return res.status(404).json({
+        message: "Project not found",
+      });
+    }
+
+    const membership = await prisma.projectMember.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+    });
+
+    if (!membership) {
+      return res.status(200).json({
+        isMember: false,
+        role: null,
+      });
+    }
+
+    res.status(200).json({
+      isMember: true,
+      role: membership.role,
+      joinedAt: membership.joinedAt,
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Failed to check membership",
+    });
+  }
+};
+
 module.exports = {
   getProjectMembers,
   removeMember,
+  checkMembership,
 };

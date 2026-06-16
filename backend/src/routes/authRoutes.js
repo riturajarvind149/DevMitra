@@ -6,10 +6,12 @@ const {
   loginWithGithub,
   githubCallback,
   getCurrentUser,
+  logout,
 } = require("../controllers/authController");
 
 router.get("/github", loginWithGithub);
 router.get("/github/callback", githubCallback);
 router.get("/me", protect, getCurrentUser);
+router.post("/logout", logout);
 
 module.exports = router;

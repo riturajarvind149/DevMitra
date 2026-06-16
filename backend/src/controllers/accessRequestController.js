@@ -10,6 +10,13 @@ const createAccessRequest = async (req, res) => {
       projectId,
     } = req.body;
 
+    // Validate required fields
+    if (!reason || !suggestion || !projectId) {
+      return res.status(400).json({
+        message: "Reason, suggestion, and project ID are required",
+      });
+    }
+
     const requesterId = req.user.id;
 
     const project = await prisma.project.findUnique({
