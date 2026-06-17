@@ -1,25 +1,22 @@
 const express = require("express");
 const router = express.Router();
-
 const protect = require("../middleware/authMiddleware");
+const { optionalAuth } = require("../middleware/authMiddleware");
 
 const {
-  createProject,
-  getProjects,
-  getMyProjects,
-  getProjectById,
-  getProjectStats,
-  updateProject,
-  deleteProject,
+  createProject, getProjects, getMyProjects, getProjectById,
+  getProjectStats, updateProject, deleteProject,
 } = require("../controllers/projectController");
 
 router.post("/", protect, createProject);
 
-router.get("/", getProjects);
+// Public/optional-auth reads
+router.get("/", optionalAuth, getProjects);
 router.get("/my", protect, getMyProjects);
-router.get("/:id", getProjectById);
-router.get("/:id/stats", getProjectStats);
+router.get("/:id", optionalAuth, getProjectById);
+router.get("/:id/stats", optionalAuth, getProjectStats);
 
+// Owner-only mutations
 router.put("/:id", protect, updateProject);
 router.delete("/:id", protect, deleteProject);
 

@@ -1,26 +1,16 @@
 const express = require("express");
 const router = express.Router();
-
 const protect = require("../middleware/authMiddleware");
-
 const {
-  createAccessRequest,
-  getMyAccessRequests,
-  getIncomingAccessRequests,
-  approveAccessRequest,
-  rejectAccessRequest,
+  createAccessRequest, getMyAccessRequests, getIncomingAccessRequests,
+  approveAccessRequest, rejectAccessRequest, checkMyRequest,
 } = require("../controllers/accessRequestController");
 
-// Requests submitted by the logged-in user
 router.get("/mine", protect, getMyAccessRequests);
-
-// Requests received on projects owned by the logged-in user
 router.get("/incoming", protect, getIncomingAccessRequests);
-
-// Create a new access request
+// Check if current user has a request for a specific project
+router.get("/check/:projectId", protect, checkMyRequest);
 router.post("/", protect, createAccessRequest);
-
-// Approve / reject — owner only
 router.put("/:id/approve", protect, approveAccessRequest);
 router.put("/:id/reject", protect, rejectAccessRequest);
 

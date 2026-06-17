@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,94 +8,318 @@ datasource db {
 }
 
 model User {
+  id               String  @id @default(cuid())
+  githubId         String? @unique
+  githubUsername   String?
+  githubProfileUrl String?
+  username         String
+  email            String  @unique
+  avatarUrl        String?
+  bio              String?
+  location         String?
+  website          String?
+  skills           String[] @default([])
+  linkedinUrl      String?
+  twitterUrl       String?
+  portfolioUrl     String?
+  availabilityHours Int?   // hours per week available
+  profileVisibility String @default("PUBLIC")
+  isOnline          Boolean @default(false)
+  lastSeenAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+
+  projects                 Project[]
+  accessRequests           ProjectAccessRequest[]
+  repoAccessRequests       RepositoryAccessRequest[] @relation("RepoRequester")
+  repoAccessReviews        RepositoryAccessRequest[] @relation("RepoReviewer")
+  projectMemberships       ProjectMember[]
+  activities               ActivityLog[]
+  stories                  Story[]
+  notificationsReceived    Notification[] @relation("NotificationReceiver")
+  notificationsSent        Notification[] @relation("NotificationSender")
+  messagesSent             Message[]      @relation("MessageSender")
+  messagesReceived         Message[]      @relation("MessageReceiver")
+  conversations            ConversationParticipant[]
+  connectionsInitiated     Connection[]   @relation("ConnectionSender")
+  connectionsReceived      Connection[]   @relation("ConnectionReceiver")
+  projectLikes             ProjectLike[]
+  savedProjects            SavedProject[]
+  comments                 ProjectComment[]
+  opportunityPostings      Opportunity[]
+  opportunityApplications  OpportunityApplication[]
+  aiProfile                UserAIProfile?
+}
+
+// ── Repository Access Request ────────────────────────────────────────────────
+model RepositoryAccessRequest {
+  id                  String   @id @default(cuid())
+  projectId           String
+  project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requesterId         String
+  requester           User     @relation("RepoRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  requestedRole       String
+  githubProfile       String
+  experienceDescription String
+  availabilityHours   Int
+  portfolioUrl        String?
+  additionalMessage   String?
+  status              String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  reviewedById        String?
+  reviewedBy          User?    @relation("RepoReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt          DateTime?
+  createdAt           DateTime @default(now())
+
+  @@index([projectId])
+  @@index([requesterId])
+  @@index([status])
+}
+
+// ── Collaboration Opportunity ────────────────────────────────────────────────
+model Opportunity {
+  id              String   @id @default(cuid())
+  title           String
+  role            String
+  description     String
+  requiredSkills  String[] @default([])
+  duration        String?  // e.g. "3 months", "ongoing"
+  budget          String?  // e.g. "$500/month", "Volunteer"
+  isRemote        Boolean  @default(true)
+  projectId       String?
+  project         Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  ownerId         String
+  owner           User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  status          String   @default("OPEN") // OPEN | CLOSED | FILLED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt @default(now())
+
+  applications    OpportunityApplication[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+model OpportunityApplication {
+  id              String      @id @default(cuid())
+  opportunityId   String
+  opportunity     Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  applicantId     String
+  applicant       User        @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  experience      String
+  githubUrl       String?
+  portfolioUrl    String?
+  message         String?
+  status          String      @default("PENDING") // PENDING | APPROVED | REJECTED
+  createdAt       DateTime    @default(now())
+
+  @@unique([opportunityId, applicantId])
+  @@index([opportunityId])
+}
+
+// ── AI Matching Profile ──────────────────────────────────────────────────────
+model UserAIProfile {
   id                String   @id @default(cuid())
-
-  githubId          String?  @unique
-  githubUsername    String?
-  githubProfileUrl  String?
-
-  username          String
-  email             String   @unique
-  avatarUrl         String?
-
-  createdAt         DateTime @default(now())
-
-  projects          Project[]
-  accessRequests    ProjectAccessRequest[]
-  projectMemberships ProjectMember[]
-  activities        ActivityLog[]
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills            String[] @default([])
+  interests         String[] @default([])
+  preferredRoles    String[] @default([])
+  techStackExp      Json?    // { "React": 3, "Node.js": 2 } years of experience
+  preferRemote      Boolean  @default(true)
+  updatedAt         DateTime @updatedAt @default(now())
 }
 
+// ── Connection ───────────────────────────────────────────────────────────────
+model Connection {
+  id         String   @id @default(cuid())
+  senderId   String
+  sender     User     @relation("ConnectionSender",   fields: [senderId],   references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User     @relation("ConnectionReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt @default(now())
+
+  @@unique([senderId, receiverId])
+  @@index([senderId])
+  @@index([receiverId])
+}
+
+// ── Project ──────────────────────────────────────────────────────────────────
 model Project {
-  id             String   @id @default(cuid())
+  id            String   @id @default(cuid())
+  title         String
+  description   String
+  tags          String[] @default([])
+  coverImage    String?
+  images        String[] @default([])
+  deployedUrl   String
+  githubRepoUrl   String?
+  isRepoPrivate   Boolean @default(false)
+  visibility      String  @default("PUBLIC")
+  openRoles       String[] @default([])
+  category        String?
+  ownerId         String
+  owner           User     @relation(fields: [ownerId], references: [id])
 
-  title          String
-  description    String
-  tags           String[] @default([])  // Tech stack tags like ["React", "Node.js", "PostgreSQL"]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
 
-  deployedUrl    String
-
-  githubRepoUrl  String?
-  isRepoPrivate  Boolean  @default(true)
-
-  ownerId        String
-  owner          User     @relation(fields: [ownerId], references: [id])
-
-  createdAt      DateTime @default(now())
-
-  accessRequests ProjectAccessRequest[]
-  members        ProjectMember[]
-  activities     ActivityLog[]
+  accessRequests    ProjectAccessRequest[]
+  repoRequests      RepositoryAccessRequest[]
+  members           ProjectMember[]
+  activities        ActivityLog[]
+  notifications     Notification[]
+  likes             ProjectLike[]
+  savedBy           SavedProject[]
+  comments          ProjectComment[]
+  opportunities     Opportunity[]
 }
 
+model ProjectLike {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+}
+
+model SavedProject {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+model ProjectComment {
+  id              String   @id @default(cuid())
+  content         String
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentCommentId String?
+  parentComment   ProjectComment?  @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies         ProjectComment[] @relation("CommentReplies")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt @default(now())
+
+  @@index([projectId])
+  @@index([userId])
+}
+
+model Story {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaUrl   String
+  mediaType  String   @default("image")
+  caption    String?
+  label      String?
+  visibility String   @default("PUBLIC")
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
 
 model ProjectAccessRequest {
   id          String   @id @default(cuid())
-
   reason      String
   suggestion  String
-
   status      String   @default("PENDING")
-
   projectId   String
-  project     Project  @relation(fields: [projectId], references: [id])
-
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   requesterId String
   requester   User     @relation(fields: [requesterId], references: [id])
-
   createdAt   DateTime @default(now())
 }
 
 model ProjectMember {
   id        String   @id @default(cuid())
-
   projectId String
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  role      String   @default("CONTRIBUTOR")  // "OWNER" | "CONTRIBUTOR"
-
+  role      String   @default("CONTRIBUTOR")
   joinedAt  DateTime @default(now())
 
   @@unique([projectId, userId])
 }
 
+model Notification {
+  id         String   @id @default(cuid())
+  type       String
+  message    String
+  read       Boolean  @default(false)
+  link       String?
+  receiverId String
+  receiver   User     @relation("NotificationReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  senderId   String?
+  sender     User?    @relation("NotificationSender",   fields: [senderId],   references: [id], onDelete: SetNull)
+  projectId  String?
+  project    Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@index([receiverId])
+  @@index([read])
+}
+
+model Conversation {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt @default(now())
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  content        String
+  read           Boolean      @default(false)
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("MessageSender",   fields: [senderId],   references: [id], onDelete: Cascade)
+  receiverId     String
+  receiver       User         @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([receiverId])
+}
+
 model ActivityLog {
   id          String   @id @default(cuid())
-
-  action      String   // "PROJECT_CREATED", "MEMBER_JOINED", "MEMBER_LEFT", "ACCESS_REQUEST_CREATED", "ACCESS_REQUEST_APPROVED", "ACCESS_REQUEST_REJECTED", "PROJECT_UPDATED", "PROJECT_DELETED"
+  action      String
   description String
-
   projectId   String?
   project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
   userId      String?
   user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  metadata    Json?    // Additional data about the activity
-
+  metadata    Json?
   createdAt   DateTime @default(now())
 
   @@index([projectId])

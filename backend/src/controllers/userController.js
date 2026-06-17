@@ -1,288 +1,179 @@
 const prisma = require("../config/db");
 
+const USER_PUBLIC_SELECT = {
+  id: true, username: true, email: true, avatarUrl: true,
+  githubUsername: true, githubProfileUrl: true,
+  bio: true, location: true, website: true,
+  skills: true, linkedinUrl: true, twitterUrl: true,
+  portfolioUrl: true, availabilityHours: true,
+  profileVisibility: true, createdAt: true,
+  _count: { select: { projects: true, projectMemberships: true } },
+};
+
 // POST /users
-// Create user manually (not typically used since GitHub OAuth creates users)
 const createUser = async (req, res) => {
   try {
     const { username, email } = req.body;
-
-    // Validate required fields
-    if (!username || !email) {
-      return res.status(400).json({
-        message: "Username and email are required",
-      });
-    }
-
-    const user = await prisma.user.create({
-      data: {
-        username,
-        email,
-      },
-    });
-
+    if (!username || !email) return res.status(400).json({ message: "Username and email are required" });
+    const user = await prisma.user.create({ data: { username, email } });
     res.status(201).json(user);
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      message: "Failed to create user",
-    });
+    res.status(500).json({ message: "Failed to create user" });
   }
 };
 
-
 // GET /users
-// Get all users (public endpoint)
 const getUsers = async (req, res) => {
   try {
+    const { search } = req.query;
+    const where = search ? {
+      OR: [
+        { username: { contains: search, mode: "insensitive" } },
+        { githubUsername: { contains: search, mode: "insensitive" } },
+      ],
+    } : {};
     const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        avatarUrl: true,
-        githubUsername: true,
-        githubProfileUrl: true,
-        createdAt: true,
-      },
+      where,
+      select: USER_PUBLIC_SELECT,
+      take: 50,
     });
-
     res.status(200).json(users);
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      message: "Failed to fetch users",
-    });
+    res.status(500).json({ message: "Failed to fetch users" });
   }
 };
 
-
 // GET /users/:id
-// Get user by ID with project stats
 const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
+    const requestingUserId = req.user?.id || null;
 
-    const user = await prisma.user.findUnique({
-      where: {
-        id,
-      },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        avatarUrl: true,
-        githubUsername: true,
-        githubProfileUrl: true,
-        createdAt: true,
-        _count: {
-          select: {
-            projects: true,
-            projectMemberships: true,
-          },
+    const user = await prisma.user.findUnique({ where: { id }, select: USER_PUBLIC_SELECT });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Profile privacy enforcement
+    if (user.profileVisibility === "PRIVATE" && requestingUserId !== id) {
+      return res.status(403).json({ message: "This profile is private" });
+    }
+    if (user.profileVisibility === "CONNECTIONS_ONLY" && requestingUserId !== id) {
+      const conn = await prisma.connection.findFirst({
+        where: {
+          status: "ACCEPTED",
+          OR: [
+            { senderId: requestingUserId, receiverId: id },
+            { senderId: id, receiverId: requestingUserId },
+          ],
         },
-      },
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found",
       });
+      if (!conn) return res.status(403).json({ message: "This profile is only visible to connections" });
     }
 
     res.status(200).json(user);
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      message: "Failed to fetch user",
-    });
+    res.status(500).json({ message: "Failed to fetch user" });
   }
 };
 
-
 // GET /users/:id/projects
-// Get all projects owned by a specific user
 const getUserProjects = async (req, res) => {
   try {
     const { id } = req.params;
-
-    const user = await prisma.user.findUnique({
-      where: { id },
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-      });
-    }
-
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) return res.status(404).json({ message: "User not found" });
     const projects = await prisma.project.findMany({
-      where: {
-        ownerId: id,
-      },
+      where: { ownerId: id },
       include: {
-        _count: {
-          select: {
-            members: true,
-          },
-        },
+        owner: { select: { id: true, username: true, avatarUrl: true } },
+        _count: { select: { members: true, accessRequests: true, likes: true } },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
     });
-
     res.status(200).json(projects);
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      message: "Failed to fetch user projects",
-    });
+    res.status(500).json({ message: "Failed to fetch user projects" });
   }
 };
 
-
 // GET /users/:id/memberships
-// Get all projects where user is a member
 const getUserMemberships = async (req, res) => {
   try {
     const { id } = req.params;
-
-    const user = await prisma.user.findUnique({
-      where: { id },
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-      });
-    }
-
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) return res.status(404).json({ message: "User not found" });
     const memberships = await prisma.projectMember.findMany({
-      where: {
-        userId: id,
-      },
+      where: { userId: id },
       include: {
         project: {
           include: {
-            owner: {
-              select: {
-                id: true,
-                username: true,
-                avatarUrl: true,
-                githubUsername: true,
-              },
-            },
-            _count: {
-              select: {
-                members: true,
-              },
-            },
+            owner: { select: { id: true, username: true, avatarUrl: true } },
+            _count: { select: { members: true, likes: true } },
           },
         },
       },
-      orderBy: {
-        joinedAt: "desc",
-      },
+      orderBy: { joinedAt: "desc" },
     });
-
     res.status(200).json(memberships);
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      message: "Failed to fetch user memberships",
-    });
+    res.status(500).json({ message: "Failed to fetch user memberships" });
   }
 };
 
-
 // PUT /users/:id
-// Update user profile (user can only update their own profile)
-// Auth: required
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
+    if (req.user.id !== id) return res.status(403).json({ message: "Not authorized" });
 
-    // Only allow users to update their own profile
-    if (req.user.id !== id) {
-      return res.status(403).json({
-        message: "Not authorized to update this user",
-      });
+    const {
+      username, bio, location, website,
+      skills, linkedinUrl, twitterUrl, profileVisibility,
+      portfolioUrl, availabilityHours,
+    } = req.body;
+
+    const VALID_VIS = ["PUBLIC", "CONNECTIONS_ONLY", "PRIVATE"];
+    if (profileVisibility && !VALID_VIS.includes(profileVisibility)) {
+      return res.status(400).json({ message: "Invalid profileVisibility" });
     }
 
-    const { username, email } = req.body;
+    const data = {};
+    if (username)            data.username = username;
+    if (bio !== undefined)   data.bio = bio;
+    if (location !== undefined) data.location = location;
+    if (website !== undefined)  data.website = website;
+    if (skills !== undefined)   data.skills = Array.isArray(skills) ? skills : skills.split(",").map(s => s.trim()).filter(Boolean);
+    if (linkedinUrl !== undefined) data.linkedinUrl = linkedinUrl;
+    if (twitterUrl !== undefined)  data.twitterUrl = twitterUrl;
+    if (portfolioUrl !== undefined) data.portfolioUrl = portfolioUrl;
+    if (availabilityHours !== undefined) data.availabilityHours = availabilityHours ? parseInt(availabilityHours) : null;
+    if (profileVisibility)  data.profileVisibility = profileVisibility;
 
-    // Validate at least one field is provided
-    if (!username && !email) {
-      return res.status(400).json({
-        message: "At least one field (username or email) is required",
-      });
-    }
+    if (Object.keys(data).length === 0) return res.status(400).json({ message: "No fields to update" });
 
-    const updateData = {};
-    if (username) updateData.username = username;
-    if (email) updateData.email = email;
-
-    const user = await prisma.user.update({
-      where: {
-        id,
-      },
-      data: updateData,
-    });
-
+    const user = await prisma.user.update({ where: { id }, data, select: USER_PUBLIC_SELECT });
     res.status(200).json(user);
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      message: "Failed to update user",
-    });
+    res.status(500).json({ message: "Failed to update user" });
   }
 };
 
-
 // DELETE /users/:id
-// Delete user account (user can only delete their own account)
-// Auth: required
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-
-    // Only allow users to delete their own account
-    if (req.user.id !== id) {
-      return res.status(403).json({
-        message: "Not authorized to delete this user",
-      });
-    }
-
-    await prisma.user.delete({
-      where: {
-        id,
-      },
-    });
-
-    res.status(200).json({
-      message: "User deleted successfully",
-    });
+    if (req.user.id !== id) return res.status(403).json({ message: "Not authorized" });
+    await prisma.user.delete({ where: { id } });
+    res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      message: "Failed to delete user",
-    });
+    res.status(500).json({ message: "Failed to delete user" });
   }
 };
 
-module.exports = {
-  createUser,
-  getUsers,
-  getUserById,
-  getUserProjects,
-  getUserMemberships,
-  updateUser,
-  deleteUser,
-};
+module.exports = { createUser, getUsers, getUserById, getUserProjects, getUserMemberships, updateUser, deleteUser };

@@ -1,0 +1,130 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import { statsAPI, projectsAPI, usersAPI } from "@/lib/api";
+import { TrendingUp, Users, Flame, Briefcase, KeyRound } from "lucide-react";
+import Link from "next/link";
+
+export default function RightSidebar() {
+  const { data: stats } = useQuery({
+    queryKey: ["platformStats"],
+    queryFn: async () => { const { data } = await statsAPI.getPlatformStats(); return data; },
+    refetchInterval: 60000,
+  });
+
+  const { data: projectsData } = useQuery({
+    queryKey: ["trendingProjects"],
+    queryFn: async () => { const { data } = await projectsAPI.getAll({ limit: 4 }); return data; },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const { data: topUsers } = useQuery({
+    queryKey: ["topUsers"],
+    queryFn: async () => { const { data } = await usersAPI.getAll(); return data.slice(0, 3); },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  return (
+    <div className="h-full bg-gray-900 border-l border-gray-800 overflow-y-auto">
+      <div className="p-4 space-y-5 pt-20">
+
+        {/* Trending Projects */}
+        <section>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+              <TrendingUp className="h-3.5 w-3.5 text-indigo-400" />Trending
+            </h3>
+            <Link href="/explore" className="text-[10px] text-indigo-400 hover:text-indigo-300">All →</Link>
+          </div>
+          <div className="space-y-0.5">
+            {projectsData?.projects.slice(0, 4).map((project, i) => (
+              <Link key={project.id} href={`/projects/${project.id}`}
+                className="flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-gray-800 transition group">
+                <span className="text-[10px] font-bold text-gray-700 w-3 flex-shrink-0">{i + 1}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-white truncate group-hover:text-indigo-400 transition">{project.title}</p>
+                  <p className="text-[10px] text-gray-600 truncate">{project.owner?.username}</p>
+                </div>
+                <span className="text-[10px] font-bold text-indigo-400 flex-shrink-0">{project._count?.members ?? 0}</span>
+              </Link>
+            ))}
+            {(!projectsData || projectsData.projects.length === 0) && (
+              <p className="text-[10px] text-gray-600 px-2 py-2">No projects yet</p>
+            )}
+          </div>
+        </section>
+
+        {/* Developers */}
+        <section>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5 text-purple-400" />Developers
+            </h3>
+            <Link href="/developers" className="text-[10px] text-indigo-400 hover:text-indigo-300">All →</Link>
+          </div>
+          <div className="space-y-0.5">
+            {(topUsers ?? []).map((u, i) => (
+              <Link key={u.id} href={`/users/${u.id}`}
+                className="flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-gray-800 transition">
+                <span className="text-[10px] font-bold text-gray-700 w-3 flex-shrink-0">{i + 1}</span>
+                {u.avatarUrl ? (
+                  <img src={u.avatarUrl} alt="" className="w-6 h-6 rounded-full flex-shrink-0" />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                    <span className="text-[9px] font-bold text-white">{u.username.charAt(0).toUpperCase()}</span>
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-white truncate">{u.username}</p>
+                  <p className="text-[10px] text-gray-600">{u._count?.projectMemberships ?? 0} projects</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* Quick Links */}
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Explore</h3>
+          <div className="space-y-0.5">
+            {[
+              { href: "/opportunities", label: "Opportunities",   icon: Briefcase, color: "text-yellow-400" },
+              { href: "/repo-requests", label: "Repo Requests",   icon: KeyRound,  color: "text-purple-400" },
+              { href: "/activity",      label: "Activity Feed",   icon: Flame,     color: "text-orange-400" },
+            ].map(({ href, label, icon: Icon, color }) => (
+              <Link key={href} href={href}
+                className="flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-gray-800 transition text-gray-400 hover:text-white">
+                <Icon className={`h-3.5 w-3.5 ${color} flex-shrink-0`} />
+                <span className="text-xs font-medium">{label}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* Platform Stats */}
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Flame className="h-3.5 w-3.5 text-orange-400" />Stats
+          </h3>
+          <div className="bg-gray-800 rounded-xl p-3 space-y-2">
+            {[
+              { label: "Projects",     value: stats?.projects },
+              { label: "Developers",   value: stats?.users },
+              { label: "Contributors", value: stats?.memberships },
+              { label: "Likes",        value: stats?.likes },
+              { label: "Connections",  value: stats?.connections },
+              { label: "Open Requests",value: stats?.accessRequests?.pending, accent: true },
+            ].map(({ label, value, accent }) => (
+              <div key={label} className="flex items-center justify-between">
+                <span className="text-[11px] text-gray-500">{label}</span>
+                <span className={`text-[11px] font-bold ${accent ? "text-indigo-400" : "text-white"}`}>
+                  {value?.toLocaleString() ?? "–"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}

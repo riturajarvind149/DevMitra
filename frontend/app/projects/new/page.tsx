@@ -5,164 +5,208 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { projectsAPI } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FolderGit2, Globe, EyeOff, Lock, Plus, X } from "lucide-react";
 import Link from "next/link";
+
+const CATEGORIES = ["SaaS", "AI/ML", "Health", "Marketing", "E-commerce", "DevTools", "Mobile", "Other"];
+
+const VISIBILITY_OPTIONS = [
+  { value: "PUBLIC",   label: "Public",   desc: "Visible to everyone",              icon: Globe,  color: "green" },
+  { value: "UNLISTED", label: "Unlisted", desc: "Only via direct link",             icon: EyeOff, color: "yellow" },
+  { value: "PRIVATE",  label: "Private",  desc: "Members & owner only",             icon: Lock,   color: "red" },
+];
 
 export default function NewProjectPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [deployedUrl, setDeployedUrl] = useState("");
   const [githubRepoUrl, setGithubRepoUrl] = useState("");
   const [tagsInput, setTagsInput] = useState("");
+  const [coverImage, setCoverImage] = useState("");
+  const [category, setCategory] = useState("");
+  const [visibility, setVisibility] = useState("PUBLIC");
+  const [isRepoPrivate, setIsRepoPrivate] = useState(false);
+  const [openRoles, setOpenRoles] = useState<string[]>([]);
+  const [roleInput, setRoleInput] = useState("");
+
+  const addRole = () => {
+    const r = roleInput.trim();
+    if (r && !openRoles.includes(r)) setOpenRoles(prev => [...prev, r]);
+    setRoleInput("");
+  };
+  const removeRole = (r: string) => setOpenRoles(prev => prev.filter(x => x !== r));
 
   const createMutation = useMutation({
     mutationFn: (data: any) => projectsAPI.create(data),
-    onSuccess: (response) => {
-      console.log("Project created:", response.data);
-      router.push(`/projects/${response.data.id}`);
-    },
-    onError: (error: any) => {
-      console.error("Failed to create project:", error);
-      alert(error.response?.data?.message || "Failed to create project");
-    },
+    onSuccess: (res) => router.push(`/projects/${res.data.id}`),
+    onError: (e: any) => alert(e.response?.data?.message || "Failed to create project"),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const tags = tagsInput
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter((tag) => tag);
-
+    const tags = tagsInput.split(",").map(t => t.trim()).filter(Boolean);
     createMutation.mutate({
-      title,
-      description,
-      deployedUrl,
+      title, description, deployedUrl,
       githubRepoUrl: githubRepoUrl || undefined,
-      tags,
+      tags, coverImage: coverImage || undefined, category: category || undefined,
+      visibility, isRepoPrivate, openRoles,
     });
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">
-          Authentication Required
-        </h1>
-        <p className="text-gray-600">
-          Please login to create a project
-        </p>
-      </div>
-    );
-  }
+  if (!isAuthenticated) return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-950">
+      <p className="text-gray-400">Please login to create a project</p>
+    </div>
+  );
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Link
-        href="/projects"
-        className="inline-flex items-center text-indigo-600 hover:text-indigo-700 mb-6"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Projects
-      </Link>
+    <div className="min-h-screen bg-gray-950 p-6">
+      <div className="max-w-2xl mx-auto">
+        <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-white mb-5 transition">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </Link>
+        <h1 className="text-2xl font-bold text-white mb-1">Create New Project</h1>
+        <p className="text-sm text-gray-500 mb-6">Share your project with the developer community</p>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">
-          Create New Project
-        </h1>
+        {/* Cover preview */}
+        <div className="relative w-full h-40 bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 flex items-center justify-center mb-5">
+          {coverImage
+            ? <img src={coverImage} alt="Cover" className="w-full h-full object-cover" onError={() => setCoverImage("")} />
+            : <FolderGit2 className="h-10 w-10 text-gray-700" />
+          }
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Project Title *
-            </label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="My Awesome Project"
-            />
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6 space-y-5">
+
+            {/* Cover URL */}
+            <Field label="Cover Image URL">
+              <input type="url" value={coverImage} onChange={e => setCoverImage(e.target.value)}
+                placeholder="https://example.com/cover.png" className={inputCls} />
+            </Field>
+
+            {/* Title */}
+            <Field label="Project Title *">
+              <input type="text" required value={title} onChange={e => setTitle(e.target.value)}
+                placeholder="My Awesome Project" className={inputCls} />
+            </Field>
+
+            {/* Description */}
+            <Field label="Description *">
+              <textarea required value={description} onChange={e => setDescription(e.target.value)} rows={4}
+                placeholder="Describe what your project does, the problem it solves, and what you're looking for in collaborators..."
+                className={`${inputCls} resize-none`} />
+            </Field>
+
+            {/* Category */}
+            <Field label="Category">
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIES.map(cat => (
+                  <button type="button" key={cat} onClick={() => setCategory(cat === category ? "" : cat)}
+                    className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${category === cat ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"}`}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </Field>
+
+            {/* Tech Stack */}
+            <Field label="Tech Stack" hint="Comma-separated">
+              <input type="text" value={tagsInput} onChange={e => setTagsInput(e.target.value)}
+                placeholder="React, Node.js, PostgreSQL" className={inputCls} />
+            </Field>
+
+            {/* Open Roles */}
+            <Field label="Open Roles" hint="Roles you're looking for">
+              <div className="flex gap-2 mb-2">
+                <input type="text" value={roleInput} onChange={e => setRoleInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addRole(); }}}
+                  placeholder="e.g. Frontend Dev, UI Designer" className={`${inputCls} flex-1`} />
+                <button type="button" onClick={addRole} disabled={!roleInput.trim()}
+                  className="bg-indigo-600 text-white px-3 rounded-lg hover:bg-indigo-700 disabled:opacity-40 transition">
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+              {openRoles.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {openRoles.map(r => (
+                    <span key={r} className="flex items-center gap-1 text-xs text-yellow-300 bg-yellow-900/30 border border-yellow-800/40 px-2.5 py-1 rounded-full">
+                      {r}
+                      <button type="button" onClick={() => removeRole(r)}><X className="h-3 w-3" /></button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </Field>
+
+            {/* Live URL */}
+            <Field label="Live URL *">
+              <input type="url" required value={deployedUrl} onChange={e => setDeployedUrl(e.target.value)}
+                placeholder="https://myproject.com" className={inputCls} />
+            </Field>
+
+            {/* GitHub URL */}
+            <Field label="GitHub Repo URL" hint="Optional">
+              <input type="url" value={githubRepoUrl} onChange={e => setGithubRepoUrl(e.target.value)}
+                placeholder="https://github.com/username/repo" className={inputCls} />
+              {githubRepoUrl && (
+                <div className="flex items-center gap-2 mt-2">
+                  <input type="checkbox" id="repoPrivate" checked={isRepoPrivate} onChange={e => setIsRepoPrivate(e.target.checked)}
+                    className="w-4 h-4 accent-indigo-600" />
+                  <label htmlFor="repoPrivate" className="text-sm text-gray-400 cursor-pointer">
+                    Private repository <span className="text-gray-600">(only members can see the link)</span>
+                  </label>
+                </div>
+              )}
+            </Field>
+
+            {/* Visibility */}
+            <Field label="Project Visibility">
+              <div className="grid grid-cols-3 gap-2">
+                {VISIBILITY_OPTIONS.map(({ value, label, desc, icon: Icon, color }) => (
+                  <button key={value} type="button" onClick={() => setVisibility(value)}
+                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition ${
+                      visibility === value
+                        ? `border-${color}-600 bg-${color}-900/30`
+                        : "border-gray-700 bg-gray-800 hover:border-gray-600"
+                    }`}>
+                    <Icon className={`h-5 w-5 ${visibility === value ? `text-${color}-400` : "text-gray-500"}`} />
+                    <span className={`text-xs font-semibold ${visibility === value ? "text-white" : "text-gray-400"}`}>{label}</span>
+                    <span className="text-[10px] text-gray-600 leading-tight">{desc}</span>
+                  </button>
+                ))}
+              </div>
+            </Field>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description *
-            </label>
-            <textarea
-              required
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="Describe your project..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Deployed URL *
-            </label>
-            <input
-              type="url"
-              required
-              value={deployedUrl}
-              onChange={(e) => setDeployedUrl(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="https://myproject.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              GitHub Repository URL (optional)
-            </label>
-            <input
-              type="url"
-              value={githubRepoUrl}
-              onChange={(e) => setGithubRepoUrl(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="https://github.com/username/repo"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tech Stack Tags (comma-separated)
-            </label>
-            <input
-              type="text"
-              value={tagsInput}
-              onChange={(e) => setTagsInput(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="React, Node.js, PostgreSQL, TypeScript"
-            />
-            <p className="mt-2 text-sm text-gray-500">
-              Separate tags with commas
-            </p>
-          </div>
-
-          <div className="flex space-x-4">
-            <button
-              type="submit"
-              disabled={createMutation.isPending}
-              className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition disabled:bg-gray-400"
-            >
-              {createMutation.isPending ? "Creating..." : "Create Project"}
+          <div className="flex gap-3">
+            <button type="submit" disabled={createMutation.isPending}
+              className="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition">
+              {createMutation.isPending ? "Creating…" : "Post Project"}
             </button>
-            <Link
-              href="/projects"
-              className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition text-center"
-            >
+            <Link href="/" className="flex-1 bg-gray-800 text-gray-300 py-3 rounded-xl text-sm font-semibold hover:bg-gray-700 transition text-center">
               Cancel
             </Link>
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+// Helpers
+const inputCls = "w-full bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-lg focus:border-indigo-500 focus:outline-none placeholder-gray-600";
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-sm text-gray-400 mb-1.5">
+        {label}{hint && <span className="ml-1.5 text-gray-600 text-xs">({hint})</span>}
+      </label>
+      {children}
     </div>
   );
 }

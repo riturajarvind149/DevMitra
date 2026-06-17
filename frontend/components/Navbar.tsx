@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { Github, LogOut, User, FolderGit2, Bell } from "lucide-react";
+import { LogOut, User, FolderGit2 } from "lucide-react";
 
 export default function Navbar() {
   const { user, isAuthenticated, login, logout } = useAuth();
@@ -73,7 +73,7 @@ export default function Navbar() {
                 onClick={login}
                 className="flex items-center space-x-2 bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition"
               >
-                <Github className="h-5 w-5" />
+                <span>🔗</span>
                 <span>Login with GitHub</span>
               </button>
             )}

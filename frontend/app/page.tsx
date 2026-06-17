@@ -1,192 +1,173 @@
 "use client";
 
-import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { projectsAPI, storiesAPI, developersAPI } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
-import { statsAPI, projectsAPI } from "@/lib/api";
-import {
-  FolderGit2,
-  Users,
-  GitPullRequest,
-  Activity,
-  ArrowRight,
-  Github,
-} from "lucide-react";
-import ProjectCard from "@/components/ProjectCard";
+import ProjectFeedCard from "@/components/ProjectFeedCard";
+import StoryBar from "@/components/StoryBar";
+import { FolderGit2, GitPullRequest, Users, ArrowRight, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import ConnectButton from "@/components/ConnectButton";
+import { FeedSkeleton, DeveloperCardSkeleton } from "@/components/Skeleton";
 
 export default function Home() {
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated, login, user } = useAuth();
 
-  const { data: stats } = useQuery({
-    queryKey: ["platformStats"],
-    queryFn: async () => {
-      const { data } = await statsAPI.getPlatformStats();
-      return data;
-    },
+  const { data: projectsData, isLoading: loadingProjects } = useQuery({
+    queryKey: ["homeFeed"],
+    queryFn: async () => { const { data } = await projectsAPI.getAll({ limit: 12 }); return data; },
+    enabled: isAuthenticated,
   });
 
-  const { data: projectsData } = useQuery({
-    queryKey: ["projects", { limit: 6 }],
-    queryFn: async () => {
-      const { data } = await projectsAPI.getAll({ limit: 6 });
-      return data;
-    },
+  const { data: storiesData } = useQuery({
+    queryKey: ["activeStories"],
+    queryFn: async () => { const { data } = await storiesAPI.getActive(); return data; },
+    enabled: isAuthenticated,
   });
+
+  const { data: suggestedDevs, isLoading: loadingDevs } = useQuery({
+    queryKey: ["suggestedDevs"],
+    queryFn: async () => {
+      try {
+        const { data } = await developersAPI.getSuggested();
+        return data;
+      } catch {
+        return [];
+      }
+    },
+    enabled: isAuthenticated,
+  });
+
+  // ── Landing ───────────────────────────────────────────────────────────────
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-6 py-16">
+        <div className="text-center max-w-xl mb-16">
+          <div className="w-18 h-18 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-indigo-500/30 p-4">
+            <FolderGit2 className="h-10 w-10 text-white" />
+          </div>
+          <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
+            Where Developers<br /><span className="text-indigo-400">Build Together</span>
+          </h1>
+          <p className="text-lg text-gray-400 mb-10">
+            Discover projects, showcase your work, connect with developers — the LinkedIn + GitHub + Instagram for builders.
+          </p>
+          <button onClick={login}
+            className="inline-flex items-center gap-3 bg-white text-gray-900 px-8 py-3.5 rounded-xl font-semibold hover:bg-gray-100 transition shadow-xl">
+            <span>🔗</span>
+            <span>Continue with GitHub</span>
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-3 gap-6 bg-gray-900 border border-gray-800 rounded-2xl p-8">
+          {[
+            { icon: FolderGit2, color: "indigo", title: "Discover Projects", desc: "Browse real projects by developers worldwide." },
+            { icon: GitPullRequest, color: "purple", title: "Request to Collaborate", desc: "Submit proposals and get approved by owners." },
+            { icon: Users, color: "pink", title: "Grow Your Network", desc: "Connect with developers and share your journey." },
+          ].map(({ icon: Icon, color, title, desc }) => (
+            <div key={title} className="text-center">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3 bg-gray-800">
+                <Icon className="h-6 w-6 text-indigo-400" />
+              </div>
+              <h3 className="text-sm font-semibold text-white mb-1">{title}</h3>
+              <p className="text-xs text-gray-500">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Authenticated feed ────────────────────────────────────────────────────
+  const trending = [...(projectsData?.projects ?? [])].sort((a, b) => (b._count?.members ?? 0) - (a._count?.members ?? 0)).slice(0, 4);
+  const recent   = projectsData?.projects ?? [];
 
   return (
-    <div>
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-indigo-600 to-purple-700 text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-5xl font-bold mb-6">
-            Welcome to DevMitra
-          </h1>
-          <p className="text-xl mb-8 text-indigo-100 max-w-2xl mx-auto">
-            A developer collaboration platform where you can discover amazing
-            projects, request access to contribute, and build together with
-            talented developers worldwide.
-          </p>
-          {!isAuthenticated ? (
-            <button
-              onClick={login}
-              className="inline-flex items-center space-x-2 bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition text-lg"
-            >
-              <Github className="h-6 w-6" />
-              <span>Get Started with GitHub</span>
-            </button>
-          ) : (
-            <Link
-              href="/projects"
-              className="inline-flex items-center space-x-2 bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition text-lg"
-            >
-              <span>Explore Projects</span>
-              <ArrowRight className="h-5 w-5" />
-            </Link>
-          )}
-        </div>
-      </section>
+    <div className="min-h-screen bg-gray-950">
+      {/* Welcome */}
+      <div className="mb-5">
+        <h1 className="text-2xl font-bold text-white">Welcome back, {user?.username}!</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Here's what's happening in the community</p>
+      </div>
 
-      {/* Stats Section */}
-      {stats && (
-        <section className="py-12 bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-              <div className="text-center">
-                <div className="flex justify-center mb-3">
-                  <div className="p-3 bg-indigo-100 rounded-full">
-                    <Users className="h-8 w-8 text-indigo-600" />
-                  </div>
-                </div>
-                <div className="text-3xl font-bold text-gray-900">
-                  {stats.users}
-                </div>
-                <div className="text-gray-600">Developers</div>
-              </div>
-              <div className="text-center">
-                <div className="flex justify-center mb-3">
-                  <div className="p-3 bg-green-100 rounded-full">
-                    <FolderGit2 className="h-8 w-8 text-green-600" />
-                  </div>
-                </div>
-                <div className="text-3xl font-bold text-gray-900">
-                  {stats.projects}
-                </div>
-                <div className="text-gray-600">Projects</div>
-              </div>
-              <div className="text-center">
-                <div className="flex justify-center mb-3">
-                  <div className="p-3 bg-purple-100 rounded-full">
-                    <GitPullRequest className="h-8 w-8 text-purple-600" />
-                  </div>
-                </div>
-                <div className="text-3xl font-bold text-gray-900">
-                  {stats.accessRequests.total}
-                </div>
-                <div className="text-gray-600">Requests</div>
-              </div>
-              <div className="text-center">
-                <div className="flex justify-center mb-3">
-                  <div className="p-3 bg-orange-100 rounded-full">
-                    <Activity className="h-8 w-8 text-orange-600" />
-                  </div>
-                </div>
-                <div className="text-3xl font-bold text-gray-900">
-                  {stats.activities}
-                </div>
-                <div className="text-gray-600">Activities</div>
-              </div>
-            </div>
+      {/* Stories */}
+      <StoryBar stories={storiesData ?? []} />
+
+      {/* Suggested Developers */}
+      {(loadingDevs || (suggestedDevs && suggestedDevs.length > 0)) && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-white flex items-center gap-2">
+              <Users className="h-4 w-4 text-purple-400" />Suggested Developers
+            </h2>
+            <Link href="/developers" className="text-xs text-indigo-400 hover:text-indigo-300">See more</Link>
           </div>
-        </section>
-      )}
-
-      {/* Recent Projects */}
-      {projectsData && projectsData.projects.length > 0 && (
-        <section className="py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-900">
-                Recent Projects
-              </h2>
-              <Link
-                href="/projects"
-                className="text-indigo-600 hover:text-indigo-700 font-medium flex items-center space-x-1"
-              >
-                <span>View all</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+          {loadingDevs ? (
+            <div className="grid grid-cols-2 gap-3">
+              {[...Array(4)].map((_, i) => <DeveloperCardSkeleton key={i} />)}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {projectsData.projects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {(suggestedDevs ?? []).slice(0, 4).map((dev: any) => (
+                <div key={dev.id} className="bg-gray-900 border border-gray-800 rounded-xl p-3 flex items-center gap-3 hover:border-gray-700 transition">
+                  <Link href={`/users/${dev.id}`}>
+                    {dev.avatarUrl ? (
+                      <img src={dev.avatarUrl} alt="" className="w-10 h-10 rounded-xl flex-shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-xl bg-indigo-700 flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm font-bold text-white">{dev.username.charAt(0).toUpperCase()}</span>
+                      </div>
+                    )}
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <Link href={`/users/${dev.id}`} className="text-sm font-medium text-white hover:text-indigo-400 transition block truncate">{dev.username}</Link>
+                    {dev.skills?.length > 0 && (
+                      <p className="text-[10px] text-gray-500 truncate">{dev.skills.slice(0, 3).join(" · ")}</p>
+                    )}
+                  </div>
+                  <ConnectButton userId={dev.id} />
+                </div>
               ))}
             </div>
-          </div>
-        </section>
+          )}
+        </div>
       )}
 
-      {/* Features Section */}
-      <section className="py-16 bg-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-            How It Works
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-lg shadow-sm">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
-                <span className="text-2xl font-bold text-indigo-600">1</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Discover Projects</h3>
-              <p className="text-gray-600">
-                Browse through amazing projects created by developers worldwide.
-                Filter by tech stack, search by name, or explore trending
-                projects.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-lg shadow-sm">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
-                <span className="text-2xl font-bold text-indigo-600">2</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Request Access</h3>
-              <p className="text-gray-600">
-                Found an interesting project? Submit an access request with your
-                reason and how you can contribute. Project owners will review
-                your request.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-lg shadow-sm">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
-                <span className="text-2xl font-bold text-indigo-600">3</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Collaborate</h3>
-              <p className="text-gray-600">
-                Once approved, become a contributor! Work with the team, track
-                activities, and help build something amazing together.
-              </p>
-            </div>
+      {/* Trending */}
+      {trending.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-white flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-indigo-400" />Trending Projects
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {trending.map(p => <ProjectFeedCard key={p.id} project={p} />)}
           </div>
         </div>
-      </section>
+      )}
+
+      {/* Full feed */}
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-base font-semibold text-white">Project Feed</h2>
+        <Link href="/explore" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+          Explore all <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+
+      {loadingProjects ? (
+        <FeedSkeleton count={4} />
+      ) : recent.length > 0 ? (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          {recent.map(p => <ProjectFeedCard key={p.id} project={p} />)}
+        </div>
+      ) : (
+        <div className="text-center py-16 bg-gray-900 rounded-2xl border border-gray-800">
+          <FolderGit2 className="h-12 w-12 mx-auto mb-3 text-gray-700" />
+          <p className="text-gray-400">No projects yet — be the first!</p>
+          <Link href="/projects/new" className="mt-2 inline-block text-sm text-indigo-400">Create a project →</Link>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 const prisma = require("../config/db");
 const { logActivity } = require("../utils/activityLogger");
+const { createNotification } = require("./notificationController");
 
 // POST /access-requests
 // Create a new access request for a project
@@ -72,6 +73,16 @@ const createAccessRequest = async (req, res) => {
       req.user.id,
       { reason }
     );
+
+    // Notify project owner
+    await createNotification({
+      type: "ACCESS_REQUEST",
+      message: `${req.user.username} requested access to your project "${project.title}"`,
+      receiverId: project.ownerId,
+      senderId: req.user.id,
+      projectId,
+      link: `/requests`,
+    });
 
     res.status(201).json(request);
 
@@ -261,6 +272,16 @@ const approveAccessRequest = async (req, res) => {
       { role: "CONTRIBUTOR" }
     );
 
+    // Notify the requester
+    await createNotification({
+      type: "REQUEST_APPROVED",
+      message: `Your access request to "${existingRequest.project.title}" was approved! You are now a contributor.`,
+      receiverId: existingRequest.requesterId,
+      senderId: req.user.id,
+      projectId: existingRequest.projectId,
+      link: `/projects/${existingRequest.projectId}`,
+    });
+
     res.status(200).json(result);
 
   } catch (error) {
@@ -319,6 +340,16 @@ const rejectAccessRequest = async (req, res) => {
       { requesterId: existingRequest.requesterId }
     );
 
+    // Notify the requester
+    await createNotification({
+      type: "REQUEST_REJECTED",
+      message: `Your access request to "${existingRequest.project.title}" was not approved at this time.`,
+      receiverId: existingRequest.requesterId,
+      senderId: req.user.id,
+      projectId: existingRequest.projectId,
+      link: `/requests`,
+    });
+
     res.status(200).json(request);
 
   } catch (error) {
@@ -330,10 +361,33 @@ const rejectAccessRequest = async (req, res) => {
   }
 };
 
+// GET /access-requests/check/:projectId
+// Returns the current user's request status for a project (if any)
+const checkMyRequest = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const requesterId = req.user.id;
+
+    const request = await prisma.projectAccessRequest.findFirst({
+      where: { projectId, requesterId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!request) {
+      return res.status(200).json({ hasRequest: false, request: null });
+    }
+    res.status(200).json({ hasRequest: true, request });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to check request status" });
+  }
+};
+
 module.exports = {
   createAccessRequest,
   getMyAccessRequests,
   getIncomingAccessRequests,
   approveAccessRequest,
   rejectAccessRequest,
+  checkMyRequest,
 };

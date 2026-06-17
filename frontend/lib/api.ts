@@ -1,116 +1,182 @@
 import axios from "axios";
 import type {
-  User,
-  Project,
-  ProjectMember,
-  AccessRequest,
-  Activity,
-  ProjectStats,
-  PlatformStats,
+  User, Project, ProjectMember, AccessRequest, Activity,
+  ProjectStats, PlatformStats, Story, StoryGroup, Notification,
+  Message, Conversation, Connection, ConnectionRequest, Comment,
+  RepositoryAccessRequest, Opportunity, OpportunityApplication,
 } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const api = axios.create({
   baseURL: API_URL,
-  withCredentials: true, // Important for cookies
-  headers: {
-    "Content-Type": "application/json",
-  },
+  withCredentials: true,
+  headers: { "Content-Type": "application/json" },
 });
 
-// Auth API
 export const authAPI = {
   getCurrentUser: () => api.get<User>("/auth/me"),
   logout: () => api.post("/auth/logout"),
 };
 
-// Users API
 export const usersAPI = {
-  getAll: () => api.get<User[]>("/users"),
+  getAll: (params?: { search?: string }) => api.get<User[]>("/users", { params }),
   getById: (id: string) => api.get<User>(`/users/${id}`),
   getUserProjects: (id: string) => api.get<Project[]>(`/users/${id}/projects`),
   getUserMemberships: (id: string) => api.get<any[]>(`/users/${id}/memberships`),
-  update: (id: string, data: Partial<User>) => api.put<User>(`/users/${id}`, data),
+  update: (id: string, data: Partial<User> & { skills?: string[]; profileVisibility?: string }) =>
+    api.put<User>(`/users/${id}`, data),
   delete: (id: string) => api.delete(`/users/${id}`),
 };
 
-// Projects API
 export const projectsAPI = {
-  getAll: (params?: {
-    search?: string;
-    owner?: string;
-    limit?: number;
-    offset?: number;
-  }) => api.get<{ projects: Project[]; pagination: any }>("/projects", { params }),
+  getAll: (params?: { search?: string; owner?: string; limit?: number; offset?: number }) =>
+    api.get<{ projects: Project[]; pagination: any }>("/projects", { params }),
   getMyProjects: () => api.get<Project[]>("/projects/my"),
   getById: (id: string) => api.get<Project>(`/projects/${id}`),
   getStats: (id: string) => api.get<ProjectStats>(`/projects/${id}/stats`),
   create: (data: {
-    title: string;
-    description: string;
-    deployedUrl: string;
-    githubRepoUrl?: string;
-    tags?: string[];
+    title: string; description: string; deployedUrl: string;
+    githubRepoUrl?: string; tags?: string[]; coverImage?: string;
+    images?: string[]; category?: string; isRepoPrivate?: boolean;
+    visibility?: string; openRoles?: string[];
   }) => api.post<Project>("/projects", data),
-  update: (id: string, data: Partial<Project>) =>
-    api.put<Project>(`/projects/${id}`, data),
+  update: (id: string, data: Partial<Project> & {
+    coverImage?: string; category?: string;
+    isRepoPrivate?: boolean; visibility?: string; openRoles?: string[];
+  }) => api.put<Project>(`/projects/${id}`, data),
   delete: (id: string) => api.delete(`/projects/${id}`),
 };
 
-// Project Members API
 export const projectMembersAPI = {
-  getMembers: (projectId: string) =>
-    api.get<ProjectMember[]>(`/projects/${projectId}/members`),
+  getMembers: (projectId: string) => api.get<ProjectMember[]>(`/projects/${projectId}/members`),
   checkMembership: (projectId: string) =>
-    api.get<{ isMember: boolean; role: string | null; joinedAt?: string }>(
-      `/projects/${projectId}/membership`
-    ),
+    api.get<{ isMember: boolean; role: string | null; joinedAt?: string }>(`/projects/${projectId}/membership`),
   removeMember: (projectId: string, userId: string) =>
     api.delete(`/projects/${projectId}/members/${userId}`),
 };
 
-// Access Requests API
 export const accessRequestsAPI = {
   getMine: (status?: string) =>
-    api.get<AccessRequest[]>("/access-requests/mine", {
-      params: status ? { status } : {},
-    }),
+    api.get<AccessRequest[]>("/access-requests/mine", { params: status ? { status } : {} }),
   getIncoming: (status?: string) =>
-    api.get<AccessRequest[]>("/access-requests/incoming", {
-      params: status ? { status } : {},
-    }),
+    api.get<AccessRequest[]>("/access-requests/incoming", { params: status ? { status } : {} }),
+  checkMyRequest: (projectId: string) =>
+    api.get<{ hasRequest: boolean; request: AccessRequest | null }>(`/access-requests/check/${projectId}`),
   create: (data: { projectId: string; reason: string; suggestion: string }) =>
     api.post<AccessRequest>("/access-requests", data),
-  approve: (id: string) =>
-    api.put<AccessRequest>(`/access-requests/${id}/approve`),
-  reject: (id: string) =>
-    api.put<AccessRequest>(`/access-requests/${id}/reject`),
+  approve: (id: string) => api.put<AccessRequest>(`/access-requests/${id}/approve`),
+  reject: (id: string) => api.put<AccessRequest>(`/access-requests/${id}/reject`),
 };
 
-// Activities API
 export const activitiesAPI = {
-  getProjectActivities: (
-    projectId: string,
-    params?: { limit?: number; offset?: number }
-  ) =>
-    api.get<{ activities: Activity[]; pagination: any }>(
-      `/projects/${projectId}/activities`,
-      { params }
-    ),
-  getUserActivities: (
-    userId: string,
-    params?: { limit?: number; offset?: number }
-  ) =>
-    api.get<{ activities: Activity[]; pagination: any }>(
-      `/users/${userId}/activities`,
-      { params }
-    ),
+  getProjectActivities: (projectId: string, params?: { limit?: number; offset?: number }) =>
+    api.get<{ activities: Activity[]; pagination: any }>(`/projects/${projectId}/activities`, { params }),
+  getUserActivities: (userId: string, params?: { limit?: number; offset?: number }) =>
+    api.get<{ activities: Activity[]; pagination: any }>(`/users/${userId}/activities`, { params }),
 };
 
-// Stats API
 export const statsAPI = {
   getPlatformStats: () => api.get<PlatformStats>("/stats"),
+};
+
+export const storiesAPI = {
+  getActive: () => api.get<StoryGroup[]>("/stories"),
+  create: (data: { mediaUrl: string; mediaType?: string; caption?: string; label?: string; visibility?: string }) =>
+    api.post<Story>("/stories", data),
+  delete: (id: string) => api.delete(`/stories/${id}`),
+};
+
+export const notificationsAPI = {
+  getAll: (params?: { limit?: number; offset?: number }) =>
+    api.get<{ notifications: Notification[]; unreadCount: number }>("/notifications", { params }),
+  markAsRead: (id: string) => api.put(`/notifications/${id}/read`),
+  markAllAsRead: () => api.put("/notifications/read-all"),
+};
+
+export const messagesAPI = {
+  getConversations: () => api.get<Conversation[]>("/messages/conversations"),
+  getMessages: (conversationId: string, params?: { limit?: number; offset?: number }) =>
+    api.get<Message[]>(`/messages/${conversationId}`, { params }),
+  send: (data: { receiverId: string; content: string }) => api.post<Message>("/messages/send", data),
+  getUnreadCount: () => api.get<{ unreadCount: number }>("/messages/unread-count"),
+};
+
+export const connectionsAPI = {
+  getAll: () => api.get<Connection[]>("/connections"),
+  getRequests: () => api.get<ConnectionRequest[]>("/connections/requests"),
+  getStatus: (userId: string) =>
+    api.get<{ status: string; connectionId: string | null; isSender: boolean }>(`/connections/status/${userId}`),
+  getCounts: (userId: string) =>
+    api.get<{ connections: number; following: number; followers: number }>(`/connections/counts/${userId}`),
+  send: (userId: string) => api.post(`/connections/request/${userId}`),
+  accept: (requestId: string) => api.put(`/connections/accept/${requestId}`),
+  reject: (requestId: string) => api.put(`/connections/reject/${requestId}`),
+  remove: (userId: string) => api.delete(`/connections/${userId}`),
+};
+
+export const likesAPI = {
+  getLikes: (projectId: string) => api.get<{ count: number; liked: boolean }>(`/projects/${projectId}/likes`),
+  like: (projectId: string) => api.post(`/projects/${projectId}/likes`),
+  unlike: (projectId: string) => api.delete(`/projects/${projectId}/likes`),
+};
+
+export const savesAPI = {
+  getStatus: (projectId: string) => api.get<{ saved: boolean }>(`/projects/${projectId}/save/status`),
+  save: (projectId: string) => api.post(`/projects/${projectId}/save`),
+  unsave: (projectId: string) => api.delete(`/projects/${projectId}/save`),
+  getSaved: () => api.get<Project[]>("/saved-projects"),
+};
+
+export const commentsAPI = {
+  getComments: (projectId: string) => api.get<Comment[]>(`/projects/${projectId}/comments`),
+  addComment: (projectId: string, data: { content: string; parentCommentId?: string }) =>
+    api.post<Comment>(`/projects/${projectId}/comments`, data),
+  updateComment: (id: string, content: string) => api.put<Comment>(`/comments/${id}`, { content }),
+  deleteComment: (id: string) => api.delete(`/comments/${id}`),
+};
+
+export const repoRequestsAPI = {
+  create: (data: {
+    projectId: string; requestedRole: string; githubProfile: string;
+    experienceDescription: string; availabilityHours: number; portfolioUrl?: string; additionalMessage?: string;
+  }) => api.post<RepositoryAccessRequest>("/repo-requests", data),
+  getMine: () => api.get<RepositoryAccessRequest[]>("/repo-requests/mine"),
+  getIncoming: (status?: string) => api.get<RepositoryAccessRequest[]>("/repo-requests/incoming", { params: status ? { status } : {} }),
+  check: (projectId: string) => api.get<{ hasRequest: boolean; request: RepositoryAccessRequest | null }>(`/repo-requests/check/${projectId}`),
+  approve: (id: string) => api.put<RepositoryAccessRequest>(`/repo-requests/${id}/approve`),
+  reject: (id: string) => api.put<RepositoryAccessRequest>(`/repo-requests/${id}/reject`),
+};
+
+export const opportunitiesAPI = {
+  getAll: (params?: { search?: string; skill?: string; remote?: boolean; limit?: number; offset?: number }) =>
+    api.get<{ opportunities: Opportunity[]; pagination: any }>("/opportunities", { params }),
+  getMine: () => api.get<Opportunity[]>("/opportunities/mine"),
+  getById: (id: string) => api.get<Opportunity>(`/opportunities/${id}`),
+  checkApplied: (id: string) => api.get<{ applied: boolean; application: OpportunityApplication | null }>(`/opportunities/${id}/check`),
+  create: (data: Partial<Opportunity>) => api.post<Opportunity>("/opportunities", data),
+  update: (id: string, data: Partial<Opportunity>) => api.put<Opportunity>(`/opportunities/${id}`, data),
+  delete: (id: string) => api.delete(`/opportunities/${id}`),
+  apply: (id: string, data: { experience: string; githubUrl?: string; portfolioUrl?: string; message?: string }) =>
+    api.post<OpportunityApplication>(`/opportunities/${id}/apply`, data),
+  approveApp: (id: string, appId: string) => api.put(`/opportunities/${id}/applications/${appId}/approve`),
+  rejectApp: (id: string, appId: string) => api.put(`/opportunities/${id}/applications/${appId}/reject`),
+};
+
+export const developersAPI = {
+  getAll: (params?: { search?: string; skill?: string; location?: string; availability?: number; limit?: number; offset?: number }) =>
+    api.get<{ developers: User[]; pagination: any }>("/developers", { params }),
+  getSuggested: () => api.get<User[]>("/developers/suggested"),
+  getActivityFeed: (params?: { limit?: number; offset?: number }) =>
+    api.get<Activity[]>("/developers/feed", { params }),
+};
+
+export const aiAPI = {
+  getProfile: () => api.get("/ai/profile"),
+  updateProfile: (data: { skills?: string[]; interests?: string[]; preferredRoles?: string[]; techStackExp?: any; preferRemote?: boolean }) =>
+    api.put("/ai/profile", data),
+  getSuggestedDevelopers: () => api.get<User[]>("/ai/suggested-developers"),
+  getSuggestedProjects: () => api.get<Project[]>("/ai/suggested-projects"),
 };
 
 export default api;
