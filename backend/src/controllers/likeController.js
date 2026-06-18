@@ -68,10 +68,13 @@ const getProjectLikes = async (req, res) => {
   }
 };
 
-// GET /users/:userId/liked-projects  — all projects a user has liked
+// GET /users/:userId/liked-projects
+// Returns only the authenticated user's liked projects — ignores :userId param
+// Auth: required (protect middleware enforces this)
 const getUserLikedProjects = async (req, res) => {
   try {
-    const { userId } = req.params;
+    // Always use the authenticated user's ID — never trust the URL param for private data
+    const userId = req.user.id;
     const likes = await prisma.projectLike.findMany({
       where: { userId },
       include: {

@@ -208,4 +208,28 @@ const checkApplied = async (req, res) => {
   }
 };
 
-module.exports = { createOpportunity, getOpportunities, getOpportunityById, getMyOpportunities, updateOpportunity, deleteOpportunity, applyToOpportunity, approveApplication, rejectApplication, checkApplied };
+// GET /users/:userId/applications — all opportunity applications by the authenticated user
+const getUserApplications = async (req, res) => {
+  try {
+    // Always use the authenticated user's ID — never trust the URL param for private data
+    const userId = req.user.id;
+    const applications = await prisma.opportunityApplication.findMany({
+      where: { applicantId: userId },
+      include: {
+        opportunity: {
+          include: {
+            owner: { select: { id: true, username: true, avatarUrl: true } },
+            project: { select: { id: true, title: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    res.status(200).json(applications);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch user applications" });
+  }
+};
+
+module.exports = { createOpportunity, getOpportunities, getOpportunityById, getMyOpportunities, updateOpportunity, deleteOpportunity, applyToOpportunity, approveApplication, rejectApplication, checkApplied, getUserApplications };

@@ -109,10 +109,13 @@ const deleteComment = async (req, res) => {
   }
 };
 
-// GET /users/:userId/comments  — all comments posted by a user
+// GET /users/:userId/comments
+// Returns only the authenticated user's comments — ignores :userId param
+// Auth: required
 const getUserComments = async (req, res) => {
   try {
-    const { userId } = req.params;
+    // Always use the authenticated user's ID — never trust the URL param for private data
+    const userId = req.user.id;
     const comments = await prisma.projectComment.findMany({
       where: { userId },
       include: {

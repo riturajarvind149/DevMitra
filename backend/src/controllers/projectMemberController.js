@@ -199,10 +199,11 @@ const checkMembership = async (req, res) => {
 };
 
 // GET /users/:userId/contributing
-// Projects where user is CONTRIBUTOR (not owner)
+// Projects where the authenticated user is CONTRIBUTOR (not owner)
 const getUserContributing = async (req, res) => {
   try {
-    const { userId } = req.params;
+    // Use authenticated user's ID — ignores URL param to prevent cross-user data access
+    const userId = req.user.id;
     const memberships = await prisma.projectMember.findMany({
       where: { userId, role: "CONTRIBUTOR" },
       include: {

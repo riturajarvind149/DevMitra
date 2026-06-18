@@ -6,14 +6,16 @@ const { createUser, getUsers, getUserById, getUserProjects, getUserMemberships, 
 const { getUserLikedProjects } = require("../controllers/likeController");
 const { getUserComments } = require("../controllers/commentController");
 const { getUserContributing } = require("../controllers/projectMemberController");
+const { getUserApplications } = require("../controllers/opportunityController");
 
-router.get("/",                    getUsers);
-router.get("/:id",                 optionalAuth, getUserById);
-router.get("/:id/projects",        getUserProjects);
-router.get("/:id/memberships",     getUserMemberships);
-router.get("/:id/contributing",    getUserContributing);
-router.get("/:id/liked-projects",  protect, getUserLikedProjects);
-router.get("/:id/comments",        protect, getUserComments);
+router.get("/",                      getUsers);
+router.get("/:id",                   optionalAuth, getUserById);
+router.get("/:id/projects",          getUserProjects);
+router.get("/:id/memberships",       getUserMemberships);
+router.get("/:id/contributing",      getUserContributing);
+router.get("/:id/liked-projects",    protect, getUserLikedProjects);
+router.get("/:id/comments",          protect, getUserComments);
+router.get("/:id/applications",      protect, getUserApplications);
 router.post("/",                   createUser);
 router.put("/:id",                 protect, updateUser);
 router.delete("/:id",              protect, deleteUser);

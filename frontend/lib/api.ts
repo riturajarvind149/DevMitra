@@ -27,6 +27,7 @@ export const usersAPI = {
   getUserContributing: (id: string) => api.get<Project[]>(`/users/${id}/contributing`),
   getUserLikedProjects: (id: string) => api.get<any[]>(`/users/${id}/liked-projects`),
   getUserComments: (id: string) => api.get<any[]>(`/users/${id}/comments`),
+  getUserApplications: (id: string) => api.get<any[]>(`/users/${id}/applications`),
   update: (id: string, data: Partial<User> & { skills?: string[]; profileVisibility?: string }) =>
     api.put<User>(`/users/${id}`, data),
   delete: (id: string) => api.delete(`/users/${id}`),
