@@ -27,7 +27,7 @@ export default function MessagesPage() {
   const { data: conversations, isLoading: loadingConvs } = useQuery({
     queryKey: ["conversations"],
     queryFn: async () => { const { data } = await messagesAPI.getConversations(); return data; },
-    refetchInterval: 8000,
+    refetchInterval: 5000,
   });
 
   const { data: messages, isLoading: loadingMsgs } = useQuery({
@@ -38,7 +38,7 @@ export default function MessagesPage() {
       return data;
     },
     enabled: !!selectedConv,
-    refetchInterval: 5000,
+    refetchInterval: 2000,
   });
 
   // Auto-scroll when new messages arrive
@@ -60,17 +60,29 @@ export default function MessagesPage() {
     mutationFn: async (content: string) => {
       const receiverId = selectedConv?.otherUser?.id || selectedUser?.id;
       if (!receiverId) throw new Error("No receiver");
-      return messagesAPI.send({ receiverId, content });
+      const res = await messagesAPI.send({ receiverId, content });
+      return res;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["messages", selectedConv?.id] });
-      qc.invalidateQueries({ queryKey: ["conversations"] });
-      qc.invalidateQueries({ queryKey: ["messageUnreadCount"] });
+    onSuccess: async (res) => {
       setNewMessage("");
-      setShowNewChat(false);
-      setSelectedUser(null);
-      setUserSearch("");
-      setTimeout(() => qc.invalidateQueries({ queryKey: ["conversations"] }), 800);
+      // Immediately refetch messages in open conversation
+      await qc.refetchQueries({ queryKey: ["messages", selectedConv?.id] });
+      // Refetch conversations so lastMessage updates immediately
+      await qc.refetchQueries({ queryKey: ["conversations"] });
+      qc.invalidateQueries({ queryKey: ["messageUnreadCount"] });
+
+      // If this was a new chat, find and select the new conversation
+      if (showNewChat) {
+        setShowNewChat(false);
+        setSelectedUser(null);
+        setUserSearch("");
+        const { data: convs } = await messagesAPI.getConversations();
+        qc.setQueryData(["conversations"], convs);
+        const newConv = convs.find((c: any) =>
+          c.otherUser?.id === (selectedUser?.id)
+        );
+        if (newConv) setSelectedConv(newConv);
+      }
     },
   });
 

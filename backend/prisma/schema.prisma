@@ -24,6 +24,7 @@ model User {
   portfolioUrl     String?
   availabilityHours Int?   // hours per week available
   profileVisibility String @default("PUBLIC")
+  isAdmin           Boolean @default(false)
   isOnline          Boolean @default(false)
   lastSeenAt        DateTime?
 

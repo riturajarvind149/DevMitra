@@ -4,14 +4,14 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { connectionsAPI } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
-import { Users, UserPlus, Check, X, UserCheck, Search } from "lucide-react";
+import { Users, UserPlus, Check, X, UserCheck, Search, Compass } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 
 export default function ConnectionsPage() {
   const { isAuthenticated } = useAuth();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<"connections" | "requests">("connections");
+  const [tab, setTab] = useState<"connections" | "requests" | "discover">("connections");
   const [search, setSearch] = useState("");
 
   const { data: connections, isLoading: loadConn } = useQuery({
@@ -63,6 +63,7 @@ export default function ConnectionsPage() {
         {[
           { key: "connections", label: `Connections (${connections?.length ?? 0})`, icon: UserCheck },
           { key: "requests",    label: `Requests${pendingCount > 0 ? ` (${pendingCount})` : ""}`, icon: UserPlus },
+          { key: "discover",    label: "Discover", icon: Compass },
         ].map(({ key, label, icon: Icon }) => (
           <button key={key} onClick={() => setTab(key as any)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${tab === key ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-white"}`}>
@@ -171,6 +172,19 @@ export default function ConnectionsPage() {
             <p className="text-sm">You're all caught up!</p>
           </div>
         )
+      )}
+
+      {/* Discover tab — links to Explore developers to avoid duplication */}
+      {tab === "discover" && (
+        <div className="text-center py-16 bg-gray-900 rounded-2xl border border-gray-800">
+          <Compass className="h-12 w-12 mx-auto mb-3 text-indigo-400" />
+          <p className="text-white font-semibold mb-1">Discover Developers</p>
+          <p className="text-sm text-gray-500 mb-5">Find developers to connect with across the platform</p>
+          <Link href="/explore?tab=developers"
+            className="inline-flex items-center gap-2 text-sm font-medium text-white bg-indigo-600 px-5 py-2.5 rounded-xl hover:bg-indigo-700 transition">
+            <Compass className="h-4 w-4" />Browse Developers
+          </Link>
+        </div>
       )}
     </div>
   );

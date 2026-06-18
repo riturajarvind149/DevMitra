@@ -1,115 +1,313 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { projectsAPI } from "@/lib/api";
-import ProjectFeedCard from "@/components/ProjectFeedCard";
-import { Search, Filter } from "lucide-react";
+import { useState, Suspense } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { projectsAPI, developersAPI, opportunitiesAPI } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Search, Compass, Users, Briefcase, FolderGit2, MapPin, Clock, ChevronRight, Wifi, DollarSign, ExternalLink, Plus } from "lucide-react";
+import ProjectFeedCard from "@/components/ProjectFeedCard";
+import ConnectButton from "@/components/ConnectButton";
+import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
 import { FeedSkeleton } from "@/components/Skeleton";
 
-const CATEGORIES = ["All", "SaaS", "AI/ML", "Health", "Marketing", "E-commerce", "DevTools", "Mobile", "Other"];
+const TABS = [
+  { key: "projects",      label: "Projects",      icon: FolderGit2 },
+  { key: "developers",    label: "Developers",    icon: Users },
+  { key: "opportunities", label: "Opportunities", icon: Briefcase },
+] as const;
+type Tab = typeof TABS[number]["key"];
 
+const SKILLS = ["React","Node.js","Python","TypeScript","Go","Rust","Vue","Docker","AWS","Swift"];
+const AVAIL  = [{ label:"Any", value:"" },{ label:"5+ hrs/wk", value:"5" },{ label:"10+ hrs/wk", value:"10" },{ label:"20+ hrs/wk", value:"20" }];
+const CATS   = ["All","SaaS","AI/ML","Health","Marketing","E-commerce","DevTools","Mobile","Other"];
+
+/* ─── Developer Card ─────────────────────────────────────────────────────── */
+function DeveloperCard({ dev }: { dev: any }) {
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 hover:border-gray-700 transition flex flex-col gap-3">
+      <div className="flex items-start gap-3">
+        <Link href={`/users/${dev.id}`}>
+          {dev.avatarUrl
+            ? <img src={dev.avatarUrl} alt="" className="w-12 h-12 rounded-2xl flex-shrink-0" />
+            : <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold flex-shrink-0">{dev.username.charAt(0).toUpperCase()}</div>
+          }
+        </Link>
+        <div className="min-w-0 flex-1">
+          <Link href={`/users/${dev.id}`} className="text-sm font-semibold text-white hover:text-indigo-400 transition block truncate">{dev.username}</Link>
+          {dev.bio && <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{dev.bio}</p>}
+          <div className="flex flex-wrap gap-2 mt-1.5">
+            {dev.location && <span className="flex items-center gap-1 text-[10px] text-gray-600"><MapPin className="h-3 w-3" />{dev.location}</span>}
+            {dev.availabilityHours && <span className="flex items-center gap-1 text-[10px] text-green-500"><Clock className="h-3 w-3" />{dev.availabilityHours}h/wk</span>}
+            {dev.githubUsername && (
+              <a href={dev.githubProfileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] text-indigo-400 hover:text-indigo-300">
+                <ExternalLink className="h-3 w-3" />@{dev.githubUsername}
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+      {dev.skills?.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {dev.skills.slice(0, 5).map((s: string, i: number) => (
+            <span key={i} className="text-[10px] text-indigo-300 bg-indigo-900/40 px-2 py-0.5 rounded-full">{s}</span>
+          ))}
+          {dev.skills.length > 5 && <span className="text-[10px] text-gray-600">+{dev.skills.length - 5}</span>}
+        </div>
+      )}
+      <div className="flex items-center justify-between pt-2 border-t border-gray-800">
+        <div className="flex items-center gap-3 text-xs text-gray-600">
+          <span className="flex items-center gap-1"><FolderGit2 className="h-3 w-3" />{dev._count?.projects ?? 0}</span>
+          <span className="flex items-center gap-1"><Users className="h-3 w-3" />{dev._count?.projectMemberships ?? 0}</span>
+        </div>
+        <ConnectButton userId={dev.id} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Opportunity Card ───────────────────────────────────────────────────── */
+function OppCard({ opp, onApply }: { opp: any; onApply: (id: string) => void }) {
+  const { user } = useAuth();
+  const isOwner = user?.id === opp.ownerId;
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 hover:border-gray-700 transition">
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        <span className="text-xs font-semibold text-indigo-400 bg-indigo-900/40 px-2 py-0.5 rounded-full">{opp.role}</span>
+        {opp.isRemote && <span className="flex items-center gap-1 text-[10px] text-green-400 bg-green-900/30 px-2 py-0.5 rounded-full"><Wifi className="h-3 w-3" />Remote</span>}
+      </div>
+      <h3 className="text-sm font-semibold text-white mb-1">{opp.title}</h3>
+      <p className="text-xs text-gray-400 line-clamp-2 mb-3">{opp.description}</p>
+      <div className="flex flex-wrap gap-1 mb-3">
+        {opp.requiredSkills?.slice(0, 4).map((s: string, i: number) => (
+          <span key={i} className="text-[10px] text-indigo-300 bg-indigo-900/40 px-2 py-0.5 rounded-full">{s}</span>
+        ))}
+      </div>
+      <div className="flex items-center gap-3 text-[10px] text-gray-500 mb-3">
+        {opp.duration && <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{opp.duration}</span>}
+        {opp.budget && <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" />{opp.budget}</span>}
+        <span>{opp._count?.applications ?? 0} applicants</span>
+        {opp.project && <Link href={`/projects/${opp.project.id}`} className="text-indigo-400 hover:text-indigo-300">{opp.project.title}</Link>}
+      </div>
+      <div className="flex items-center justify-between pt-3 border-t border-gray-800">
+        <div className="flex items-center gap-2">
+          {opp.owner?.avatarUrl
+            ? <img src={opp.owner.avatarUrl} alt="" className="w-5 h-5 rounded-full" />
+            : <div className="w-5 h-5 rounded-full bg-indigo-700 flex items-center justify-center text-[9px] font-bold text-white">{opp.owner?.username?.charAt(0).toUpperCase()}</div>
+          }
+          <span className="text-[10px] text-gray-500">{opp.owner?.username}</span>
+        </div>
+        {!isOwner && opp.status === "OPEN" && (
+          <button onClick={() => onApply(opp.id)}
+            className="flex items-center gap-1 text-xs font-medium text-white bg-indigo-600 px-3 py-1.5 rounded-xl hover:bg-indigo-700 transition">
+            Apply <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Apply Modal ────────────────────────────────────────────────────────── */
+function ApplyModal({ oppId, onClose }: { oppId: string; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [form, setForm] = useState({ experience: "", githubUrl: "", portfolioUrl: "", message: "" });
+  const mut = useMutation({
+    mutationFn: () => opportunitiesAPI.apply(oppId, form),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["explore-opps"] }); onClose(); },
+    onError: (e: any) => alert(e.response?.data?.message || "Failed to apply"),
+  });
+  return (
+    <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-900 rounded-2xl max-w-md w-full border border-gray-700">
+        <div className="p-5 border-b border-gray-800"><h2 className="text-base font-semibold text-white">Apply for Opportunity</h2></div>
+        <form onSubmit={e => { e.preventDefault(); mut.mutate(); }} className="p-5 space-y-4">
+          <div>
+            <label className="block text-sm text-gray-400 mb-1.5">Your Experience *</label>
+            <textarea required value={form.experience} onChange={e => setForm(f => ({ ...f, experience: e.target.value }))} rows={3}
+              placeholder="Describe your relevant experience…"
+              className="w-full bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none resize-none" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {[["githubUrl","GitHub URL","https://github.com/…"],["portfolioUrl","Portfolio","https://…"]].map(([k,l,p])=>(
+              <div key={k}>
+                <label className="block text-sm text-gray-400 mb-1.5">{l}</label>
+                <input type="url" value={(form as any)[k]} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
+                  placeholder={p} className="w-full bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none" />
+              </div>
+            ))}
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1.5">Message</label>
+            <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} rows={2}
+              className="w-full bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none resize-none" />
+          </div>
+          <div className="flex gap-3">
+            <button type="submit" disabled={mut.isPending}
+              className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition">
+              {mut.isPending ? "Submitting…" : "Submit Application"}
+            </button>
+            <button type="button" onClick={onClose} className="flex-1 bg-gray-800 text-gray-300 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Explore Content ───────────────────────────────────────────────── */
 function ExploreContent() {
+  const { isAuthenticated } = useAuth();
   const searchParams = useSearchParams();
+  const initialTab = (searchParams.get("tab") as Tab) || "projects";
+  const [tab, setTab]       = useState<Tab>(initialTab);
   const [search, setSearch] = useState(searchParams.get("search") || "");
-  const [owner, setOwner] = useState("");
   const [category, setCategory] = useState("All");
+  const [skill, setSkill]   = useState("");
+  const [avail, setAvail]   = useState("");
+  const [applyId, setApplyId] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["explore", search, owner, category],
+  /* Projects */
+  const { data: projData, isLoading: projLoading } = useQuery({
+    queryKey: ["explore-projects", search, category],
     queryFn: async () => {
-      const { data } = await projectsAPI.getAll({
-        search: search || undefined,
-        owner: owner || undefined,
-        limit: 50,
-      });
-      // Client-side category filter
-      if (category !== "All") {
-        return { ...data, projects: data.projects.filter(p => p.category === category) };
-      }
+      const { data } = await projectsAPI.getAll({ search: search || undefined, limit: 50 });
+      if (category !== "All") return { ...data, projects: data.projects.filter((p: any) => p.category === category) };
       return data;
     },
+    enabled: tab === "projects",
   });
+
+  /* Developers */
+  const { data: devData, isLoading: devLoading } = useQuery({
+    queryKey: ["explore-devs", search, skill, avail],
+    queryFn: async () => {
+      const { data } = await developersAPI.getAll({
+        search: search || undefined,
+        skill: skill || undefined,
+        availability: avail ? parseInt(avail) : undefined,
+        limit: 40,
+      });
+      return data;
+    },
+    enabled: tab === "developers",
+  });
+
+  /* Opportunities */
+  const { data: oppData, isLoading: oppLoading } = useQuery({
+    queryKey: ["explore-opps", search],
+    queryFn: async () => {
+      const { data } = await opportunitiesAPI.getAll({ search: search || undefined, limit: 50 });
+      return data;
+    },
+    enabled: tab === "opportunities",
+  });
+
+  const loading = projLoading || devLoading || oppLoading;
 
   return (
     <div className="min-h-screen bg-gray-950">
+      {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Explore Projects</h1>
-        <p className="text-sm text-gray-500">Discover projects from developers around the world</p>
+        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <Compass className="h-6 w-6 text-indigo-400" />Explore
+        </h1>
+        <p className="text-sm text-gray-500 mt-0.5">Discover projects, developers, and opportunities</p>
       </div>
 
-      {/* Filters */}
-      <div className="bg-gray-900 rounded-2xl p-4 mb-6 border border-gray-800 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search projects..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 text-white text-sm pl-10 pr-4 py-2.5 rounded-lg focus:border-indigo-500 focus:outline-none"
-            />
-          </div>
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Filter by owner..."
-              value={owner}
-              onChange={e => setOwner(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 text-white text-sm pl-10 pr-4 py-2.5 rounded-lg focus:border-indigo-500 focus:outline-none"
-            />
-          </div>
-        </div>
+      {/* Tabs */}
+      <div className="flex gap-1 bg-gray-900 rounded-xl p-1 border border-gray-800 mb-5 w-fit">
+        {TABS.map(({ key, label, icon: Icon }) => (
+          <button key={key} onClick={() => setTab(key)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${tab === key ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-white"}`}>
+            <Icon className="h-4 w-4" />{label}
+          </button>
+        ))}
+      </div>
 
-        {/* Category pills */}
-        <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat)}
-              className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${
-                category === cat
-                  ? "bg-indigo-600 text-white"
-                  : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"
-              }`}
-            >
-              {cat}
-            </button>
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+        <input type="text" placeholder={`Search ${tab}…`} value={search} onChange={e => setSearch(e.target.value)}
+          className="w-full bg-gray-900 border border-gray-800 text-white text-sm pl-11 pr-4 py-3 rounded-2xl focus:border-indigo-500 focus:outline-none" />
+      </div>
+
+      {/* Tab-specific filters */}
+      {tab === "projects" && (
+        <div className="flex flex-wrap gap-2 mb-5">
+          {CATS.map(c => (
+            <button key={c} onClick={() => setCategory(c)}
+              className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${category === c ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"}`}>{c}</button>
           ))}
         </div>
-      </div>
-
-      {/* Results */}
-      {isLoading ? (
-        <FeedSkeleton count={4} />
-      ) : data && data.projects.length > 0 ? (
-        <>
-          <p className="text-sm text-gray-500 mb-4">{data.projects.length} projects found</p>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-            {data.projects.map(project => (
-              <ProjectFeedCard key={project.id} project={project} />
-            ))}
-          </div>
-        </>
-      ) : (
-        <div className="text-center py-20 text-gray-500">
-          <Search className="h-12 w-12 mx-auto mb-3 text-gray-700" />
-          <p>No projects found</p>
-          <p className="text-sm mt-1">Try different search terms</p>
+      )}
+      {tab === "developers" && (
+        <div className="flex flex-wrap gap-2 mb-5 items-center">
+          <select value={avail} onChange={e => setAvail(e.target.value)}
+            className="bg-gray-800 border border-gray-700 text-white text-xs px-3 py-1.5 rounded-full focus:outline-none">
+            {AVAIL.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
+          </select>
+          {SKILLS.map(s => (
+            <button key={s} onClick={() => setSkill(skill === s ? "" : s)}
+              className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${skill === s ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>{s}</button>
+          ))}
         </div>
       )}
+
+      {/* Results */}
+      {loading ? <FeedSkeleton count={4} /> : (
+        <>
+          {tab === "projects" && (
+            projData?.projects.length ? (
+              <>
+                <p className="text-xs text-gray-600 mb-4">{projData.projects.length} projects</p>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                  {projData.projects.map((p: any) => <ProjectFeedCard key={p.id} project={p} />)}
+                </div>
+              </>
+            ) : <EmptyState icon={FolderGit2} label="No projects found" sub="Try different search terms or filters" />
+          )}
+          {tab === "developers" && (
+            devData?.developers.length ? (
+              <>
+                <p className="text-xs text-gray-600 mb-4">{devData.pagination.total} developers</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {devData.developers.map((d: any) => <DeveloperCard key={d.id} dev={d} />)}
+                </div>
+              </>
+            ) : <EmptyState icon={Users} label="No developers found" sub="Try different filters" />
+          )}
+          {tab === "opportunities" && (
+            oppData?.opportunities.length ? (
+              <>
+                <p className="text-xs text-gray-600 mb-4">{oppData.opportunities.length} opportunities</p>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                  {oppData.opportunities.map((o: any) => (
+                    <OppCard key={o.id} opp={o} onApply={id => isAuthenticated ? setApplyId(id) : alert("Please login")} />
+                  ))}
+                </div>
+              </>
+            ) : <EmptyState icon={Briefcase} label="No opportunities found" sub="Try different search terms" />
+          )}
+        </>
+      )}
+
+      {applyId && <ApplyModal oppId={applyId} onClose={() => setApplyId(null)} />}
+    </div>
+  );
+}
+
+function EmptyState({ icon: Icon, label, sub }: { icon: any; label: string; sub: string }) {
+  return (
+    <div className="text-center py-20 bg-gray-900 rounded-2xl border border-gray-800">
+      <Icon className="h-12 w-12 mx-auto mb-3 text-gray-700" />
+      <p className="text-white font-medium mb-1">{label}</p>
+      <p className="text-sm text-gray-500">{sub}</p>
     </div>
   );
 }
 
 export default function ExplorePage() {
-  return (
-    <Suspense>
-      <ExploreContent />
-    </Suspense>
-  );
+  return <Suspense><ExploreContent /></Suspense>;
 }

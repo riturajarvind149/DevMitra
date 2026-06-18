@@ -11,7 +11,10 @@ export interface User {
   skills?: string[];
   linkedinUrl?: string;
   twitterUrl?: string;
+  portfolioUrl?: string;
+  availabilityHours?: number;
   profileVisibility?: "PUBLIC" | "CONNECTIONS_ONLY" | "PRIVATE";
+  isAdmin?: boolean;
   createdAt: string;
   _count?: {
     projects: number;
