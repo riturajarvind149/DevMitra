@@ -19,7 +19,8 @@ export default function TopBar() {
       const { data } = await notificationsAPI.getAll({ limit: 1 });
       return data.unreadCount;
     },
-    refetchInterval: 30000,
+    refetchInterval: 60000,   // poll every 60s (was 30s)
+    staleTime: 30000,         // don't re-fetch on remount if data < 30s old
   });
 
   const { data: msgData } = useQuery({
@@ -28,7 +29,8 @@ export default function TopBar() {
       const { data } = await messagesAPI.getUnreadCount();
       return data.unreadCount;
     },
-    refetchInterval: 30000,
+    refetchInterval: 30000,   // poll every 30s (was 30s — keep same)
+    staleTime: 15000,
   });
 
   const handleSearch = (e: React.FormEvent) => {

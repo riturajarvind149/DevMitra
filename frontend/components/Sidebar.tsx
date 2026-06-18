@@ -8,13 +8,13 @@ import {
   Settings, LogOut, Network, MoreHorizontal, Bookmark, KeyRound,
   Activity, BarChart2, X,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { notificationsAPI, messagesAPI } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const qc = useQueryClient();
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
@@ -29,23 +29,10 @@ export default function Sidebar() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const { data: notifCount } = useQuery({
-    queryKey: ["notificationCount"],
-    queryFn: async () => {
-      const { data } = await notificationsAPI.getAll({ limit: 1 });
-      return data.unreadCount;
-    },
-    refetchInterval: 30000,
-  });
-
-  const { data: msgCount } = useQuery({
-    queryKey: ["messageUnreadCount"],
-    queryFn: async () => {
-      const { data } = await messagesAPI.getUnreadCount();
-      return data.unreadCount;
-    },
-    refetchInterval: 30000,
-  });
+  // Read badge counts from the shared React Query cache
+  // TopBar owns the polling — Sidebar just reads the cached values
+  const notifCount: number = qc.getQueryData(["notificationCount"]) as number ?? 0;
+  const msgCount: number   = qc.getQueryData(["messageUnreadCount"]) as number ?? 0;
 
   // Main nav — clean, not overcrowded
   const nav = [

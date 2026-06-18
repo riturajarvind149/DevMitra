@@ -27,7 +27,8 @@ export default function MessagesPage() {
   const { data: conversations, isLoading: loadingConvs } = useQuery({
     queryKey: ["conversations"],
     queryFn: async () => { const { data } = await messagesAPI.getConversations(); return data; },
-    refetchInterval: 5000,
+    refetchInterval: 15000,  // every 15s (was 5s)
+    staleTime: 10000,
   });
 
   const { data: messages, isLoading: loadingMsgs } = useQuery({
@@ -38,7 +39,8 @@ export default function MessagesPage() {
       return data;
     },
     enabled: !!selectedConv,
-    refetchInterval: 2000,
+    refetchInterval: 5000,   // every 5s (was 2s) — still feels instant enough
+    staleTime: 3000,
   });
 
   // Auto-scroll when new messages arrive

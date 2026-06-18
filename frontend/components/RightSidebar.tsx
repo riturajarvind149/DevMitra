@@ -9,19 +9,20 @@ export default function RightSidebar() {
   const { data: stats } = useQuery({
     queryKey: ["platformStats"],
     queryFn: async () => { const { data } = await statsAPI.getPlatformStats(); return data; },
-    refetchInterval: 60000,
+    refetchInterval: 5 * 60 * 1000, // every 5 min (was 60s)
+    staleTime: 2 * 60 * 1000,
   });
 
   const { data: projectsData } = useQuery({
     queryKey: ["trendingProjects"],
     queryFn: async () => { const { data } = await projectsAPI.getAll({ limit: 5 }); return data; },
-    staleTime: 2 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,       // 5 min cache — no auto-refetch
   });
 
   const { data: topUsers } = useQuery({
     queryKey: ["topContributors"],
     queryFn: async () => { const { data } = await usersAPI.getAll(); return data.slice(0, 4); },
-    staleTime: 2 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
   });
 
   return (
