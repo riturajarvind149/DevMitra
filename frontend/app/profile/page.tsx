@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -161,7 +161,7 @@ export default function ProfilePage() {
           <h2 className="text-base font-semibold text-white mb-3 flex items-center gap-2">
             <Brain className="h-4 w-4 text-indigo-400" />Recommended For You
           </h2>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {suggestedProjects.slice(0, 4).map(p => <ProjectFeedCard key={p.id} project={p} />)}
           </div>
         </div>
@@ -173,7 +173,7 @@ export default function ProfilePage() {
       ) : userProjects && userProjects.length > 0 ? (
         <div className="mb-5">
           <h2 className="text-base font-semibold text-white mb-3">Owned Projects</h2>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {userProjects.map(p => <ProjectFeedCard key={p.id} project={p} />)}
           </div>
         </div>
@@ -183,7 +183,7 @@ export default function ProfilePage() {
       {contributing.length > 0 && (
         <div>
           <h2 className="text-base font-semibold text-white mb-3">Contributing To</h2>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {contributing.map((m: any) => <ProjectFeedCard key={m.id} project={m.project} />)}
           </div>
         </div>

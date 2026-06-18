@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -221,7 +221,7 @@ export default function OpportunitiesPage() {
       {isLoading ? (
         <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" /></div>
       ) : data?.opportunities && data.opportunities.length > 0 ? (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {data.opportunities.map(opp => <OpportunityCard key={opp.id} opp={opp} onApply={id => isAuthenticated ? setApplyId(id) : alert("Please login to apply")} />)}
         </div>
       ) : (

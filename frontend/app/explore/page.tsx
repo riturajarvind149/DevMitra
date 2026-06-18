@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -272,7 +272,7 @@ function ExploreContent() {
             projData?.projects.length ? (
               <>
                 <p className="text-xs text-gray-600 mb-4">{projData.projects.length} projects</p>
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 gap-5">
                   {projData.projects.map((p: any) => <ProjectFeedCard key={p.id} project={p} />)}
                 </div>
               </>
@@ -292,7 +292,7 @@ function ExploreContent() {
             oppData?.opportunities.length ? (
               <>
                 <p className="text-xs text-gray-600 mb-4">{oppData.opportunities.length} opportunities</p>
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   {oppData.opportunities.map((o: any) => (
                     <OppCard key={o.id} opp={o} onApply={id => isAuthenticated ? setApplyId(id) : alert("Please login")} />
                   ))}

@@ -103,11 +103,11 @@ export default function Home() {
             <Link href="/developers" className="text-xs text-indigo-400 hover:text-indigo-300">See more</Link>
           </div>
           {loadingDevs ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               {[...Array(4)].map((_, i) => <DeveloperCardSkeleton key={i} />)}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               {(suggestedDevs ?? []).slice(0, 4).map((dev: any) => (
                 <div key={dev.id} className="bg-gray-900 border border-gray-800 rounded-xl p-3 flex items-center gap-3 hover:border-gray-700 transition">
                   <Link href={`/users/${dev.id}`}>
@@ -141,7 +141,7 @@ export default function Home() {
               <TrendingUp className="h-4 w-4 text-indigo-400" />Trending Projects
             </h2>
           </div>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {trending.map(p => <ProjectFeedCard key={p.id} project={p} />)}
           </div>
         </div>
@@ -158,7 +158,7 @@ export default function Home() {
       {loadingProjects ? (
         <FeedSkeleton count={4} />
       ) : recent.length > 0 ? (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 gap-5">
           {recent.map(p => <ProjectFeedCard key={p.id} project={p} />)}
         </div>
       ) : (

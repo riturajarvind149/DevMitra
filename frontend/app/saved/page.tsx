@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { savesAPI } from "@/lib/api";
@@ -32,7 +32,7 @@ export default function SavedProjectsPage() {
       {isLoading ? (
         <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" /></div>
       ) : projects && projects.length > 0 ? (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 gap-5">
           {projects.map(p => <ProjectFeedCard key={p.id} project={p} />)}
         </div>
       ) : (

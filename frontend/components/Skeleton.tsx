@@ -1,4 +1,4 @@
-// Reusable skeleton loading components
+﻿// Reusable skeleton loading components
 
 export function SkeletonBox({ className = "" }: { className?: string }) {
   return <div className={`bg-gray-800 animate-pulse rounded-xl ${className}`} />;
@@ -113,7 +113,7 @@ export function PageLoader() {
 
 export function FeedSkeleton({ count = 4 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+    <div className="grid grid-cols-1 gap-5">
       {[...Array(count)].map((_, i) => <ProjectCardSkeleton key={i} />)}
     </div>
   );

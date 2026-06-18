@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -86,7 +86,7 @@ export default function MyProjectsPage() {
       {tab === "owned" && (
         isLoading ? <FeedSkeleton count={4} /> :
         ownedProjects && ownedProjects.length > 0 ? (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 gap-5">
             {ownedProjects.map(project => (
               <div key={project.id} className="relative group">
                 <ProjectFeedCard project={project} />
@@ -122,7 +122,7 @@ export default function MyProjectsPage() {
       {tab === "contributing" && (
         isLoading ? <FeedSkeleton count={4} /> :
         contributingProjects && contributingProjects.length > 0 ? (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 gap-5">
             {contributingProjects.map((project: any) => (
               <ProjectFeedCard key={project.id} project={project} />
             ))}
@@ -144,7 +144,7 @@ export default function MyProjectsPage() {
       {tab === "saved" && (
         isLoading ? <FeedSkeleton count={4} /> :
         savedProjects && savedProjects.length > 0 ? (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 gap-5">
             {savedProjects.map((project: any) => (
               <ProjectFeedCard key={project.id} project={project} />
             ))}
