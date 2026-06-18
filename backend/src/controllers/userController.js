@@ -6,7 +6,7 @@ const USER_PUBLIC_SELECT = {
   bio: true, location: true, website: true,
   skills: true, linkedinUrl: true, twitterUrl: true,
   portfolioUrl: true, availabilityHours: true,
-  profileVisibility: true, createdAt: true,
+  profileVisibility: true, isAdmin: true, createdAt: true,
   _count: { select: { projects: true, projectMemberships: true } },
 };
 
@@ -71,7 +71,30 @@ const getUserById = async (req, res) => {
       if (!conn) return res.status(403).json({ message: "This profile is only visible to connections" });
     }
 
-    res.status(200).json(user);
+    // Accurate stats — calculated precisely
+    const [ownedProjects, contributorMemberships, acceptedConnections] = await Promise.all([
+      // Projects user OWNS
+      prisma.project.count({ where: { ownerId: id } }),
+      // Memberships where user is CONTRIBUTOR (not owner)
+      prisma.projectMember.count({ where: { userId: id, role: "CONTRIBUTOR" } }),
+      // Accepted connections (both directions)
+      prisma.connection.count({
+        where: {
+          status: "ACCEPTED",
+          OR: [{ senderId: id }, { receiverId: id }],
+        },
+      }),
+    ]);
+
+    res.status(200).json({
+      ...user,
+      stats: {
+        projects:      ownedProjects,
+        memberships:   contributorMemberships,
+        connections:   acceptedConnections,
+        contributions: contributorMemberships, // same as memberships — non-owner roles
+      },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch user" });

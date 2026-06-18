@@ -21,16 +21,19 @@ export const authAPI = {
 
 export const usersAPI = {
   getAll: (params?: { search?: string }) => api.get<User[]>("/users", { params }),
-  getById: (id: string) => api.get<User>(`/users/${id}`),
+  getById: (id: string) => api.get<any>(`/users/${id}`),
   getUserProjects: (id: string) => api.get<Project[]>(`/users/${id}/projects`),
   getUserMemberships: (id: string) => api.get<any[]>(`/users/${id}/memberships`),
+  getUserContributing: (id: string) => api.get<Project[]>(`/users/${id}/contributing`),
+  getUserLikedProjects: (id: string) => api.get<any[]>(`/users/${id}/liked-projects`),
+  getUserComments: (id: string) => api.get<any[]>(`/users/${id}/comments`),
   update: (id: string, data: Partial<User> & { skills?: string[]; profileVisibility?: string }) =>
     api.put<User>(`/users/${id}`, data),
   delete: (id: string) => api.delete(`/users/${id}`),
 };
 
 export const projectsAPI = {
-  getAll: (params?: { search?: string; owner?: string; limit?: number; offset?: number }) =>
+  getAll: (params?: { search?: string; owner?: string; limit?: number; offset?: number; sort?: string }) =>
     api.get<{ projects: Project[]; pagination: any }>("/projects", { params }),
   getMyProjects: () => api.get<Project[]>("/projects/my"),
   getById: (id: string) => api.get<Project>(`/projects/${id}`),

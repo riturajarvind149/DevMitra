@@ -34,6 +34,8 @@ export default function NotificationsPage() {
       const { data } = await notificationsAPI.getAll({ limit: 50 });
       return data;
     },
+    refetchInterval: 15000,  // poll every 15s — notifications appear without refresh
+    staleTime: 10000,
   });
 
   const markAllMutation = useMutation({

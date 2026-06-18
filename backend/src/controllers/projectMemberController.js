@@ -1,5 +1,6 @@
 const prisma = require("../config/db");
 const { logActivity } = require("../utils/activityLogger");
+const { createNotification } = require("./notificationController");
 
 // GET /projects/:projectId/members
 // Get all members of a project
@@ -122,6 +123,16 @@ const removeMember = async (req, res) => {
       { removedBy: req.user.id }
     );
 
+    // Notify the removed member
+    await createNotification({
+      type: "CONTRIBUTOR_REMOVED",
+      message: `You have been removed from "${project.title}"`,
+      receiverId: userId,
+      senderId: req.user.id,
+      projectId,
+      link: `/projects/${projectId}`,
+    });
+
     res.status(200).json({
       message: "Member removed successfully",
     });
@@ -187,8 +198,33 @@ const checkMembership = async (req, res) => {
   }
 };
 
+// GET /users/:userId/contributing
+// Projects where user is CONTRIBUTOR (not owner)
+const getUserContributing = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const memberships = await prisma.projectMember.findMany({
+      where: { userId, role: "CONTRIBUTOR" },
+      include: {
+        project: {
+          include: {
+            owner: { select: { id: true, username: true, avatarUrl: true } },
+            _count: { select: { members: true, likes: true, accessRequests: true } },
+          },
+        },
+      },
+      orderBy: { joinedAt: "desc" },
+    });
+    res.status(200).json(memberships.map(m => m.project));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch contributing projects" });
+  }
+};
+
 module.exports = {
   getProjectMembers,
   removeMember,
   checkMembership,
+  getUserContributing,
 };

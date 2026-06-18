@@ -159,6 +159,7 @@ function ApplyModal({ oppId, onClose }: { oppId: string; onClose: () => void }) 
 /* ─── Main Explore Content ───────────────────────────────────────────────── */
 function ExploreContent() {
   const { isAuthenticated } = useAuth();
+  const qc = useQueryClient();
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get("tab") as Tab) || "projects";
   const [tab, setTab]       = useState<Tab>(initialTab);
@@ -167,6 +168,7 @@ function ExploreContent() {
   const [skill, setSkill]   = useState("");
   const [avail, setAvail]   = useState("");
   const [applyId, setApplyId] = useState<string | null>(null);
+  const [showPostOpp, setShowPostOpp] = useState(false);
 
   /* Projects */
   const { data: projData, isLoading: projLoading } = useQuery({
@@ -226,11 +228,19 @@ function ExploreContent() {
         ))}
       </div>
 
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-        <input type="text" placeholder={`Search ${tab}…`} value={search} onChange={e => setSearch(e.target.value)}
-          className="w-full bg-gray-900 border border-gray-800 text-white text-sm pl-11 pr-4 py-3 rounded-2xl focus:border-indigo-500 focus:outline-none" />
+      {/* Search + optional Post button */}
+      <div className="flex gap-3 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <input type="text" placeholder={`Search ${tab}…`} value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full bg-gray-900 border border-gray-800 text-white text-sm pl-11 pr-4 py-3 rounded-2xl focus:border-indigo-500 focus:outline-none" />
+        </div>
+        {tab === "opportunities" && isAuthenticated && (
+          <button onClick={() => setShowPostOpp(true)}
+            className="flex items-center gap-2 text-sm font-medium text-white bg-indigo-600 px-4 py-2.5 rounded-2xl hover:bg-indigo-700 transition flex-shrink-0">
+            <Plus className="h-4 w-4" />Post
+          </button>
+        )}
       </div>
 
       {/* Tab-specific filters */}
@@ -288,22 +298,113 @@ function ExploreContent() {
                   ))}
                 </div>
               </>
-            ) : <EmptyState icon={Briefcase} label="No opportunities found" sub="Try different search terms" />
+            ) : <EmptyState icon={Briefcase} label="No opportunities found" sub={isAuthenticated ? "Be the first to post a collaboration opportunity" : "Try different search terms or login to post"} cta={isAuthenticated ? { label: "Post Opportunity", onClick: () => setShowPostOpp(true) } : undefined} />
           )}
         </>
       )}
 
       {applyId && <ApplyModal oppId={applyId} onClose={() => setApplyId(null)} />}
+      {showPostOpp && <PostOppModal onClose={() => { setShowPostOpp(false); qc.invalidateQueries({ queryKey: ["explore-opps"] }); }} />}
     </div>
   );
 }
 
-function EmptyState({ icon: Icon, label, sub }: { icon: any; label: string; sub: string }) {
+function EmptyState({ icon: Icon, label, sub, cta }: { icon: any; label: string; sub: string; cta?: { label: string; onClick: () => void } }) {
   return (
     <div className="text-center py-20 bg-gray-900 rounded-2xl border border-gray-800">
       <Icon className="h-12 w-12 mx-auto mb-3 text-gray-700" />
       <p className="text-white font-medium mb-1">{label}</p>
       <p className="text-sm text-gray-500">{sub}</p>
+      {cta && (
+        <button onClick={cta.onClick}
+          className="mt-4 inline-flex items-center gap-2 text-sm text-white bg-indigo-600 px-4 py-2.5 rounded-xl hover:bg-indigo-700 transition">
+          <Plus className="h-4 w-4" />{cta.label}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ─── Post Opportunity Modal ─────────────────────────────────────────────── */
+function PostOppModal({ onClose }: { onClose: () => void }) {
+  const qc = useQueryClient();
+  const [form, setForm] = useState({
+    title: "", role: "", description: "",
+    requiredSkills: "", duration: "", budget: "", isRemote: true,
+  });
+
+  const mut = useMutation({
+    mutationFn: () => opportunitiesAPI.create({
+      ...form,
+      requiredSkills: form.requiredSkills.split(",").map(s => s.trim()).filter(Boolean),
+    } as any),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["explore-opps"] }); onClose(); },
+    onError: (e: any) => alert(e.response?.data?.message || "Failed to post"),
+  });
+
+  return (
+    <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-gray-900 rounded-2xl max-w-lg w-full border border-gray-700 my-4">
+        <div className="p-5 border-b border-gray-800">
+          <h2 className="text-base font-semibold text-white">Post an Opportunity</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Find collaborators for your project</p>
+        </div>
+        <form onSubmit={e => { e.preventDefault(); mut.mutate(); }} className="p-5 space-y-4">
+          <div>
+            <label className="block text-sm text-gray-400 mb-1.5">Title *</label>
+            <input required type="text" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+              placeholder="e.g. React Developer Needed"
+              className="w-full bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1.5">Role *</label>
+            <input required type="text" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
+              placeholder="e.g. Frontend Developer"
+              className="w-full bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1.5">Description *</label>
+            <textarea required value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              rows={3} placeholder="Describe what you need and what the contributor will work on…"
+              className="w-full bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none resize-none" />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1.5">Required Skills (comma-separated)</label>
+            <input type="text" value={form.requiredSkills} onChange={e => setForm(f => ({ ...f, requiredSkills: e.target.value }))}
+              placeholder="React, TypeScript, Node.js"
+              className="w-full bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1.5">Duration</label>
+              <input type="text" value={form.duration} onChange={e => setForm(f => ({ ...f, duration: e.target.value }))}
+                placeholder="e.g. 3 months"
+                className="w-full bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1.5">Compensation</label>
+              <input type="text" value={form.budget} onChange={e => setForm(f => ({ ...f, budget: e.target.value }))}
+                placeholder="e.g. Volunteer / $500"
+                className="w-full bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none" />
+            </div>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={form.isRemote} onChange={e => setForm(f => ({ ...f, isRemote: e.target.checked }))}
+              className="w-4 h-4 accent-indigo-600" />
+            <span className="text-sm text-gray-400">Remote position</span>
+          </label>
+          <div className="flex gap-3 pt-1">
+            <button type="submit" disabled={mut.isPending}
+              className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition">
+              {mut.isPending ? "Posting…" : "Post Opportunity"}
+            </button>
+            <button type="button" onClick={onClose}
+              className="flex-1 bg-gray-800 text-gray-300 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

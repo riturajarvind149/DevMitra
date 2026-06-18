@@ -130,7 +130,7 @@ export default function UserProfilePage() {
           <div className="mt-4 pt-4 border-t border-gray-800">
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Skills</p>
             <div className="flex flex-wrap gap-2">
-              {profile.skills.map((s, i) => (
+              {(profile.skills as string[]).map((s: string, i: number) => (
                 <span key={i} className="text-xs text-indigo-300 bg-indigo-900/40 border border-indigo-800/40 px-2.5 py-1 rounded-full font-medium">{s}</span>
               ))}
             </div>

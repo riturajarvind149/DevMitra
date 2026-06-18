@@ -4,6 +4,7 @@ const getPlatformStats = async (req, res) => {
   try {
     const [
       totalUsers, totalProjects, totalMembers,
+      totalContributors,
       totalAccessRequests, pendingRequests, recentActivities,
       totalLikes, totalConnections, totalComments,
       totalRepoRequests, totalOpportunities,
@@ -11,6 +12,8 @@ const getPlatformStats = async (req, res) => {
       prisma.user.count(),
       prisma.project.count(),
       prisma.projectMember.count(),
+      // Contributors = non-owner memberships only
+      prisma.projectMember.count({ where: { role: "CONTRIBUTOR" } }),
       prisma.projectAccessRequest.count(),
       prisma.projectAccessRequest.count({ where: { status: "PENDING" } }),
       prisma.activityLog.count(),
@@ -25,6 +28,7 @@ const getPlatformStats = async (req, res) => {
       users: totalUsers,
       projects: totalProjects,
       memberships: totalMembers,
+      contributors: totalContributors,
       likes: totalLikes,
       connections: totalConnections,
       comments: totalComments,

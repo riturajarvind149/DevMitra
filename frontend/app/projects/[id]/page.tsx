@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   ExternalLink, Users, Calendar, Activity as ActivityIcon,
   ArrowLeft, FolderGit2, GitPullRequest, CheckCircle,
-  Lock, Globe, EyeOff, Briefcase, Shield, GitBranch, Clock, XCircle, Pencil, KeyRound,
+  Lock, Globe, EyeOff, Briefcase, Shield, GitBranch, Clock, XCircle, Pencil, KeyRound, UserMinus,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
@@ -70,6 +70,7 @@ export default function ProjectDetailPage() {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [reason, setReason] = useState("");
   const [suggestion, setSuggestion] = useState("");
+  const [confirmRemove, setConfirmRemove] = useState<{ userId: string; username: string } | null>(null);
 
   // Repo access request modal state
   const [showRepoModal, setShowRepoModal] = useState(false);
@@ -152,6 +153,17 @@ export default function ProjectDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["membership", projectId] });
     },
     onError: (e: any) => alert(e.response?.data?.message || "Failed to submit request"),
+  });
+
+  // Remove member mutation
+  const removeMemberMutation = useMutation({
+    mutationFn: (userId: string) => projectMembersAPI.removeMember(projectId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["myProjects"] });
+      setConfirmRemove(null);
+    },
+    onError: (e: any) => alert(e.response?.data?.message || "Failed to remove member"),
   });
 
   const isOwner = !!(user && project && project.ownerId === user.id);
@@ -401,9 +413,15 @@ export default function ProjectDetailPage() {
                           ? "bg-purple-900/50 text-purple-400"
                           : "bg-blue-900/50 text-blue-400"
                       }`}>{member.role}</span>
-                      {/* Show "Remove" only to owner, not for self */}
+                      {/* Remove button — owner only, not self */}
                       {isOwner && member.userId !== user?.id && (
-                        <span className="text-xs text-gray-600">· owner can remove</span>
+                        <button
+                          onClick={() => setConfirmRemove({ userId: member.userId, username: member.user.username })}
+                          className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-400 border border-gray-700 hover:border-red-800 px-2 py-1 rounded-lg transition"
+                          title="Remove contributor"
+                        >
+                          <UserMinus className="h-3 w-3" />Remove
+                        </button>
                       )}
                     </div>
                   </div>
@@ -642,6 +660,38 @@ export default function ProjectDetailPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirm Remove Member Modal ──────────────────────────────────────── */}
+      {confirmRemove && (
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-2xl p-6 border border-red-900/50 max-w-sm w-full">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-red-900/40 rounded-xl flex items-center justify-center flex-shrink-0">
+                <UserMinus className="h-5 w-5 text-red-400" />
+              </div>
+              <h3 className="text-base font-semibold text-white">Remove Contributor?</h3>
+            </div>
+            <p className="text-sm text-gray-400 mb-5">
+              <span className="text-white font-medium">{confirmRemove.username}</span> will lose access to this project and it will disappear from their Contributing tab.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => removeMemberMutation.mutate(confirmRemove.userId)}
+                disabled={removeMemberMutation.isPending}
+                className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition"
+              >
+                {removeMemberMutation.isPending ? "Removing…" : "Remove"}
+              </button>
+              <button
+                onClick={() => setConfirmRemove(null)}
+                className="flex-1 bg-gray-800 text-gray-300 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

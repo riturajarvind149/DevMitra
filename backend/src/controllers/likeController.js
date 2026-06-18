@@ -68,4 +68,27 @@ const getProjectLikes = async (req, res) => {
   }
 };
 
-module.exports = { likeProject, unlikeProject, getProjectLikes };
+// GET /users/:userId/liked-projects  — all projects a user has liked
+const getUserLikedProjects = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const likes = await prisma.projectLike.findMany({
+      where: { userId },
+      include: {
+        project: {
+          include: {
+            owner: { select: { id: true, username: true, avatarUrl: true } },
+            _count: { select: { members: true, likes: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    res.status(200).json(likes);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch liked projects" });
+  }
+};
+
+module.exports = { likeProject, unlikeProject, getProjectLikes, getUserLikedProjects };

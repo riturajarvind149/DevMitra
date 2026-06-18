@@ -15,6 +15,12 @@ import { ProfileSkeleton, FeedSkeleton } from "@/components/Skeleton";
 export default function ProfilePage() {
   const { user, isAuthenticated } = useAuth();
 
+  const { data: profileData } = useQuery({
+    queryKey: ["profileStats", user?.id],
+    queryFn: async () => { const { data } = await usersAPI.getById(user!.id); return data; },
+    enabled: !!user,
+  });
+
   const { data: userProjects, isLoading: loadingProjects } = useQuery({
     queryKey: ["userProjects", user?.id],
     queryFn: async () => { const { data } = await usersAPI.getUserProjects(user!.id); return data; },
@@ -118,13 +124,13 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Stats */}
+        {/* Stats — accurate counts from backend */}
         <div className="grid grid-cols-4 gap-3 mt-5 pt-5 border-t border-gray-800 text-center">
           {[
-            { label: "Projects",    value: user._count?.projects ?? 0 },
-            { label: "Memberships", value: user._count?.projectMemberships ?? 0 },
-            { label: "Connections", value: counts?.connections ?? 0 },
-            { label: "Followers",   value: counts?.followers ?? 0 },
+            { label: "Projects",      value: profileData?.stats?.projects      ?? userProjects?.length ?? 0 },
+            { label: "Memberships",   value: profileData?.stats?.memberships   ?? 0 },
+            { label: "Connections",   value: profileData?.stats?.connections   ?? counts?.connections ?? 0 },
+            { label: "Contributions", value: profileData?.stats?.contributions ?? 0 },
           ].map(({ label, value }) => (
             <div key={label}>
               <div className="text-xl font-bold text-white">{value}</div>

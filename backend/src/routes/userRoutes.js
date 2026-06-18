@@ -3,13 +3,19 @@ const router = express.Router();
 const protect = require("../middleware/authMiddleware");
 const { optionalAuth } = require("../middleware/authMiddleware");
 const { createUser, getUsers, getUserById, getUserProjects, getUserMemberships, updateUser, deleteUser } = require("../controllers/userController");
+const { getUserLikedProjects } = require("../controllers/likeController");
+const { getUserComments } = require("../controllers/commentController");
+const { getUserContributing } = require("../controllers/projectMemberController");
 
-router.get("/",               getUsers);
-router.get("/:id",            optionalAuth, getUserById);
-router.get("/:id/projects",   getUserProjects);
-router.get("/:id/memberships",getUserMemberships);
-router.post("/",              createUser);
-router.put("/:id",            protect, updateUser);
-router.delete("/:id",         protect, deleteUser);
+router.get("/",                    getUsers);
+router.get("/:id",                 optionalAuth, getUserById);
+router.get("/:id/projects",        getUserProjects);
+router.get("/:id/memberships",     getUserMemberships);
+router.get("/:id/contributing",    getUserContributing);
+router.get("/:id/liked-projects",  protect, getUserLikedProjects);
+router.get("/:id/comments",        protect, getUserComments);
+router.post("/",                   createUser);
+router.put("/:id",                 protect, updateUser);
+router.delete("/:id",              protect, deleteUser);
 
 module.exports = router;

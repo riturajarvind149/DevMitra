@@ -83,14 +83,10 @@ const createProject = async (req, res) => {
 //   PRIVATE — only visible to members + owner
 const getProjects = async (req, res) => {
   try {
-    const { search, owner, limit = 50, offset = 0 } = req.query;
-    const requestingUserId = req.user?.id || null; // optional auth
+    const { search, owner, limit = 50, offset = 0, sort } = req.query;
+    const requestingUserId = req.user?.id || null;
 
-    const where = {
-      // Only PUBLIC projects appear in listings
-      // (PRIVATE & UNLISTED are excluded from browse)
-      visibility: "PUBLIC",
-    };
+    const where = { visibility: "PUBLIC" };
 
     if (search) {
       where.OR = [
@@ -110,16 +106,27 @@ const getProjects = async (req, res) => {
       where,
       include: {
         owner: { select: { id: true, username: true, avatarUrl: true, githubUsername: true } },
-        _count: { select: { members: true, accessRequests: true } },
+        _count: { select: { members: true, accessRequests: true, likes: true, comments: true } },
       },
       orderBy: { createdAt: "desc" },
       take,
       skip,
     });
 
-    // Strip private repo URLs for non-members
-    const safeProjects = projects.map((p) => applyRepoVisibility({ ...p, members: [] }, requestingUserId));
+    // Score-based trending sort: likes*3 + comments*2 + members*2 + recency bonus
+    let sorted = projects;
+    if (sort === "trending") {
+      const now = Date.now();
+      sorted = [...projects].sort((a, b) => {
+        const ageA = (now - new Date(a.createdAt).getTime()) / (1000 * 60 * 60 * 24); // days
+        const ageB = (now - new Date(b.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+        const scoreA = (a._count.likes * 3) + (a._count.comments * 2) + (a._count.members * 2) + Math.max(0, 30 - ageA);
+        const scoreB = (b._count.likes * 3) + (b._count.comments * 2) + (b._count.members * 2) + Math.max(0, 30 - ageB);
+        return scoreB - scoreA;
+      });
+    }
 
+    const safeProjects = sorted.map((p) => applyRepoVisibility({ ...p, members: [] }, requestingUserId));
     res.status(200).json({ projects: safeProjects, pagination: { total, limit: take, offset: skip, hasMore: skip + take < total } });
   } catch (error) {
     console.error(error);
@@ -144,7 +151,7 @@ const getProjectById = async (req, res) => {
           },
           orderBy: { joinedAt: "asc" },
         },
-        _count: { select: { accessRequests: true } },
+        _count: { select: { accessRequests: true, likes: true, comments: true } },
       },
     });
 
@@ -161,9 +168,15 @@ const getProjectById = async (req, res) => {
       }
     }
 
-    // Apply repo visibility
+    // Attach accurate member count from the actual members array
     const safeProject = applyRepoVisibility(project, requestingUserId);
-    res.status(200).json(safeProject);
+    res.status(200).json({
+      ...safeProject,
+      _count: {
+        ...safeProject._count,
+        members: project.members.length,
+      },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch project" });

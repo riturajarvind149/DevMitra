@@ -15,13 +15,19 @@ export default function RightSidebar() {
 
   const { data: projectsData } = useQuery({
     queryKey: ["trendingProjects"],
-    queryFn: async () => { const { data } = await projectsAPI.getAll({ limit: 5 }); return data; },
-    staleTime: 5 * 60 * 1000,       // 5 min cache — no auto-refetch
+    queryFn: async () => { const { data } = await projectsAPI.getAll({ limit: 5, sort: "trending" }); return data; },
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: topUsers } = useQuery({
     queryKey: ["topContributors"],
-    queryFn: async () => { const { data } = await usersAPI.getAll(); return data.slice(0, 4); },
+    queryFn: async () => {
+      const { data } = await usersAPI.getAll();
+      // Sort by projectMemberships count descending
+      return [...data]
+        .sort((a, b) => (b._count?.projectMemberships ?? 0) - (a._count?.projectMemberships ?? 0))
+        .slice(0, 4);
+    },
     staleTime: 5 * 60 * 1000,
   });
 
@@ -95,7 +101,7 @@ export default function RightSidebar() {
             {[
               { label: "Projects",      value: stats?.projects },
               { label: "Developers",    value: stats?.users },
-              { label: "Contributors",  value: stats?.memberships },
+              { label: "Contributors",  value: stats?.contributors },
               { label: "Open Requests", value: stats?.accessRequests?.pending, accent: true },
             ].map(({ label, value, accent }) => (
               <div key={label} className="flex items-center justify-between">

@@ -178,6 +178,7 @@ export interface PlatformStats {
   users: number;
   projects: number;
   memberships: number;
+  contributors: number;
   likes: number;
   connections: number;
   comments: number;
