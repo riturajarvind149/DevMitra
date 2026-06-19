@@ -50,10 +50,11 @@ const SKILL_SUGGESTIONS = [
 
 // ── Suggestion dropdown ───────────────────────────────────────────────────────
 function SuggestionInput({
-  value, onChange, suggestions, placeholder, className, type = "text",
+  value, onChange, onSelect, suggestions, placeholder, className, type = "text",
 }: {
   value: string;
   onChange: (v: string) => void;
+  onSelect?: (v: string) => void;  // called when user picks from dropdown or hits Enter
   suggestions: string[];
   placeholder?: string;
   className?: string;
@@ -82,12 +83,34 @@ function SuggestionInput({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (onSelect && value.trim()) {
+        onSelect(value.trim());
+        setOpen(false);
+      }
+    }
+    if (e.key === "Escape") setOpen(false);
+  };
+
+  const pick = (s: string) => {
+    if (onSelect) {
+      onSelect(s);
+      onChange("");
+    } else {
+      onChange(s);
+    }
+    setOpen(false);
+  };
+
   return (
     <div ref={ref} className="relative">
       <input
         type={type}
         value={value}
         onChange={e => handleChange(e.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={className}
         onFocus={() => value.length >= 1 && filtered.length > 0 && setOpen(true)}
@@ -96,8 +119,8 @@ function SuggestionInput({
         <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl overflow-hidden">
           {filtered.map(s => (
             <button key={s} type="button"
-              className="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-700 transition"
-              onMouseDown={e => { e.preventDefault(); onChange(s); setOpen(false); }}>
+              className="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition"
+              onMouseDown={e => { e.preventDefault(); pick(s); }}>
               {s}
             </button>
           ))}
@@ -188,9 +211,10 @@ export default function SettingsPage() {
     }
   }, [user, hydrated]);
 
-  const addSkill = () => {
+  const addSkill = (rawInput?: string) => {
+    const source = rawInput ?? skillInput;
     // Support comma-separated input
-    const parts = skillInput.split(",").map(s => s.trim()).filter(Boolean);
+    const parts = source.split(",").map(s => s.trim()).filter(Boolean);
     const newSkills = parts.filter(s => !skills.includes(s));
     if (newSkills.length) setSkills(p => [...p, ...newSkills]);
     setSkillInput("");
@@ -219,23 +243,25 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-gray-950">
       <h1 className="text-2xl font-bold text-white mb-6">Settings</h1>
-      <div className="flex gap-6">
-        {/* Left nav */}
-        <nav className="w-44 flex-shrink-0 space-y-0.5">
-          {NAV.map(({ key, label, icon: Icon }) => {
-            const locked = key === "billing" && !isEligibleForBilling;
-            return (
-              <button key={key} onClick={() => !locked && setTab(key)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${
-                  tab === key ? "bg-indigo-600 text-white" : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                } ${locked ? "opacity-40 cursor-not-allowed" : ""}`}>
-                <Icon className="h-4 w-4 flex-shrink-0" />
-                {label}
-                {locked && <Lock className="h-3 w-3 ml-auto" />}
-              </button>
-            );
-          })}
-          <div className="pt-4 mt-2 border-t border-gray-800">
+      <div className="flex gap-6" style={{ minHeight: "calc(100vh - 120px)" }}>
+        {/* Left nav — fixed, doesn't scroll */}
+        <nav className="w-44 flex-shrink-0 self-start sticky top-0">
+          <div className="space-y-0.5">
+            {NAV.map(({ key, label, icon: Icon }) => {
+              const locked = key === "billing" && !isEligibleForBilling;
+              return (
+                <button key={key} onClick={() => !locked && setTab(key)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${
+                    tab === key ? "bg-indigo-600 text-white" : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                  } ${locked ? "opacity-40 cursor-not-allowed" : ""}`}>
+                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  {label}
+                  {locked && <Lock className="h-3 w-3 ml-auto" />}
+                </button>
+              );
+            })}
+          </div>
+          <div className="pt-4 mt-4 border-t border-gray-800">
             <button onClick={logout}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-900/20 transition">
               <LogOut className="h-4 w-4" />Sign Out
@@ -243,8 +269,8 @@ export default function SettingsPage() {
           </div>
         </nav>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0 space-y-4">
+        {/* Right content — scrolls independently */}
+        <div className="flex-1 min-w-0 space-y-4 overflow-y-auto pb-8">
 
           {/* ── Profile tab ─────────────────────────────────────────────── */}
           {tab === "profile" && (
@@ -324,10 +350,11 @@ export default function SettingsPage() {
                   <label className="block text-sm text-gray-400 mb-1.5">Skills</label>
                   <div className="flex gap-2 mb-2">
                     <SuggestionInput value={skillInput} onChange={setSkillInput}
+                      onSelect={(v) => addSkill(v)}
                       suggestions={SKILL_SUGGESTIONS.filter(s => !skills.includes(s))}
                       placeholder="e.g. React, Python, Docker (comma separated)"
                       className={`${inputCls} flex-1`} />
-                    <button type="button" onClick={addSkill} disabled={!skillInput.trim()}
+                    <button type="button" onClick={() => addSkill()} disabled={!skillInput.trim()}
                       className="bg-indigo-600 text-white px-3 rounded-xl hover:bg-indigo-700 disabled:opacity-40 transition">
                       <Plus className="h-4 w-4" />
                     </button>

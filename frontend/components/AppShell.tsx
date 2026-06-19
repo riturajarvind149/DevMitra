@@ -10,12 +10,16 @@ import RightSidebar from "./RightSidebar";
 // Pages that should use full-height, no padding, no centering
 const FULLSCREEN_PATHS = ["/messages"];
 
+// Pages that need full available width but keep padding (wider than max-w-2xl)
+const WIDE_PATHS = ["/profile", "/users/", "/settings"];
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const [rightVisible, setRightVisible] = useState(true);
   const pathname = usePathname();
 
   const isFullscreen = FULLSCREEN_PATHS.some(p => pathname.startsWith(p));
+  const isWide = WIDE_PATHS.some(p => pathname.startsWith(p));
 
   if (isLoading) {
     return (
@@ -49,8 +53,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           ) : (
             // Normal pages: centered, max-w-2xl, padded
+            // Wide pages (profile, settings): full width with padding, no max-w cap
             <div className="px-6 py-6 min-h-full flex flex-col items-center">
-              <div className="w-full max-w-2xl">
+              <div className={`w-full ${isWide ? "max-w-5xl" : "max-w-2xl"}`}>
                 {children}
               </div>
             </div>
