@@ -211,7 +211,9 @@ export default function YourActivityPage() {
                   className="flex items-start gap-4 p-4 bg-gray-900 border border-gray-800 rounded-2xl hover:border-gray-700 transition group">
                   <div className="w-14 h-14 rounded-xl bg-gray-800 flex-shrink-0 overflow-hidden">
                     {p.coverImage
-                      ? <img src={p.coverImage} alt="" className="w-full h-full object-cover" />
+                      ? (p.coverImage.startsWith("data:video") || /\.(mp4|webm|ogg|mov)(\?|$)/i.test(p.coverImage)
+                        ? <video src={p.coverImage} className="w-full h-full object-cover" muted autoPlay loop playsInline />
+                        : <img src={p.coverImage} alt="" className="w-full h-full object-cover" />)
                       : <div className="w-full h-full flex items-center justify-center">
                           <Heart className="h-5 w-5 text-red-400" />
                         </div>
@@ -279,7 +281,9 @@ export default function YourActivityPage() {
                 className="flex items-start gap-4 p-4 bg-gray-900 border border-gray-800 rounded-2xl hover:border-gray-700 transition group">
                 <div className="w-14 h-14 rounded-xl bg-gray-800 flex-shrink-0 overflow-hidden">
                   {p.coverImage
-                    ? <img src={p.coverImage} alt="" className="w-full h-full object-cover" />
+                    ? (p.coverImage.startsWith("data:video") || /\.(mp4|webm|ogg|mov)(\?|$)/i.test(p.coverImage)
+                      ? <video src={p.coverImage} className="w-full h-full object-cover" muted autoPlay loop playsInline />
+                      : <img src={p.coverImage} alt="" className="w-full h-full object-cover" />)
                     : <div className="w-full h-full flex items-center justify-center">
                         <Bookmark className="h-5 w-5 text-indigo-400" />
                       </div>

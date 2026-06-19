@@ -6,6 +6,7 @@ import { useState } from "react";
 import { storiesAPI } from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import FileUploader from "./FileUploader";
 
 const STORY_LABELS = ["Release", "Bug Fix", "Milestone", "Update", "Looking for Help"];
 const VIS_OPTIONS = [
@@ -90,18 +91,14 @@ export default function StoryBar({ stories }: StoryBarProps) {
               </button>
             </div>
             <div className="p-5 space-y-4">
-              <div>
-                <label className="block text-sm text-gray-400 mb-1.5">Image / Video URL *</label>
-                <input type="url" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)}
-                  placeholder="https://example.com/image.png"
-                  className="w-full bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none" />
-              </div>
-              {mediaUrl && (
-                <div className="w-full h-32 rounded-xl overflow-hidden bg-gray-800">
-                  <img src={mediaUrl} alt="preview" className="w-full h-full object-cover"
-                    onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                </div>
-              )}
+              <FileUploader
+                value={mediaUrl}
+                onChange={setMediaUrl}
+                accept="image/*,video/*"
+                label="Photo / Video *"
+                placeholder="https://example.com/image.png"
+                previewHeight={160}
+              />
               <div>
                 <label className="block text-sm text-gray-400 mb-1.5">Caption</label>
                 <input type="text" value={caption} onChange={e => setCaption(e.target.value)}
@@ -158,9 +155,15 @@ export default function StoryBar({ stories }: StoryBarProps) {
             </div>
             {/* Media */}
             <div className="relative rounded-2xl overflow-hidden aspect-[9/16] bg-gray-900">
-              <img src={viewStory.stories[storyIdx].mediaUrl} alt=""
-                className="w-full h-full object-cover"
-                onError={e => { (e.target as HTMLImageElement).src = "https://via.placeholder.com/400x700/1a1a2e/6366f1?text=Story"; }} />
+              {viewStory.stories[storyIdx].mediaUrl.startsWith("data:video") ||
+               /\.(mp4|webm|ogg|mov)(\?|$)/i.test(viewStory.stories[storyIdx].mediaUrl) ? (
+                <video src={viewStory.stories[storyIdx].mediaUrl} className="w-full h-full object-cover"
+                  autoPlay muted loop playsInline />
+              ) : (
+                <img src={viewStory.stories[storyIdx].mediaUrl} alt=""
+                  className="w-full h-full object-cover"
+                  onError={e => { (e.target as HTMLImageElement).src = "https://via.placeholder.com/400x700/1a1a2e/6366f1?text=Story"; }} />
+              )}
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
                 <div className="flex items-center gap-2 mb-1.5">
                   {viewStory.user.avatarUrl ? (

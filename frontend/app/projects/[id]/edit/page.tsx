@@ -7,6 +7,7 @@ import { projectsAPI } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, FolderGit2, Globe, EyeOff, Lock, Plus, X } from "lucide-react";
 import Link from "next/link";
+import FileUploader from "@/components/FileUploader";
 
 const CATEGORIES = ["SaaS", "AI/ML", "Health", "Marketing", "E-commerce", "DevTools", "Mobile", "Other"];
 const VISIBILITY_OPTIONS = [
@@ -108,19 +109,18 @@ export default function EditProjectPage() {
         <h1 className="text-2xl font-bold text-white mb-1">Edit Project</h1>
         <p className="text-sm text-gray-500 mb-6">Update your project details</p>
 
-        {/* Cover Preview */}
-        <div className="relative w-full h-40 bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 flex items-center justify-center mb-5">
-          {coverImage
-            ? <img src={coverImage} alt="Cover" className="w-full h-full object-cover" onError={() => setCoverImage("")} />
-            : <FolderGit2 className="h-10 w-10 text-gray-700" />
-          }
-        </div>
+        {/* Cover Preview — replaced by FileUploader */}
 
         <form onSubmit={e => { e.preventDefault(); updateMutation.mutate(); }} className="space-y-5">
           <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6 space-y-5">
-            <Field label="Cover Image URL">
-              <input type="url" value={coverImage} onChange={e => setCoverImage(e.target.value)} placeholder="https://example.com/cover.png" className={inputCls} />
-            </Field>
+            <FileUploader
+              value={coverImage}
+              onChange={setCoverImage}
+              accept="image/*,video/*"
+              label="Cover Image / Video"
+              placeholder="https://example.com/cover.png"
+              previewHeight={160}
+            />
             <Field label="Title *">
               <input type="text" required value={title} onChange={e => setTitle(e.target.value)} className={inputCls} />
             </Field>

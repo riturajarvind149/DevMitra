@@ -210,10 +210,14 @@ export default function ProjectDetailPage() {
         <ArrowLeft className="h-4 w-4" /> Back
       </Link>
 
-      {/* ── Cover Image ──────────────────────────────────────────────────────── */}
+      {/* ── Cover Image / Video ──────────────────────────────────────────────── */}
       <div className="relative w-full h-56 bg-gray-800 rounded-2xl overflow-hidden mb-5">
         {project.coverImage ? (
-          <img src={project.coverImage} alt={project.title} className="w-full h-full object-cover" />
+          project.coverImage.startsWith("data:video") || /\.(mp4|webm|ogg|mov)(\?|$)/i.test(project.coverImage) ? (
+            <video src={project.coverImage} className="w-full h-full object-cover" muted autoPlay loop playsInline />
+          ) : (
+            <img src={project.coverImage} alt={project.title} className="w-full h-full object-cover" />
+          )
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <FolderGit2 className="h-16 w-16 text-gray-700" />

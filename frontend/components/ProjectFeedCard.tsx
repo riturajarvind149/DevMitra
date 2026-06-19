@@ -24,14 +24,22 @@ export default function ProjectFeedCard({ project }: Props) {
       onClick={handleCardClick}
       className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden hover:border-indigo-700 transition-all group cursor-pointer"
     >
-      {/* Cover image */}
+      {/* Cover image or video */}
       <div className="relative h-44 bg-gray-800 overflow-hidden">
         {project.coverImage ? (
-          <img
-            src={project.coverImage}
-            alt={project.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
+          project.coverImage.startsWith("data:video") || /\.(mp4|webm|ogg|mov)(\?|$)/i.test(project.coverImage) ? (
+            <video
+              src={project.coverImage}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              muted autoPlay loop playsInline
+            />
+          ) : (
+            <img
+              src={project.coverImage}
+              alt={project.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          )
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <FolderGit2 className="h-12 w-12 text-gray-700 group-hover:text-gray-600 transition" />
