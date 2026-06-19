@@ -183,4 +183,9 @@ export const aiAPI = {
   getSuggestedProjects: () => api.get<Project[]>("/ai/suggested-projects"),
 };
 
+export const profileDataAPI = {
+  getMyProfile: () => api.get<any>("/profile-data/me"),
+  getPublicProfile: (userId: string) => api.get<any>(`/profile-data/${userId}`),
+};
+
 export default api;

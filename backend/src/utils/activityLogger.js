@@ -1,27 +1,17 @@
 const prisma = require("../config/db");
+const { recordDailyActivity } = require("../controllers/profileController");
 
-/**
- * Log an activity to the database
- * @param {string} action - Activity action type
- * @param {string} description - Human-readable description
- * @param {string} projectId - Project ID (optional)
- * @param {string} userId - User ID (optional)
- * @param {object} metadata - Additional metadata (optional)
- */
 const logActivity = async (action, description, projectId = null, userId = null, metadata = null) => {
   try {
     await prisma.activityLog.create({
-      data: {
-        action,
-        description,
-        projectId,
-        userId,
-        metadata,
-      },
+      data: { action, description, projectId, userId, metadata },
     });
+    // Record daily activity for streak tracking
+    if (userId) {
+      recordDailyActivity(userId).catch(() => {}); // fire-and-forget, never block
+    }
   } catch (error) {
     console.error("Failed to log activity:", error);
-    // Don't throw - activity logging shouldn't break the main flow
   }
 };
 

@@ -51,6 +51,8 @@ model User {
   opportunityPostings      Opportunity[]
   opportunityApplications  OpportunityApplication[]
   aiProfile                UserAIProfile?
+  streak                   UserStreak?
+  badges                   UserBadge[]
 }
 
 // ── Repository Access Request ────────────────────────────────────────────────
@@ -326,4 +328,31 @@ model ActivityLog {
   @@index([projectId])
   @@index([userId])
   @@index([createdAt])
+}
+
+// ── Daily Streak ─────────────────────────────────────────────────────────────
+model UserStreak {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak   Int      @default(0)  // consecutive active days
+  longestStreak   Int      @default(0)
+  lastActiveDate  DateTime? // date (no time) of last activity
+  totalActiveDays Int      @default(0)
+  // 52-week activity grid: stores count of activities per day for the heatmap
+  // stored as JSON: { "2026-06-17": 3, "2026-06-18": 1, ... }
+  activityGrid    Json     @default("{}")
+  updatedAt       DateTime @updatedAt @default(now())
+}
+
+// ── Badges ───────────────────────────────────────────────────────────────────
+model UserBadge {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeKey   String   // e.g. "first_project", "streak_7", "top_contributor"
+  awardedAt  DateTime @default(now())
+
+  @@unique([userId, badgeKey])
+  @@index([userId])
 }

@@ -21,6 +21,7 @@ const repoAccessRoutes     = require("./routes/repoAccessRoutes");
 const opportunityRoutes    = require("./routes/opportunityRoutes");
 const developerRoutes      = require("./routes/developerRoutes");
 const aiRoutes             = require("./routes/aiRoutes");
+const profileRoutes        = require("./routes/profileRoutes");
 
 const { getPlatformStats } = require("./controllers/statsController");
 const { errorHandler, notFound } = require("./middleware/errorHandler");
@@ -54,6 +55,7 @@ app.use("/repo-requests",    repoAccessRoutes);
 app.use("/opportunities",    opportunityRoutes);
 app.use("/developers",       developerRoutes);
 app.use("/ai",               aiRoutes);
+app.use("/profile-data",     profileRoutes);
 
 // Nested project routes
 app.use("/projects/:projectId/likes",    likeRoutes);
