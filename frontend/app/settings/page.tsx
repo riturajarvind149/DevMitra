@@ -1,39 +1,176 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useMutation } from "@tanstack/react-query";
-import { usersAPI } from "@/lib/api";
-import { Save, LogOut, Globe, Lock, Users, Plus, X, ExternalLink, Link2 } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { usersAPI, profileDataAPI } from "@/lib/api";
+import {
+  Save, LogOut, Globe, Lock, Users, Plus, X, ExternalLink,
+  User, Bell, Shield, Palette, Link2, CreditCard, Trash2,
+  Check, Moon, Sun, Monitor, ToggleLeft, ToggleRight,
+  DollarSign, Star, Zap,
+} from "lucide-react";
 
-const inputCls = "w-full bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none placeholder-gray-600";
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+// ── Autocomplete data ─────────────────────────────────────────────────────────
+const COUNTRIES = [
+  "Afghanistan","Albania","Algeria","Argentina","Australia","Austria","Bangladesh",
+  "Belgium","Brazil","Canada","Chile","China","Colombia","Croatia","Czech Republic",
+  "Denmark","Egypt","Ethiopia","Finland","France","Germany","Ghana","Greece",
+  "Hungary","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Japan",
+  "Jordan","Kenya","Malaysia","Mexico","Morocco","Netherlands","New Zealand",
+  "Nigeria","Norway","Pakistan","Peru","Philippines","Poland","Portugal","Romania",
+  "Russia","Saudi Arabia","Singapore","South Africa","South Korea","Spain",
+  "Sri Lanka","Sweden","Switzerland","Taiwan","Thailand","Turkey","Ukraine",
+  "United Arab Emirates","United Kingdom","United States","Vietnam",
+];
+
+const SKILL_SUGGESTIONS = [
+  "React","React Native","Redux","Remix","Ruby","Ruby on Rails","Rust",
+  "Python","PyTorch","PostgreSQL","PHP","Prisma",
+  "Node.js","Next.js","NestJS","Nuxt.js",
+  "TypeScript","TailwindCSS","Three.js",
+  "Vue.js","Vite","Vercel",
+  "Angular","AWS","Azure","Ansible",
+  "Docker","Django","Dart",
+  "Flutter","Firebase","FastAPI",
+  "Go","GraphQL","Git",
+  "Java","JavaScript","Jenkins","Jest",
+  "Kubernetes","Kotlin",
+  "Linux","Laravel",
+  "MongoDB","MySQL","MUI",
+  "Swift","Svelte","Solidity","Spring Boot",
+  "C","C++","C#","CSS",
+  "HTML","Haskell",
+  "Elasticsearch","Express.js",
+  "Bootstrap","Bash",
+  "Figma","Flask",
+  "Terraform","TensorFlow",
+  "OpenAI","OpenCV",
+];
+
+// ── Suggestion dropdown ───────────────────────────────────────────────────────
+function SuggestionInput({
+  value, onChange, suggestions, placeholder, className, type = "text",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  suggestions: string[];
+  placeholder?: string;
+  className?: string;
+  type?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [filtered, setFiltered] = useState<string[]>([]);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleChange = (v: string) => {
+    onChange(v);
+    if (v.trim().length >= 1) {
+      const f = suggestions.filter(s => s.toLowerCase().includes(v.toLowerCase())).slice(0, 6);
+      setFiltered(f);
+      setOpen(f.length > 0);
+    } else {
+      setOpen(false);
+    }
+  };
+
   return (
-    <div>
-      <label className="block text-sm text-gray-400 mb-1.5">
-        {label}{hint && <span className="text-gray-600 text-xs ml-1.5">({hint})</span>}
-      </label>
-      {children}
+    <div ref={ref} className="relative">
+      <input
+        type={type}
+        value={value}
+        onChange={e => handleChange(e.target.value)}
+        placeholder={placeholder}
+        className={className}
+        onFocus={() => value.length >= 1 && filtered.length > 0 && setOpen(true)}
+      />
+      {open && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl overflow-hidden">
+          {filtered.map(s => (
+            <button key={s} type="button"
+              className="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-700 transition"
+              onMouseDown={e => { e.preventDefault(); onChange(s); setOpen(false); }}>
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
+// ── Toggle switch ─────────────────────────────────────────────────────────────
+function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button type="button" onClick={() => onChange(!checked)}
+      className={`relative w-10 h-6 rounded-full transition-colors ${checked ? "bg-indigo-600" : "bg-gray-700"}`}>
+      <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${checked ? "translate-x-4" : ""}`} />
+    </button>
+  );
+}
+
+const inputCls = "w-full bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none placeholder-gray-600";
+
+// ── Settings tabs ─────────────────────────────────────────────────────────────
+type Tab = "profile" | "notifications" | "security" | "appearance" | "integrations" | "billing";
+
+const NAV: { key: Tab; label: string; icon: React.ElementType }[] = [
+  { key: "profile",       label: "Profile",       icon: User },
+  { key: "notifications", label: "Notifications", icon: Bell },
+  { key: "security",      label: "Security",      icon: Shield },
+  { key: "appearance",    label: "Appearance",    icon: Palette },
+  { key: "integrations",  label: "Integrations",  icon: Link2 },
+  { key: "billing",       label: "Billing",       icon: CreditCard },
+];
+
 export default function SettingsPage() {
   const { user, logout, refreshUser } = useAuth();
-  const [saved, setSaved]         = useState(false);
-  const [hydrated, setHydrated]   = useState(false);
+  const [tab, setTab] = useState<Tab>("profile");
+  const [saved, setSaved] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
-  const [username, setUsername]         = useState("");
-  const [bio, setBio]                   = useState("");
-  const [location, setLocation]         = useState("");
-  const [website, setWebsite]           = useState("");
-  const [linkedin, setLinkedin]         = useState("");
-  const [twitter, setTwitter]           = useState("");
-  const [portfolio, setPortfolio]       = useState("");
+  // Profile fields
+  const [username, setUsername] = useState("");
+  const [bio, setBio] = useState("");
+  const [location, setLocation] = useState("");
+  const [website, setWebsite] = useState("");
+  const [linkedin, setLinkedin] = useState("");
+  const [twitter, setTwitter] = useState("");
+  const [portfolio, setPortfolio] = useState("");
   const [availability, setAvailability] = useState("");
-  const [skills, setSkills]             = useState<string[]>([]);
-  const [skillInput, setSkillInput]     = useState("");
+  const [skills, setSkills] = useState<string[]>([]);
+  const [skillInput, setSkillInput] = useState("");
   const [visibility, setVisibility] = useState("PUBLIC");
+
+  // Notification prefs
+  const [notifPrefs, setNotifPrefs] = useState({
+    newProposals: true, comments: true, connections: true,
+    projectLikes: true, repoRequests: true, opportunities: true,
+  });
+
+  // Billing
+  const [isPaidContributor, setIsPaidContributor] = useState(false);
+  const [ratePerProject, setRatePerProject] = useState("");
+  const [openForPaid, setOpenForPaid] = useState(false);
+
+  // Profile data for billing eligibility
+  const { data: profileData } = useQuery({
+    queryKey: ["fullProfile", user?.id],
+    queryFn: async () => { const { data } = await profileDataAPI.getMyProfile(); return data; },
+    enabled: !!user,
+    staleTime: 60000,
+  });
+
+  const isEligibleForBilling = (profileData?.reputation?.level ?? 0) >= 6
+    || (profileData?.badges ?? []).length >= 5;
 
   useEffect(() => {
     if (user && !hydrated) {
@@ -52,8 +189,10 @@ export default function SettingsPage() {
   }, [user, hydrated]);
 
   const addSkill = () => {
-    const s = skillInput.trim();
-    if (s && !skills.includes(s)) setSkills(p => [...p, s]);
+    // Support comma-separated input
+    const parts = skillInput.split(",").map(s => s.trim()).filter(Boolean);
+    const newSkills = parts.filter(s => !skills.includes(s));
+    if (newSkills.length) setSkills(p => [...p, ...newSkills]);
     setSkillInput("");
   };
 
@@ -65,172 +204,391 @@ export default function SettingsPage() {
       availabilityHours: availability ? parseInt(availability) : undefined,
       skills, profileVisibility: visibility,
     } as any),
-    onSuccess: async () => {
-      await refreshUser();
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
-    },
+    onSuccess: async () => { await refreshUser(); setSaved(true); setTimeout(() => setSaved(false), 2500); },
     onError: (e: any) => alert(e.response?.data?.message || "Failed to save"),
   });
 
   if (!user) return null;
 
   const VIS_OPTIONS = [
-    { value: "PUBLIC",           label: "Public",           desc: "Anyone can view your profile",              icon: Globe,  color: "green" },
-    { value: "CONNECTIONS_ONLY", label: "Connections Only", desc: "Only connections can view your profile",   icon: Users,  color: "blue" },
-    { value: "PRIVATE",          label: "Private",          desc: "Only you can view your profile",           icon: Lock,   color: "red" },
+    { value: "PUBLIC",           label: "Public",           desc: "Anyone can view",        icon: Globe,  cls: "border-green-600 bg-green-900/30", active: "text-green-400" },
+    { value: "CONNECTIONS_ONLY", label: "Connections Only", desc: "Only connections",        icon: Users,  cls: "border-blue-600 bg-blue-900/30",  active: "text-blue-400"  },
+    { value: "PRIVATE",          label: "Private",          desc: "Only you",                icon: Lock,   cls: "border-red-600 bg-red-900/30",    active: "text-red-400"   },
   ];
 
   return (
     <div className="min-h-screen bg-gray-950">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold text-white mb-1">Settings</h1>
-        <p className="text-sm text-gray-500 mb-6">Manage your profile and account preferences</p>
+      <h1 className="text-2xl font-bold text-white mb-6">Settings</h1>
+      <div className="flex gap-6">
+        {/* Left nav */}
+        <nav className="w-44 flex-shrink-0 space-y-0.5">
+          {NAV.map(({ key, label, icon: Icon }) => {
+            const locked = key === "billing" && !isEligibleForBilling;
+            return (
+              <button key={key} onClick={() => !locked && setTab(key)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${
+                  tab === key ? "bg-indigo-600 text-white" : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                } ${locked ? "opacity-40 cursor-not-allowed" : ""}`}>
+                <Icon className="h-4 w-4 flex-shrink-0" />
+                {label}
+                {locked && <Lock className="h-3 w-3 ml-auto" />}
+              </button>
+            );
+          })}
+          <div className="pt-4 mt-2 border-t border-gray-800">
+            <button onClick={logout}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-900/20 transition">
+              <LogOut className="h-4 w-4" />Sign Out
+            </button>
+          </div>
+        </nav>
 
-        {/* Avatar preview */}
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5 mb-4 flex items-center gap-4">
-          {user.avatarUrl ? (
-            <img src={user.avatarUrl} alt="" className="w-14 h-14 rounded-2xl" />
-          ) : (
-            <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center">
-              <span className="text-2xl font-bold text-white">{user.username.charAt(0).toUpperCase()}</span>
+        {/* Content */}
+        <div className="flex-1 min-w-0 space-y-4">
+
+          {/* ── Profile tab ─────────────────────────────────────────────── */}
+          {tab === "profile" && (
+            <>
+              {/* Avatar */}
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5 flex items-center gap-4">
+                {user.avatarUrl
+                  ? <img src={user.avatarUrl} alt="" className="w-14 h-14 rounded-2xl" />
+                  : <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center">
+                      <span className="text-2xl font-bold text-white">{user.username.charAt(0).toUpperCase()}</span>
+                    </div>
+                }
+                <div>
+                  <p className="text-sm font-semibold text-white">{user.username}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Avatar synced from GitHub</p>
+                  {user.githubProfileUrl && (
+                    <a href={user.githubProfileUrl} target="_blank" rel="noopener noreferrer"
+                      className="text-xs text-indigo-400 flex items-center gap-1 mt-1 hover:text-indigo-300">
+                      <ExternalLink className="h-3 w-3" />Edit on GitHub
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Form */}
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5 space-y-4">
+                <h2 className="text-sm font-semibold text-white">Public Profile</h2>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1.5">Display Name</label>
+                  <input type="text" value={username} onChange={e => setUsername(e.target.value)} className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1.5">Bio</label>
+                  <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3}
+                    placeholder="Tell developers about yourself…" className={`${inputCls} resize-none`} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1.5">Location / Country</label>
+                    <SuggestionInput value={location} onChange={setLocation}
+                      suggestions={COUNTRIES} placeholder="e.g. India, United States"
+                      className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1.5">Website</label>
+                    <input type="url" value={website} onChange={e => setWebsite(e.target.value)}
+                      placeholder="https://yoursite.com" className={inputCls} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1.5">LinkedIn URL</label>
+                    <input type="url" value={linkedin} onChange={e => setLinkedin(e.target.value)}
+                      placeholder="https://linkedin.com/in/…" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1.5">Twitter/X URL</label>
+                    <input type="url" value={twitter} onChange={e => setTwitter(e.target.value)}
+                      placeholder="https://twitter.com/…" className={inputCls} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1.5">Portfolio URL</label>
+                    <input type="url" value={portfolio} onChange={e => setPortfolio(e.target.value)}
+                      placeholder="https://yourportfolio.com" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1.5">Availability (hrs/week)</label>
+                    <input type="number" min="0" max="80" value={availability}
+                      onChange={e => setAvailability(e.target.value)} placeholder="e.g. 20" className={inputCls} />
+                  </div>
+                </div>
+
+                {/* Skills with autocomplete + comma-separated */}
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1.5">Skills</label>
+                  <div className="flex gap-2 mb-2">
+                    <SuggestionInput value={skillInput} onChange={setSkillInput}
+                      suggestions={SKILL_SUGGESTIONS.filter(s => !skills.includes(s))}
+                      placeholder="e.g. React, Python, Docker (comma separated)"
+                      className={`${inputCls} flex-1`} />
+                    <button type="button" onClick={addSkill} disabled={!skillInput.trim()}
+                      className="bg-indigo-600 text-white px-3 rounded-xl hover:bg-indigo-700 disabled:opacity-40 transition">
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {skills.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {skills.map(s => (
+                        <span key={s} className="flex items-center gap-1 text-xs text-indigo-300 bg-indigo-900/40 border border-indigo-800/40 px-2.5 py-1 rounded-full">
+                          {s}
+                          <button onClick={() => setSkills(p => p.filter(x => x !== s))}
+                            className="hover:text-red-400 transition"><X className="h-3 w-3" /></button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Visibility */}
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                <h2 className="text-sm font-semibold text-white mb-3">Profile Visibility</h2>
+                <div className="grid grid-cols-3 gap-2">
+                  {VIS_OPTIONS.map(({ value, label, desc, icon: Icon, cls, active }) => (
+                    <button key={value} type="button" onClick={() => setVisibility(value)}
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition ${
+                        visibility === value ? cls : "border-gray-700 bg-gray-800 hover:border-gray-600"}`}>
+                      <Icon className={`h-5 w-5 ${visibility === value ? active : "text-gray-500"}`} />
+                      <span className={`text-xs font-semibold ${visibility === value ? "text-white" : "text-gray-400"}`}>{label}</span>
+                      <span className="text-[10px] text-gray-600">{desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button onClick={() => updateMut.mutate()} disabled={updateMut.isPending || !username.trim()}
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition ${
+                  saved ? "bg-green-600 text-white" : "bg-indigo-600 text-white hover:bg-indigo-700"} disabled:opacity-50`}>
+                <Save className="h-4 w-4" />
+                {saved ? "Saved!" : updateMut.isPending ? "Saving…" : "Save Changes"}
+              </button>
+            </>
+          )}
+
+          {/* ── Notifications tab ───────────────────────────────────────── */}
+          {tab === "notifications" && (
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5 space-y-4">
+              <h2 className="text-sm font-semibold text-white">Notification Preferences</h2>
+              {[
+                { key: "newProposals",   label: "New Proposals",    desc: "When someone submits a proposal on your project" },
+                { key: "comments",       label: "Comments",          desc: "When someone comments on your proposals" },
+                { key: "connections",    label: "Connections",       desc: "When someone sends you a connection request" },
+                { key: "projectLikes",   label: "Project Likes",     desc: "When someone likes your project" },
+                { key: "repoRequests",   label: "Repo Requests",     desc: "When someone requests repository access" },
+                { key: "opportunities",  label: "Opportunities",     desc: "When someone applies to your opportunity" },
+              ].map(({ key, label, desc }) => (
+                <div key={key} className="flex items-center justify-between py-3 border-b border-gray-800 last:border-0">
+                  <div>
+                    <p className="text-sm font-medium text-white">{label}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+                  </div>
+                  <Toggle checked={(notifPrefs as any)[key]} onChange={v => setNotifPrefs(p => ({ ...p, [key]: v }))} />
+                </div>
+              ))}
+              <p className="text-xs text-gray-600 pt-2">Email notifications are controlled by your GitHub account settings.</p>
             </div>
           )}
-          <div>
-            <p className="text-sm text-white font-medium">{user.username}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Profile picture synced from GitHub</p>
-            {user.githubProfileUrl && (
-              <a href={user.githubProfileUrl} target="_blank" rel="noopener noreferrer"
-                className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 mt-1">
-                <ExternalLink className="h-3 w-3" />Edit on GitHub
-              </a>
-            )}
-          </div>
-        </div>
 
-        {/* Profile form */}
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6 mb-4 space-y-4">
-          <h2 className="text-sm font-semibold text-white mb-2">Profile Information</h2>
-          <Field label="Display Name">
-            <input type="text" value={username} onChange={e => setUsername(e.target.value)} className={inputCls} />
-          </Field>
-          <Field label="Bio">
-            <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3}
-              placeholder="Tell developers about yourself…" className={`${inputCls} resize-none`} />
-          </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Location">
-              <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="City, Country" className={inputCls} />
-            </Field>
-            <Field label="Website">
-              <input type="url" value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yoursite.com" className={inputCls} />
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="LinkedIn URL">
-              <input type="url" value={linkedin} onChange={e => setLinkedin(e.target.value)} placeholder="https://linkedin.com/in/…" className={inputCls} />
-            </Field>
-            <Field label="Twitter/X URL">
-              <input type="url" value={twitter} onChange={e => setTwitter(e.target.value)} placeholder="https://twitter.com/…" className={inputCls} />
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Portfolio URL">
-              <input type="url" value={portfolio} onChange={e => setPortfolio(e.target.value)} placeholder="https://yourportfolio.com" className={inputCls} />
-            </Field>
-            <Field label="Availability (hrs/week)">
-              <input type="number" min="0" max="80" value={availability} onChange={e => setAvailability(e.target.value)} placeholder="e.g. 20" className={inputCls} />
-            </Field>
-          </div>
+          {/* ── Security tab ────────────────────────────────────────────── */}
+          {tab === "security" && (
+            <>
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5 space-y-4">
+                <h2 className="text-sm font-semibold text-white">Connected Account</h2>
+                <div className="flex items-center justify-between p-3 bg-gray-800 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center text-sm font-bold text-white">G</div>
+                    <div>
+                      <p className="text-sm font-medium text-white">GitHub</p>
+                      <p className="text-xs text-gray-500">@{user.githubUsername ?? "not connected"}</p>
+                    </div>
+                    <span className="text-[10px] text-green-400 bg-green-900/30 px-2 py-0.5 rounded-full">Connected</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500">Your account is secured via GitHub OAuth. No password is stored on DevMitra.</p>
+              </div>
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                <h2 className="text-sm font-semibold text-white mb-3">Active Sessions</h2>
+                <div className="flex items-center justify-between p-3 bg-gray-800 rounded-xl">
+                  <div>
+                    <p className="text-sm text-white">Current Browser</p>
+                    <p className="text-xs text-gray-500">Active now</p>
+                  </div>
+                  <span className="text-[10px] text-green-400 bg-green-900/30 px-2 py-0.5 rounded-full">Current</span>
+                </div>
+              </div>
+              <div className="bg-red-950/30 rounded-2xl border border-red-900/40 p-5">
+                <h2 className="text-sm font-semibold text-red-400 mb-2">Danger Zone</h2>
+                <p className="text-xs text-gray-500 mb-3">Permanently delete your account and all associated data.</p>
+                <button className="flex items-center gap-2 text-sm text-red-400 border border-red-800 px-4 py-2 rounded-xl hover:bg-red-900/20 transition">
+                  <Trash2 className="h-4 w-4" />Delete Account
+                </button>
+              </div>
+            </>
+          )}
 
-          {/* Skills */}
-          <Field label="Skills">
-            <div className="flex gap-2 mb-2">
-              <input type="text" value={skillInput} onChange={e => setSkillInput(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addSkill(); }}}
-                placeholder="e.g. React, Python, Docker" className={`${inputCls} flex-1`} />
-              <button type="button" onClick={addSkill} disabled={!skillInput.trim()}
-                className="bg-indigo-600 text-white px-3 rounded-xl hover:bg-indigo-700 disabled:opacity-40 transition">
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-            {skills.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {skills.map(s => (
-                  <span key={s} className="flex items-center gap-1 text-xs text-indigo-300 bg-indigo-900/40 border border-indigo-800/40 px-2.5 py-1 rounded-full">
-                    {s}
-                    <button onClick={() => setSkills(p => p.filter(x => x !== s))} className="hover:text-red-400 transition"><X className="h-3 w-3" /></button>
-                  </span>
+          {/* ── Appearance tab ──────────────────────────────────────────── */}
+          {tab === "appearance" && (
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+              <h2 className="text-sm font-semibold text-white mb-4">Appearance</h2>
+              <p className="text-sm text-gray-400 mb-3">Theme</p>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { value: "dark",   label: "Dark",   icon: Moon },
+                  { value: "light",  label: "Light",  icon: Sun },
+                  { value: "system", label: "System", icon: Monitor },
+                ].map(({ value, label, icon: Icon }) => (
+                  <div key={value}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border cursor-pointer transition ${
+                      value === "dark" ? "border-indigo-600 bg-indigo-900/20" : "border-gray-700 bg-gray-800"}`}>
+                    <Icon className={`h-6 w-6 ${value === "dark" ? "text-indigo-400" : "text-gray-500"}`} />
+                    <span className="text-xs font-medium text-white">{label}</span>
+                    {value === "dark" && <Check className="h-3.5 w-3.5 text-indigo-400" />}
+                  </div>
                 ))}
               </div>
-            )}
-          </Field>
-        </div>
-
-        {/* Profile Visibility */}
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6 mb-4">
-          <h2 className="text-sm font-semibold text-white mb-3">Profile Visibility</h2>
-          <div className="grid grid-cols-3 gap-2">
-            {VIS_OPTIONS.map(({ value, label, desc, icon: Icon, color }) => (
-              <button key={value} type="button" onClick={() => setVisibility(value)}
-                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition ${
-                  visibility === value
-                    ? color === "green" ? "border-green-600 bg-green-900/30"
-                    : color === "blue"  ? "border-blue-600 bg-blue-900/30"
-                    : "border-red-600 bg-red-900/30"
-                    : "border-gray-700 bg-gray-800 hover:border-gray-600"
-                }`}>
-                <Icon className={`h-5 w-5 ${visibility === value
-                  ? color === "green" ? "text-green-400" : color === "blue" ? "text-blue-400" : "text-red-400"
-                  : "text-gray-500"}`} />
-                <span className={`text-xs font-semibold ${visibility === value ? "text-white" : "text-gray-400"}`}>{label}</span>
-                <span className="text-[10px] text-gray-600 leading-tight">{desc}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Account info */}
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6 mb-4">
-          <h2 className="text-sm font-semibold text-white mb-3">Account</h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between py-2 border-b border-gray-800">
-              <div>
-                <p className="text-sm font-medium text-white">Email</p>
-                <p className="text-xs text-gray-500">{user.email}</p>
-              </div>
-              <span className="text-xs text-gray-600 bg-gray-800 px-2 py-1 rounded-full">From GitHub</span>
+              <p className="text-xs text-gray-600 mt-4">DevMitra currently uses dark mode. More themes coming soon.</p>
             </div>
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="text-sm font-medium text-white">GitHub Account</p>
-                <p className="text-xs text-gray-500">@{user.githubUsername || "not connected"}</p>
-              </div>
-              {user.githubProfileUrl && (
-                <a href={user.githubProfileUrl} target="_blank" rel="noopener noreferrer"
-                  className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
-                  <ExternalLink className="h-3 w-3" />View
-                </a>
-              )}
+          )}
+
+          {/* ── Integrations tab ────────────────────────────────────────── */}
+          {tab === "integrations" && (
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5 space-y-3">
+              <h2 className="text-sm font-semibold text-white mb-1">Integrations</h2>
+              {[
+                { name: "GitHub", desc: `Connected as @${user.githubUsername ?? "unknown"}`, connected: true, logo: "G" },
+                { name: "Vercel", desc: "Auto-import your Vercel deployments as projects", connected: false, logo: "V" },
+                { name: "Linear", desc: "Sync Linear issues with DevMitra proposals", connected: false, logo: "L" },
+              ].map(({ name, desc, connected, logo }) => (
+                <div key={name} className="flex items-center justify-between p-4 bg-gray-800 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-gray-700 flex items-center justify-center text-sm font-bold text-white">{logo}</div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-white">{name}</p>
+                        {connected && <span className="text-[10px] text-green-400 bg-green-900/30 px-1.5 py-0.5 rounded-full">Connected</span>}
+                      </div>
+                      <p className="text-xs text-gray-500">{desc}</p>
+                    </div>
+                  </div>
+                  <button className={`text-xs font-medium px-3 py-1.5 rounded-lg transition ${
+                    connected ? "text-gray-400 border border-gray-700 hover:bg-gray-700" : "text-white bg-indigo-600 hover:bg-indigo-700"}`}>
+                    {connected ? "Disconnect" : "Connect"}
+                  </button>
+                </div>
+              ))}
             </div>
-          </div>
-        </div>
+          )}
 
-        {/* Save + Danger */}
-        <button onClick={() => updateMut.mutate()} disabled={updateMut.isPending || !username.trim()}
-          className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold mb-4 transition ${
-            saved ? "bg-green-600 text-white" : "bg-indigo-600 text-white hover:bg-indigo-700"
-          } disabled:opacity-50`}>
-          <Save className="h-4 w-4" />
-          {saved ? "Saved!" : updateMut.isPending ? "Saving…" : "Save Changes"}
-        </button>
+          {/* ── Billing tab ─────────────────────────────────────────────── */}
+          {tab === "billing" && (
+            isEligibleForBilling ? (
+              <div className="space-y-4">
+                {/* Eligibility badge */}
+                <div className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 rounded-2xl border border-indigo-700/50 p-4 flex items-center gap-3">
+                  <Star className="h-5 w-5 text-yellow-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-white">Verified Developer</p>
+                    <p className="text-xs text-gray-400">
+                      Level {profileData?.reputation?.level} · {(profileData?.badges ?? []).length} badges earned
+                    </p>
+                  </div>
+                  <span className="ml-auto text-xs text-green-400 bg-green-900/30 px-2.5 py-1 rounded-full font-medium">Eligible</span>
+                </div>
 
-        <div className="bg-red-950/30 rounded-2xl border border-red-900/40 p-5">
-          <h2 className="text-sm font-semibold text-red-400 mb-3">Danger Zone</h2>
-          <button onClick={logout}
-            className="flex items-center gap-2 text-sm text-red-400 border border-red-800 px-4 py-2.5 rounded-xl hover:bg-red-900/30 transition">
-            <LogOut className="h-4 w-4" />Sign out
-          </button>
+                {/* Paid contributor toggle */}
+                <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h2 className="text-sm font-semibold text-white">Paid Contributor</h2>
+                      <p className="text-xs text-gray-500 mt-0.5">Switch to a paid contributor account to charge for your work</p>
+                    </div>
+                    <Toggle checked={isPaidContributor} onChange={setIsPaidContributor} />
+                  </div>
+
+                  {isPaidContributor && (
+                    <div className="space-y-4 pt-4 border-t border-gray-800">
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1.5">Rate per Project (USD)</label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                          <input type="number" min="0" value={ratePerProject} onChange={e => setRatePerProject(e.target.value)}
+                            placeholder="e.g. 500" className={`${inputCls} pl-9`} />
+                        </div>
+                        <p className="text-[10px] text-gray-600 mt-1">Set your base rate. Project owners will see this on your profile.</p>
+                      </div>
+                      <div className="flex items-center justify-between py-3 border-t border-gray-800">
+                        <div>
+                          <p className="text-sm font-medium text-white">Open for Paid Collaborations</p>
+                          <p className="text-xs text-gray-500">Show a "Hire Me" badge on your profile</p>
+                        </div>
+                        <Toggle checked={openForPaid} onChange={setOpenForPaid} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {isPaidContributor && (
+                  <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                    <h2 className="text-sm font-semibold text-white mb-3">Current Plan</h2>
+                    <div className="bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-700/40 rounded-xl p-4 flex items-center justify-between mb-4">
+                      <div>
+                        <p className="text-sm font-bold text-white">Pro Contributor</p>
+                        <p className="text-xs text-gray-400">Unlimited projects · Priority listing · Verified badge</p>
+                      </div>
+                      <span className="text-base font-bold text-indigo-300">$12<span className="text-xs text-gray-500">/mo</span></span>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Billing History</h3>
+                      {[
+                        { date: "Jun 1, 2026", amount: "$12.00" },
+                        { date: "May 1, 2026", amount: "$12.00" },
+                      ].map(({ date, amount }) => (
+                        <div key={date} className="flex items-center justify-between py-2.5 border-b border-gray-800 last:border-0">
+                          <span className="text-sm text-gray-400">{date}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm text-white font-medium">{amount}</span>
+                            <span className="text-[10px] text-green-400 bg-green-900/30 px-2 py-0.5 rounded-full">Paid</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <button className="w-full bg-indigo-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition flex items-center justify-center gap-2">
+                  <Save className="h-4 w-4" />Save Billing Settings
+                </button>
+              </div>
+            ) : (
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 text-center">
+                <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <CreditCard className="h-8 w-8 text-gray-600" />
+                </div>
+                <h2 className="text-base font-semibold text-white mb-2">Billing Not Available Yet</h2>
+                <p className="text-sm text-gray-500 mb-4 max-w-xs mx-auto">
+                  Billing is unlocked for verified developers with Level 6+ reputation or 5+ badges.
+                </p>
+                <div className="flex items-center justify-center gap-6 text-sm mb-5">
+                  <div className="text-center">
+                    <div className="text-xl font-bold text-indigo-400">{profileData?.reputation?.level ?? 0}</div>
+                    <div className="text-xs text-gray-500">Current Level</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xl font-bold text-yellow-400">{(profileData?.badges ?? []).length}</div>
+                    <div className="text-xs text-gray-500">Badges</div>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-600">Keep contributing to unlock billing features.</p>
+              </div>
+            )
+          )}
+
         </div>
       </div>
     </div>

@@ -351,34 +351,32 @@ export default function ProfilePage() {
       {/* ── Badges + Recent Activity ───────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-        {/* Badges */}
+        {/* Badges — scrollable, 3 items visible */}
         <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
-          <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
             <Star className="h-4 w-4 text-yellow-400" />Achievements
             <span className="ml-auto text-xs text-gray-500">
               {(p?.badges ?? []).length}/{allDefs.length}
             </span>
           </h2>
-          <div className="space-y-2">
-            {allDefs.map((def: any) => (
+          {/* Fixed height = 3 × (56px item + 8px gap) = 184px */}
+          <div className="space-y-2 overflow-y-auto" style={{ maxHeight: 192, scrollbarWidth: "thin" }}>
+            {allDefs.length > 0 ? allDefs.map((def: any) => (
               <BadgeCard key={def.key} badge={def} earned={earnedKeys.has(def.key)} />
-            ))}
-            {allDefs.length === 0 && (
-              <div className="space-y-2">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-14 bg-gray-800 rounded-xl animate-pulse" />
-                ))}
-              </div>
+            )) : (
+              [...Array(4)].map((_, i) => (
+                <div key={i} className="h-14 bg-gray-800 rounded-xl animate-pulse" />
+              ))
             )}
           </div>
         </div>
 
-        {/* Recent Activity */}
+        {/* Recent Activity — scrollable, 3 items visible */}
         <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
-          <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
             <Zap className="h-4 w-4 text-green-400" />Recent Activity
           </h2>
-          <div className="space-y-3">
+          <div className="overflow-y-auto space-y-3" style={{ maxHeight: 192, scrollbarWidth: "thin" }}>
             {(p?.recentActivity ?? []).length > 0 ? (
               (p.recentActivity as any[]).map((act: any) => (
                 <div key={act.id} className="flex items-start gap-3">
@@ -402,22 +400,20 @@ export default function ProfilePage() {
                 </div>
               ))
             ) : (
-              <div className="space-y-2">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex gap-3">
-                    <div className="w-8 h-8 bg-gray-800 rounded-xl animate-pulse flex-shrink-0" />
-                    <div className="flex-1 space-y-1.5">
-                      <div className="h-3 bg-gray-800 animate-pulse rounded w-4/5" />
-                      <div className="h-2.5 bg-gray-800 animate-pulse rounded w-2/5" />
-                    </div>
+              [...Array(3)].map((_, i) => (
+                <div key={i} className="flex gap-3">
+                  <div className="w-8 h-8 bg-gray-800 rounded-xl animate-pulse flex-shrink-0" />
+                  <div className="flex-1 space-y-1.5 py-1">
+                    <div className="h-3 bg-gray-800 animate-pulse rounded w-4/5" />
+                    <div className="h-2.5 bg-gray-800 animate-pulse rounded w-2/5" />
                   </div>
-                ))}
-              </div>
+                </div>
+              ))
             )}
           </div>
 
-          {/* Quick nav links */}
-          <div className="mt-5 pt-4 border-t border-gray-800 space-y-1">
+          {/* Quick nav */}
+          <div className="mt-4 pt-4 border-t border-gray-800 space-y-0.5">
             {[
               { href: "/my-projects",   label: "My Projects",   icon: FolderGit2,     count: p?.stats?.projects },
               { href: "/connections",   label: "Connections",   icon: Users,          count: p?.stats?.connections },
