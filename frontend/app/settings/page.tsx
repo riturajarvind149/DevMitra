@@ -142,6 +142,62 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 
 const inputCls = "w-full bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none placeholder-gray-600";
 
+// ── Appearance tab (standalone so it can use its own state) ──────────────────
+function AppearanceTab() {
+  const [theme, setTheme] = useState<"dark" | "light" | "system">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("devmitra-theme") as any) ?? "dark";
+    }
+    return "dark";
+  });
+
+  const applyTheme = (t: "dark" | "light" | "system") => {
+    setTheme(t);
+    localStorage.setItem("devmitra-theme", t);
+    const html = document.documentElement;
+    if (t === "light") {
+      html.classList.add("light");
+      html.classList.remove("dark");
+    } else if (t === "dark") {
+      html.classList.remove("light");
+      html.classList.add("dark");
+    } else {
+      // system
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      html.classList.toggle("light", !prefersDark);
+      html.classList.toggle("dark", prefersDark);
+    }
+  };
+
+  return (
+    <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+      <h2 className="text-sm font-semibold text-white mb-4">Appearance</h2>
+      <p className="text-sm text-gray-400 mb-3">Theme</p>
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { value: "dark"   as const, label: "Dark",   icon: Moon },
+          { value: "light"  as const, label: "Light",  icon: Sun },
+          { value: "system" as const, label: "System", icon: Monitor },
+        ].map(({ value, label, icon: Icon }) => {
+          const active = theme === value;
+          return (
+            <button key={value} type="button" onClick={() => applyTheme(value)}
+              className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition cursor-pointer ${
+                active ? "border-indigo-600 bg-indigo-900/30" : "border-gray-700 bg-gray-800 hover:border-gray-600"}`}>
+              <Icon className={`h-6 w-6 ${active ? "text-indigo-400" : "text-gray-500"}`} />
+              <span className={`text-xs font-medium ${active ? "text-white" : "text-gray-400"}`}>{label}</span>
+              {active && <Check className="h-3.5 w-3.5 text-indigo-400" />}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-xs text-gray-600 mt-4">
+        Theme is saved locally. Light mode is in beta — some areas may still show dark colors.
+      </p>
+    </div>
+  );
+}
+
 // ── Settings tabs ─────────────────────────────────────────────────────────────
 type Tab = "profile" | "notifications" | "security" | "appearance" | "integrations" | "billing";
 
@@ -159,6 +215,7 @@ export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>("profile");
   const [saved, setSaved] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   // Profile fields
   const [username, setUsername] = useState("");
@@ -262,7 +319,7 @@ export default function SettingsPage() {
             })}
           </div>
           <div className="pt-4 mt-4 border-t border-gray-800">
-            <button onClick={logout}
+            <button onClick={() => setConfirmLogout(true)}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-900/20 transition">
               <LogOut className="h-4 w-4" />Sign Out
             </button>
@@ -461,26 +518,7 @@ export default function SettingsPage() {
 
           {/* ── Appearance tab ──────────────────────────────────────────── */}
           {tab === "appearance" && (
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
-              <h2 className="text-sm font-semibold text-white mb-4">Appearance</h2>
-              <p className="text-sm text-gray-400 mb-3">Theme</p>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { value: "dark",   label: "Dark",   icon: Moon },
-                  { value: "light",  label: "Light",  icon: Sun },
-                  { value: "system", label: "System", icon: Monitor },
-                ].map(({ value, label, icon: Icon }) => (
-                  <div key={value}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border cursor-pointer transition ${
-                      value === "dark" ? "border-indigo-600 bg-indigo-900/20" : "border-gray-700 bg-gray-800"}`}>
-                    <Icon className={`h-6 w-6 ${value === "dark" ? "text-indigo-400" : "text-gray-500"}`} />
-                    <span className="text-xs font-medium text-white">{label}</span>
-                    {value === "dark" && <Check className="h-3.5 w-3.5 text-indigo-400" />}
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-gray-600 mt-4">DevMitra currently uses dark mode. More themes coming soon.</p>
-            </div>
+            <AppearanceTab />
           )}
 
           {/* ── Integrations tab ────────────────────────────────────────── */}
@@ -618,6 +656,33 @@ export default function SettingsPage() {
 
         </div>
       </div>
+
+      {/* ── Logout Confirmation Modal ─────────────────────────────────────── */}
+      {confirmLogout && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-2xl p-6 border border-gray-700 max-w-sm w-full">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-red-900/40 rounded-xl flex items-center justify-center flex-shrink-0">
+                <LogOut className="h-5 w-5 text-red-400" />
+              </div>
+              <h3 className="text-base font-semibold text-white">Sign Out?</h3>
+            </div>
+            <p className="text-sm text-gray-400 mb-5">
+              Are you sure you want to sign out of DevMitra?
+            </p>
+            <div className="flex gap-3">
+              <button onClick={logout}
+                className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-red-700 transition">
+                Sign Out
+              </button>
+              <button onClick={() => setConfirmLogout(false)}
+                className="flex-1 bg-gray-800 text-gray-300 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { connectionsAPI } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
-import { Users, UserPlus, Check, X, UserCheck, Search, Compass } from "lucide-react";
+import { Users, UserPlus, Check, X, UserCheck, Search, Compass, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 
@@ -13,6 +13,7 @@ export default function ConnectionsPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<"connections" | "requests" | "discover">("connections");
   const [search, setSearch] = useState("");
+  const [confirmRemove, setConfirmRemove] = useState<{ userId: string; username: string } | null>(null);
 
   const { data: connections, isLoading: loadConn } = useQuery({
     queryKey: ["connections"],
@@ -110,7 +111,7 @@ export default function ConnectionsPage() {
                     )}
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-[10px] text-gray-600">Connected {formatDistanceToNow(new Date(conn.connectedAt), { addSuffix: true })}</span>
-                      <button onClick={() => removeMut.mutate(conn.user.id)} disabled={removeMut.isPending}
+                      <button onClick={() => setConfirmRemove({ userId: conn.user.id, username: conn.user.username })}
                         className="text-[10px] text-gray-600 hover:text-red-400 transition">Remove</button>
                     </div>
                   </div>
@@ -184,6 +185,35 @@ export default function ConnectionsPage() {
             className="inline-flex items-center gap-2 text-sm font-medium text-white bg-indigo-600 px-5 py-2.5 rounded-xl hover:bg-indigo-700 transition">
             <Compass className="h-4 w-4" />Browse Developers
           </Link>
+        </div>
+      )}
+
+      {/* ── Confirm Remove Modal ─────────────────────────────────────────── */}
+      {confirmRemove && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-2xl p-6 border border-gray-700 max-w-sm w-full">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-red-900/40 rounded-xl flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-red-400" />
+              </div>
+              <h3 className="text-base font-semibold text-white">Remove Connection?</h3>
+            </div>
+            <p className="text-sm text-gray-400 mb-5">
+              Are you sure you want to remove <span className="text-white font-medium">{confirmRemove.username}</span> from your connections? This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { removeMut.mutate(confirmRemove.userId); setConfirmRemove(null); }}
+                disabled={removeMut.isPending}
+                className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition">
+                {removeMut.isPending ? "Removing…" : "Remove"}
+              </button>
+              <button onClick={() => setConfirmRemove(null)}
+                className="flex-1 bg-gray-800 text-gray-300 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition">
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

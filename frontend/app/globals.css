@@ -5,6 +5,29 @@
   --foreground: #f9fafb;
 }
 
+/* Light theme overrides — applied when <html> has class "light" */
+html.light {
+  --background: #f9fafb;
+  --foreground: #111827;
+}
+
+html.light body {
+  background: #f9fafb;
+  color: #111827;
+}
+
+/* Light theme Tailwind color overrides */
+html.light .bg-gray-950 { background-color: #f9fafb !important; }
+html.light .bg-gray-900 { background-color: #f3f4f6 !important; }
+html.light .bg-gray-800 { background-color: #e5e7eb !important; }
+html.light .bg-gray-700 { background-color: #d1d5db !important; }
+html.light .text-white   { color: #111827 !important; }
+html.light .text-gray-400 { color: #4b5563 !important; }
+html.light .text-gray-500 { color: #6b7280 !important; }
+html.light .text-gray-600 { color: #9ca3af !important; }
+html.light .border-gray-800 { border-color: #d1d5db !important; }
+html.light .border-gray-700 { border-color: #e5e7eb !important; }
+
 body {
   background: var(--background);
   color: var(--foreground);

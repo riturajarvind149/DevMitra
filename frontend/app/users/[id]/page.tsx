@@ -10,7 +10,6 @@ import {
   GitPullRequest, Heart, TrendingUp,
 } from "lucide-react";
 import { formatDistanceToNow, format, subDays } from "date-fns";
-import ProjectFeedCard from "@/components/ProjectFeedCard";
 import ConnectButton from "@/components/ConnectButton";
 import { ProfileSkeleton } from "@/components/Skeleton";
 import Link from "next/link";
@@ -219,10 +218,33 @@ export default function UserProfilePage() {
           {/* Projects */}
           {userProjects && userProjects.length > 0 && (
             <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
-              <h2 className="text-base font-semibold text-white mb-4">Projects by {profile.username}</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base font-semibold text-white">Projects by {profile.username}</h2>
+                {userProjects.length > 4 && (
+                  <span className="text-xs text-gray-500">{userProjects.length} projects</span>
+                )}
+              </div>
               <div className="space-y-3">
-                {userProjects.map((proj: any) => (
-                  <ProjectFeedCard key={proj.id} project={proj} />
+                {userProjects.slice(0, 6).map((proj: any) => (
+                  <Link key={proj.id} href={`/projects/${proj.id}`}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-gray-800 hover:bg-gray-700 transition">
+                    <div className="w-10 h-10 rounded-xl bg-gray-700 flex-shrink-0 overflow-hidden">
+                      {proj.coverImage
+                        ? <img src={proj.coverImage} alt="" className="w-full h-full object-cover" />
+                        : <div className="w-full h-full flex items-center justify-center">
+                            <FolderGit2 className="h-5 w-5 text-gray-500" />
+                          </div>
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{proj.title}</p>
+                      <p className="text-xs text-gray-500 truncate">{proj.description}</p>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-gray-600 flex-shrink-0">
+                      <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{proj._count?.likes ?? 0}</span>
+                      <span className="flex items-center gap-1"><Users className="h-3 w-3" />{proj._count?.members ?? 0}</span>
+                    </div>
+                  </Link>
                 ))}
               </div>
             </div>
