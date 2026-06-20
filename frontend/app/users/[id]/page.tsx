@@ -109,18 +109,18 @@ export default function UserProfilePage() {
               }
               <span className="absolute bottom-1 right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-900" />
             </div>
-            <div className="flex gap-2 flex-shrink-0 flex-wrap">
-              {!isSelf && (
+            {/* Buttons — wrap when too wide, never overflow */}
+            <div className="flex gap-2 flex-wrap items-center max-w-[60%]">
+              {!isSelf ? (
                 <>
                   <ConnectButton userId={userId} />
                   <Link href={`/messages?user=${userId}`}
-                    className="flex items-center gap-2 text-sm text-gray-300 border border-gray-700 px-3 py-2 rounded-xl hover:bg-gray-800 transition whitespace-nowrap">
+                    className="text-sm text-gray-300 border border-gray-700 px-3 py-2 rounded-xl hover:bg-gray-800 transition whitespace-nowrap">
                     Message
                   </Link>
                 </>
-              )}
-              {isSelf && (
-                <Link href="/settings" className="text-xs text-indigo-400 border border-indigo-800 px-3 py-1.5 rounded-xl hover:bg-indigo-900/30 transition">
+              ) : (
+                <Link href="/settings" className="text-xs text-indigo-400 border border-indigo-800 px-3 py-1.5 rounded-xl hover:bg-indigo-900/30 transition whitespace-nowrap">
                   Edit Profile
                 </Link>
               )}

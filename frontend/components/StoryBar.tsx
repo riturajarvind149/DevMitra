@@ -10,14 +10,17 @@ import FileUploader from "./FileUploader";
 
 const STORY_LABELS = ["Release", "Bug Fix", "Milestone", "Update", "Looking for Help"];
 const VIS_OPTIONS = [
-  { value: "PUBLIC",           label: "Public",     icon: Globe,  desc: "Everyone" },
-  { value: "CONNECTIONS_ONLY", label: "Connections",icon: Users,  desc: "Connections only" },
-  { value: "PRIVATE",          label: "Only Me",    icon: Lock,   desc: "Private" },
+  { value: "PUBLIC",           label: "Public",      icon: Globe,  desc: "Everyone" },
+  { value: "CONNECTIONS_ONLY", label: "Connections", icon: Users,  desc: "Connections only" },
+  { value: "PRIVATE",          label: "Only Me",     icon: Lock,   desc: "Private" },
 ];
 
-interface StoryBarProps { stories: StoryGroup[] }
+interface StoryBarProps {
+  stories: StoryGroup[];
+  viewedIds?: string[]; // story group user IDs the current user has already viewed
+}
 
-export default function StoryBar({ stories }: StoryBarProps) {
+export default function StoryBar({ stories, viewedIds = [] }: StoryBarProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
@@ -27,6 +30,8 @@ export default function StoryBar({ stories }: StoryBarProps) {
   const [caption, setCaption]           = useState("");
   const [label, setLabel]               = useState(STORY_LABELS[0]);
   const [visibility, setVisibility]     = useState("PUBLIC");
+  // Track locally viewed stories this session
+  const [localViewed, setLocalViewed]   = useState<Set<string>>(new Set(viewedIds));
 
   const addMutation = useMutation({
     mutationFn: () => storiesAPI.create({ mediaUrl, caption, label, visibility }),
@@ -37,50 +42,97 @@ export default function StoryBar({ stories }: StoryBarProps) {
     },
   });
 
-  const openStory = (group: StoryGroup) => { setViewStory(group); setStoryIdx(0); };
+  const openStory = (group: StoryGroup) => {
+    setViewStory(group);
+    setStoryIdx(0);
+    // Mark as viewed locally
+    setLocalViewed(prev => new Set([...prev, group.user.id]));
+  };
+
   const nextStory = () => {
     if (!viewStory) return;
     if (storyIdx < viewStory.stories.length - 1) setStoryIdx(i => i + 1);
     else setViewStory(null);
   };
 
+  // Check if current user already has a story
+  const myStoryGroup = stories.find(g => g.user.id === user?.id);
+
   return (
     <>
       {/* Story strip */}
-      <div className="flex items-center gap-4 overflow-x-auto pb-2 mb-6 scrollbar-hide">
-        {/* Add story */}
-        <button onClick={() => setShowAddModal(true)}
-          className="flex flex-col items-center gap-1.5 flex-shrink-0">
-          <div className="w-14 h-14 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center bg-gray-800/50 hover:border-indigo-500 transition">
-            <Plus className="h-5 w-5 text-gray-400" />
-          </div>
-          <span className="text-[10px] text-gray-500">Add Story</span>
-        </button>
+      <div className="flex items-start gap-4 overflow-x-auto pb-2 mb-6 scrollbar-hide">
 
-        {/* User stories */}
-        {stories.map((group) => (
-          <button key={group.user.id} onClick={() => openStory(group)}
-            className="flex flex-col items-center gap-1.5 flex-shrink-0">
-            <div className="w-14 h-14 rounded-full p-0.5 bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500">
-              <div className="w-full h-full rounded-full overflow-hidden border-2 border-gray-900">
-                {group.user.avatarUrl ? (
-                  <img src={group.user.avatarUrl} alt="" className="w-full h-full object-cover" />
+        {/* ── "Add Story" bubble — always shows current user's avatar ─────── */}
+        <button onClick={() => setShowAddModal(true)}
+          className="flex flex-col items-center gap-1.5 flex-shrink-0 group">
+          <div className="relative w-16 h-16">
+            {/* Avatar ring — dashed when no story, colored gradient when has story */}
+            <div className={`w-16 h-16 rounded-full ${
+              myStoryGroup
+                ? "p-0.5 bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500"
+                : "border-2 border-dashed border-gray-600 group-hover:border-indigo-500 transition"
+            }`}>
+              <div className={`w-full h-full rounded-full overflow-hidden ${
+                myStoryGroup ? "border-2 border-gray-900" : ""
+              } bg-gray-800`}>
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full bg-indigo-700 flex items-center justify-center">
-                    <span className="text-sm font-bold text-white">{group.user.username.charAt(0).toUpperCase()}</span>
+                  <div className="w-full h-full bg-gradient-to-br from-indigo-700 to-purple-700 flex items-center justify-center">
+                    <span className="text-sm font-bold text-white">{user?.username?.charAt(0).toUpperCase()}</span>
                   </div>
                 )}
               </div>
             </div>
-            <span className="text-[10px] text-gray-400 max-w-[56px] truncate">{group.user.username}</span>
-            {group.stories[0]?.label && (
-              <span className="text-[9px] text-indigo-400 bg-indigo-900/40 px-1.5 rounded-full -mt-0.5">{group.stories[0].label}</span>
-            )}
-          </button>
-        ))}
+            {/* Plus badge — bottom-right corner of the avatar */}
+            <div className="absolute bottom-0 right-0 w-5 h-5 bg-indigo-600 rounded-full border-2 border-gray-950 flex items-center justify-center">
+              <Plus className="h-3 w-3 text-white" />
+            </div>
+          </div>
+          <span className="text-[10px] text-gray-500 group-hover:text-gray-400 transition">
+            {myStoryGroup ? "Your story" : "Add Story"}
+          </span>
+        </button>
+
+        {/* ── Other users' stories ──────────────────────────────────────────── */}
+        {stories
+          .filter(g => g.user.id !== user?.id) // skip own story (already shown above)
+          .map((group) => {
+            const viewed = localViewed.has(group.user.id);
+            return (
+              <button key={group.user.id} onClick={() => openStory(group)}
+                className="flex flex-col items-center gap-1.5 flex-shrink-0">
+                <div className="w-16 h-16 relative">
+                  {/* Ring: colored gradient = unviewed, gray = viewed */}
+                  <div className={`w-16 h-16 rounded-full p-0.5 ${
+                    viewed
+                      ? "bg-gray-600"
+                      : "bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500"
+                  }`}>
+                    <div className="w-full h-full rounded-full overflow-hidden border-2 border-gray-900 bg-gray-800">
+                      {group.user.avatarUrl ? (
+                        <img src={group.user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-indigo-700 flex items-center justify-center">
+                          <span className="text-sm font-bold text-white">{group.user.username.charAt(0).toUpperCase()}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <span className="text-[10px] text-gray-400 max-w-[56px] truncate">{group.user.username}</span>
+                {group.stories[0]?.label && (
+                  <span className="text-[9px] text-indigo-400 bg-indigo-900/40 px-1.5 rounded-full -mt-0.5">
+                    {group.stories[0].label}
+                  </span>
+                )}
+              </button>
+            );
+          })}
       </div>
 
-      {/* Add Story Modal */}
+      {/* ── Add Story Modal ────────────────────────────────────────────────── */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 rounded-2xl w-full max-w-md border border-gray-700 overflow-hidden">
@@ -119,7 +171,7 @@ export default function StoryBar({ stories }: StoryBarProps) {
               <div>
                 <label className="block text-sm text-gray-400 mb-1.5">Visibility</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {VIS_OPTIONS.map(({ value, label: vLabel, icon: Icon, desc }) => (
+                  {VIS_OPTIONS.map(({ value, label: vLabel, icon: Icon }) => (
                     <button key={value} type="button" onClick={() => setVisibility(value)}
                       className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition ${visibility === value ? "border-indigo-600 bg-indigo-900/30" : "border-gray-700 bg-gray-800 hover:border-gray-600"}`}>
                       <Icon className={`h-4 w-4 ${visibility === value ? "text-indigo-400" : "text-gray-500"}`} />
@@ -143,14 +195,14 @@ export default function StoryBar({ stories }: StoryBarProps) {
         </div>
       )}
 
-      {/* View Story Modal */}
+      {/* ── View Story Modal ───────────────────────────────────────────────── */}
       {viewStory && (
         <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50" onClick={nextStory}>
           <div className="relative w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
-            {/* Progress */}
+            {/* Progress bars */}
             <div className="flex gap-1 mb-3">
               {viewStory.stories.map((_, i) => (
-                <div key={i} className={`h-0.5 flex-1 rounded-full transition-all ${i <= storyIdx ? "bg-white" : "bg-white/25"}`} />
+                <div key={i} className={`h-0.5 flex-1 rounded-full ${i <= storyIdx ? "bg-white" : "bg-white/25"}`} />
               ))}
             </div>
             {/* Media */}
@@ -162,7 +214,7 @@ export default function StoryBar({ stories }: StoryBarProps) {
               ) : (
                 <img src={viewStory.stories[storyIdx].mediaUrl} alt=""
                   className="w-full h-full object-cover"
-                  onError={e => { (e.target as HTMLImageElement).src = "https://via.placeholder.com/400x700/1a1a2e/6366f1?text=Story"; }} />
+                  onError={e => { (e.target as HTMLImageElement).src = "https://placehold.co/400x700/1a1a2e/6366f1?text=Story"; }} />
               )}
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
                 <div className="flex items-center gap-2 mb-1.5">
@@ -182,12 +234,10 @@ export default function StoryBar({ stories }: StoryBarProps) {
                   <p className="text-sm text-white">{viewStory.stories[storyIdx].caption}</p>
                 )}
               </div>
-              {/* Close */}
               <button onClick={() => setViewStory(null)} className="absolute top-3 right-3 text-white/70 hover:text-white">
                 <X className="h-5 w-5" />
               </button>
             </div>
-            {/* Navigation */}
             <div className="flex justify-between mt-3">
               <button onClick={() => storyIdx > 0 && setStoryIdx(i => i - 1)}
                 className="text-sm text-gray-400 hover:text-white disabled:opacity-30 transition"
