@@ -29,8 +29,8 @@ export default function TopBar() {
       const { data } = await messagesAPI.getUnreadCount();
       return data.unreadCount;
     },
-    refetchInterval: 30000,   // poll every 30s (was 30s — keep same)
-    staleTime: 15000,
+    refetchInterval: 10000,   // poll every 10s for fast badge update
+    staleTime: 5000,
   });
 
   const handleSearch = (e: React.FormEvent) => {

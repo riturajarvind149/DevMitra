@@ -3,30 +3,39 @@
 :root {
   --background: #030712;
   --foreground: #f9fafb;
+  color-scheme: dark;
 }
 
-/* Light theme overrides — applied when <html> has class "light" */
+/* Dark theme (default) */
+html, html.dark {
+  color-scheme: dark;
+}
+
+/* Light theme — next-themes adds class="light" to <html> */
 html.light {
-  --background: #f9fafb;
-  --foreground: #111827;
+  --background: #f1f5f9;
+  --foreground: #0f172a;
+  color-scheme: light;
 }
 
 html.light body {
-  background: #f9fafb;
-  color: #111827;
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
 }
 
-/* Light theme Tailwind color overrides */
-html.light .bg-gray-950 { background-color: #f9fafb !important; }
-html.light .bg-gray-900 { background-color: #f3f4f6 !important; }
-html.light .bg-gray-800 { background-color: #e5e7eb !important; }
-html.light .bg-gray-700 { background-color: #d1d5db !important; }
-html.light .text-white   { color: #111827 !important; }
-html.light .text-gray-400 { color: #4b5563 !important; }
-html.light .text-gray-500 { color: #6b7280 !important; }
-html.light .text-gray-600 { color: #9ca3af !important; }
-html.light .border-gray-800 { border-color: #d1d5db !important; }
-html.light .border-gray-700 { border-color: #e5e7eb !important; }
+/* Light mode component overrides */
+html.light .bg-gray-950 { background-color: #f8fafc !important; }
+html.light .bg-gray-900 { background-color: #f1f5f9 !important; }
+html.light .bg-gray-800 { background-color: #e2e8f0 !important; }
+html.light .bg-gray-700 { background-color: #cbd5e1 !important; }
+html.light .border-gray-800 { border-color: #e2e8f0 !important; }
+html.light .border-gray-700 { border-color: #cbd5e1 !important; }
+html.light .text-white    { color: #0f172a !important; }
+html.light .text-gray-300 { color: #334155 !important; }
+html.light .text-gray-400 { color: #475569 !important; }
+html.light .text-gray-500 { color: #64748b !important; }
+html.light .text-gray-600 { color: #94a3b8 !important; }
+html.light .text-gray-700 { color: #94a3b8 !important; }
 
 body {
   background: var(--background);
@@ -43,7 +52,7 @@ body {
   display: none;
 }
 
-/* Custom thin scrollbar for main areas */
+/* Custom thin scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #374151; border-radius: 2px; }

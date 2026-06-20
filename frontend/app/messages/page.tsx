@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -28,8 +28,8 @@ export default function MessagesPage() {
   const { data: conversations, isLoading: loadingConvs } = useQuery({
     queryKey: ["conversations"],
     queryFn: async () => { const { data } = await messagesAPI.getConversations(); return data; },
-    refetchInterval: 15000,
-    staleTime: 10000,
+    refetchInterval: 8000,
+    staleTime: 5000,
   });
 
   const { data: messages, isLoading: loadingMsgs } = useQuery({
@@ -40,8 +40,8 @@ export default function MessagesPage() {
       return data as Message[];
     },
     enabled: !!selectedConv,
-    refetchInterval: 5000,
-    staleTime: 3000,
+    refetchInterval: 2000,
+    staleTime: 1000,
   });
 
   // Scroll to bottom when new messages arrive
@@ -98,7 +98,7 @@ export default function MessagesPage() {
     // data-fullwidth tells AppShell to remove padding/centering for this page
     <div data-fullwidth className="flex h-full bg-gray-950" style={{ height: "calc(100vh - 64px)" }}>
 
-      {/* ── Left panel: conversation list ─────────────────────────────────── */}
+      {/* â”€â”€ Left panel: conversation list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className={`w-[340px] flex-shrink-0 border-r border-gray-800 flex flex-col bg-gray-950 ${selectedConv || showNewChat ? "hidden lg:flex" : "flex"}`}>
 
         {/* Header */}
@@ -147,7 +147,17 @@ export default function MessagesPage() {
               {filteredConvs.map(conv => (
                 <button
                   key={conv.id}
-                  onClick={() => { setSelectedConv(conv); setShowNewChat(false); }}
+                  onClick={() => {
+                    setSelectedConv(conv);
+                    setShowNewChat(false);
+                    // Immediately clear unread badge for this conversation in cache
+                    qc.setQueryData(["conversations"], (old: any) => {
+                      if (!Array.isArray(old)) return old;
+                      return old.map((c: any) => c.id === conv.id ? { ...c, unreadCount: 0 } : c);
+                    });
+                    // Refetch unread count so TopBar badge updates right away
+                    qc.invalidateQueries({ queryKey: ["messageUnreadCount"] });
+                  }}
                   className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition text-left ${
                     selectedConv?.id === conv.id ? "bg-gray-800" : "hover:bg-gray-800/60"
                   }`}
@@ -194,14 +204,14 @@ export default function MessagesPage() {
               <MessageSquare className="h-12 w-12 text-gray-700 mb-3" />
               <p className="text-sm text-gray-400 font-medium">No conversations yet</p>
               <button onClick={() => setShowNewChat(true)} className="mt-3 text-xs text-indigo-400 hover:text-indigo-300">
-                Start a conversation →
+                Start a conversation â†’
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Right panel: open conversation or empty state ─────────────────── */}
+      {/* â”€â”€ Right panel: open conversation or empty state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className={`flex-1 flex flex-col min-w-0 bg-gray-950 ${!selectedConv && !showNewChat ? "hidden lg:flex" : "flex"}`}>
         {selectedConv ? (
           <>
@@ -248,7 +258,7 @@ export default function MessagesPage() {
                         </div>
                       )}
                       <div className={`flex items-end gap-2 ${isMine ? "justify-end" : "justify-start"} ${isGrouped ? "mt-0.5" : "mt-3"}`}>
-                        {/* Avatar for received messages — only show on last in group */}
+                        {/* Avatar for received messages â€” only show on last in group */}
                         {!isMine && (
                           <div className="w-7 h-7 flex-shrink-0 mb-0.5">
                             {isLastInGroup ? (
@@ -272,7 +282,7 @@ export default function MessagesPage() {
                           <div className={`absolute top-1/2 -translate-y-1/2 hidden group-hover:flex items-center ${isMine ? "right-full mr-2" : "left-full ml-2"}`}>
                             <span className="text-[10px] text-gray-600 whitespace-nowrap">
                               {format(new Date(msg.createdAt), "h:mm a")}
-                              {isMine && msg.read && <span className="ml-1 text-indigo-400">✓✓</span>}
+                              {isMine && msg.read && <span className="ml-1 text-indigo-400">âœ“âœ“</span>}
                             </span>
                           </div>
                         </div>
@@ -303,7 +313,7 @@ export default function MessagesPage() {
                   value={newMessage}
                   onChange={e => setNewMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Message…"
+                  placeholder="Messageâ€¦"
                   className="flex-1 bg-transparent text-white text-sm focus:outline-none placeholder-gray-500"
                 />
               </div>
@@ -330,7 +340,7 @@ export default function MessagesPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search developers…"
+                  placeholder="Search developersâ€¦"
                   value={userSearch}
                   onChange={e => setUserSearch(e.target.value)}
                   className="w-full bg-gray-800 border border-gray-700 text-white text-sm pl-10 pr-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none"
@@ -352,7 +362,7 @@ export default function MessagesPage() {
                         <p className="text-sm font-medium text-white">{u.username}</p>
                         {u.bio && <p className="text-xs text-gray-500 truncate">{u.bio}</p>}
                       </div>
-                      {selectedUser?.id === u.id && <span className="text-indigo-400 text-xs">✓</span>}
+                      {selectedUser?.id === u.id && <span className="text-indigo-400 text-xs">âœ“</span>}
                     </button>
                   ))}
                 </div>
@@ -365,7 +375,7 @@ export default function MessagesPage() {
                       type="text"
                       value={newMessage}
                       onChange={e => setNewMessage(e.target.value)}
-                      placeholder={`Message ${selectedUser.username}…`}
+                      placeholder={`Message ${selectedUser.username}â€¦`}
                       className="flex-1 bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none"
                     />
                     <button type="submit" disabled={!newMessage.trim() || sendMutation.isPending}
@@ -378,7 +388,7 @@ export default function MessagesPage() {
             </div>
           </div>
         ) : (
-          /* Empty state — no conversation selected */
+          /* Empty state â€” no conversation selected */
           <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
             <div className="w-20 h-20 rounded-full border-2 border-gray-600 flex items-center justify-center mb-5">
               <MessageSquare className="h-9 w-9 text-gray-400" />

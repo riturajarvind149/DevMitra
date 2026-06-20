@@ -50,8 +50,11 @@ function timeLabel(date: string) {
   return formatDistanceToNow(d, { addSuffix: true });
 }
 
-function isNew(date: string) {
-  return new Date(date) > subDays(new Date(), 1);
+function isNew(notif: { read: boolean; createdAt: string }) {
+  // NEW = unread AND created within 6 hours
+  // Once read, it always moves to EARLIER regardless of age
+  if (notif.read) return false;
+  return new Date(notif.createdAt) > subDays(new Date(), 0.25); // 0.25 days = 6 hours
 }
 
 export default function NotificationsPage() {
@@ -78,7 +81,26 @@ export default function NotificationsPage() {
 
   const markOneMut = useMutation({
     mutationFn: (id: string) => notificationsAPI.markAsRead(id),
-    onSuccess: () => {
+    // Optimistically mark read in cache so it moves to EARLIER immediately
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ["notifications"] });
+      const prev = queryClient.getQueryData(["notifications"]);
+      queryClient.setQueryData(["notifications"], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          unreadCount: Math.max(0, (old.unreadCount ?? 1) - 1),
+          notifications: old.notifications.map((n: any) =>
+            n.id === id ? { ...n, read: true } : n
+          ),
+        };
+      });
+      return { prev };
+    },
+    onError: (_e, _id, ctx: any) => {
+      if (ctx?.prev) queryClient.setQueryData(["notifications"], ctx.prev);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["notificationCount"] });
     },
@@ -92,9 +114,9 @@ export default function NotificationsPage() {
     ? all
     : all.filter(n => (TYPE_CATEGORY[n.type] ?? "social") === category);
 
-  // Split into NEW (< 24h) and EARLIER
-  const newNotifs     = filtered.filter(n => !n.read || isNew(n.createdAt));
-  const earlierNotifs = filtered.filter(n => n.read && !isNew(n.createdAt));
+  // Split into NEW (unread, < 6h) and EARLIER (everything else)
+  const newNotifs     = filtered.filter(n => isNew(n));
+  const earlierNotifs = filtered.filter(n => !isNew(n));
 
   const NotifRow = ({ notif }: { notif: (typeof all)[0] }) => {
     const meta = NOTIF_META[notif.type] ?? { icon: Bell, color: "text-gray-400", bg: "bg-gray-800" };
