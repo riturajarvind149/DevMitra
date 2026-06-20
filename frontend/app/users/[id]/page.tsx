@@ -98,33 +98,33 @@ export default function UserProfilePage() {
       {/* ── Hero card ─────────────────────────────────────────────────────── */}
       <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
         <div className="h-20 bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900" />
-        <div className="px-5 pb-5 -mt-8 relative">
-          <div className="flex items-end justify-between gap-3 mb-4 flex-wrap min-w-0">
-            <div className="relative flex-shrink-0">
-              {profile.avatarUrl
-                ? <img src={profile.avatarUrl} alt={profile.username} className="w-16 h-16 rounded-2xl border-4 border-gray-900" />
-                : <div className="w-16 h-16 rounded-2xl border-4 border-gray-900 bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
-                    <span className="text-xl font-bold text-white">{profile.username.charAt(0).toUpperCase()}</span>
-                  </div>
-              }
-              <span className="absolute bottom-1 right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-900" />
-            </div>
-            {/* Buttons — wrap when too wide, never overflow */}
-            <div className="flex gap-2 flex-wrap items-center max-w-[60%]">
-              {!isSelf ? (
-                <>
-                  <ConnectButton userId={userId} />
-                  <Link href={`/messages?user=${userId}`}
-                    className="text-sm text-gray-300 border border-gray-700 px-3 py-2 rounded-xl hover:bg-gray-800 transition whitespace-nowrap">
-                    Message
-                  </Link>
-                </>
-              ) : (
-                <Link href="/settings" className="text-xs text-indigo-400 border border-indigo-800 px-3 py-1.5 rounded-xl hover:bg-indigo-900/30 transition whitespace-nowrap">
-                  Edit Profile
+        <div className="px-5 pb-5 relative">
+          {/* Avatar — overlaps the banner */}
+          <div className="relative inline-block -mt-8 mb-3">
+            {profile.avatarUrl
+              ? <img src={profile.avatarUrl} alt={profile.username} className="w-16 h-16 rounded-2xl border-4 border-gray-900 block" />
+              : <div className="w-16 h-16 rounded-2xl border-4 border-gray-900 bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
+                  <span className="text-xl font-bold text-white">{profile.username.charAt(0).toUpperCase()}</span>
+                </div>
+            }
+            <span className="absolute bottom-1 right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-900" />
+          </div>
+
+          {/* Buttons — sit in normal flow, never overlap banner */}
+          <div className="flex gap-2 flex-wrap items-center mb-3">
+            {!isSelf ? (
+              <>
+                <ConnectButton userId={userId} />
+                <Link href={`/messages?user=${userId}`}
+                  className="text-sm text-gray-300 border border-gray-700 px-3 py-2 rounded-xl hover:bg-gray-800 transition whitespace-nowrap">
+                  Message
                 </Link>
-              )}
-            </div>
+              </>
+            ) : (
+              <Link href="/settings" className="text-xs text-indigo-400 border border-indigo-800 px-3 py-1.5 rounded-xl hover:bg-indigo-900/30 transition whitespace-nowrap">
+                Edit Profile
+              </Link>
+            )}
           </div>
 
           <h1 className="text-xl font-bold text-white">{profile.username}</h1>

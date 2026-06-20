@@ -116,17 +116,19 @@ export default function ProfilePage() {
       {/* Hero card */}
       <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
         <div className="h-24 bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900" />
-        <div className="px-6 pb-6 -mt-10 relative">
-          <div className="flex items-end justify-between flex-wrap gap-3 mb-4">
-            <div className="relative">
-              {user.avatarUrl
-                ? <img src={user.avatarUrl} alt={user.username} className="w-20 h-20 rounded-2xl border-4 border-gray-900" />
-                : <div className="w-20 h-20 rounded-2xl border-4 border-gray-900 bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-white">{user.username.charAt(0).toUpperCase()}</span>
-                  </div>
-              }
-              <span className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-green-400 rounded-full border-2 border-gray-900" />
-            </div>
+        <div className="px-6 pb-6 relative">
+          {/* Avatar overlaps banner */}
+          <div className="relative inline-block -mt-10 mb-3">
+            {user.avatarUrl
+              ? <img src={user.avatarUrl} alt={user.username} className="w-20 h-20 rounded-2xl border-4 border-gray-900 block" />
+              : <div className="w-20 h-20 rounded-2xl border-4 border-gray-900 bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
+                  <span className="text-2xl font-bold text-white">{user.username.charAt(0).toUpperCase()}</span>
+                </div>
+            }
+            <span className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-green-400 rounded-full border-2 border-gray-900" />
+          </div>
+          {/* Edit Profile button — in normal flow, never overlaps banner */}
+          <div className="flex mb-2">
             <Link href="/settings" className="text-xs font-medium text-white border border-gray-600 px-4 py-2 rounded-xl hover:bg-gray-800 transition">
               Edit Profile
             </Link>
