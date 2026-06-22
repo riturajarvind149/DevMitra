@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { notificationsAPI } from "@/lib/api";
 import {
@@ -70,6 +70,16 @@ export default function NotificationsPage() {
     refetchInterval: 15000,
     staleTime: 10000,
   });
+
+  // Auto-mark all as read when the page is visited — optimistically zero the count
+  // immediately so the TopBar bell badge clears without waiting for the server
+  useEffect(() => {
+    queryClient.setQueryData(["notificationCount"], 0);
+    notificationsAPI.markAllAsRead().then(() => {
+      queryClient.invalidateQueries({ queryKey: ["notificationCount"] });
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const markAllMut = useMutation({
     mutationFn: () => notificationsAPI.markAllAsRead(),

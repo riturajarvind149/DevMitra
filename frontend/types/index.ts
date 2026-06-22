@@ -36,6 +36,10 @@ export interface Project {
   githubRepoUrl?: string;
   isRepoPrivate: boolean;
   _repoHidden?: boolean;
+  isCompleted?: boolean;
+  completedAt?: string;
+  isPaid?: boolean;
+  budget?: string;
   ownerId: string;
   owner?: {
     id: string;

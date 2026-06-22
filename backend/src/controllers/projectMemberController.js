@@ -223,9 +223,55 @@ const getUserContributing = async (req, res) => {
   }
 };
 
+// POST /projects/:projectId/members — owner adds someone directly as contributor
+const addMember = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ message: "userId is required" });
+
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) return res.status(404).json({ message: "Project not found" });
+    if (project.ownerId !== req.user.id) return res.status(403).json({ message: "Only the owner can add contributors" });
+
+    const existing = await prisma.projectMember.findUnique({ where: { projectId_userId: { projectId, userId } } });
+    if (existing) return res.status(409).json({ message: "User is already a member" });
+
+    const targetUser = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, username: true } });
+    if (!targetUser) return res.status(404).json({ message: "User not found" });
+
+    const member = await prisma.projectMember.create({
+      data: { projectId, userId, role: "CONTRIBUTOR" },
+      include: { user: { select: { id: true, username: true, avatarUrl: true } } },
+    });
+
+    await logActivity("MEMBER_JOINED", `${targetUser.username} joined "${project.title}" as contributor`, projectId, userId, { addedBy: req.user.id });
+
+    await createNotification({
+      type: "CONTRIBUTOR_ADDED",
+      message: `You've been added as a contributor to "${project.title}"`,
+      receiverId: userId,
+      senderId: req.user.id,
+      projectId,
+      link: `/projects/${projectId}`,
+    });
+
+    // Record contribution activity for streak/badges
+    const { recordDailyActivity, awardBadges } = require("./profileController");
+    recordDailyActivity(userId).catch(() => {});
+    awardBadges(userId).catch(() => {});
+
+    res.status(201).json(member);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to add member" });
+  }
+};
+
 module.exports = {
   getProjectMembers,
   removeMember,
   checkMembership,
   getUserContributing,
+  addMember,
 };

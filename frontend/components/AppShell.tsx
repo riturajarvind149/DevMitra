@@ -11,7 +11,7 @@ import RightSidebar from "./RightSidebar";
 const FULLSCREEN_PATHS = ["/messages"];
 
 // Pages that need full available width but keep padding (wider than max-w-2xl)
-const WIDE_PATHS = ["/profile", "/users/", "/settings"];
+const WIDE_PATHS = ["/profile", "/users/", "/settings", "/projects/"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();

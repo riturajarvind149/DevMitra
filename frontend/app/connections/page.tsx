@@ -19,12 +19,14 @@ export default function ConnectionsPage() {
     queryKey: ["connections"],
     queryFn: async () => { const { data } = await connectionsAPI.getAll(); return data; },
     enabled: isAuthenticated,
+    refetchInterval: 15000,
   });
 
   const { data: requests, isLoading: loadReq } = useQuery({
     queryKey: ["connRequests"],
     queryFn: async () => { const { data } = await connectionsAPI.getRequests(); return data; },
     enabled: isAuthenticated,
+    refetchInterval: 10000, // poll for new connection requests every 10s
   });
 
   const acceptMut = useMutation({

@@ -28,8 +28,11 @@ export const usersAPI = {
   getUserLikedProjects: (id: string) => api.get<any[]>(`/users/${id}/liked-projects`),
   getUserComments: (id: string) => api.get<any[]>(`/users/${id}/comments`),
   getUserApplications: (id: string) => api.get<any[]>(`/users/${id}/applications`),
-  update: (id: string, data: Partial<User> & { skills?: string[]; profileVisibility?: string }) =>
-    api.put<User>(`/users/${id}`, data),
+  update: (id: string, data: Partial<User> & {
+    skills?: string[]; profileVisibility?: string;
+    isPaidContributor?: boolean; pricePerBug?: number; pricePerFeature?: number;
+    hourlyRate?: number; openForPaidWork?: boolean;
+  }) => api.put<User>(`/users/${id}`, data),
   delete: (id: string) => api.delete(`/users/${id}`),
 };
 
@@ -44,6 +47,7 @@ export const projectsAPI = {
     githubRepoUrl?: string; tags?: string[]; coverImage?: string;
     images?: string[]; category?: string; isRepoPrivate?: boolean;
     visibility?: string; openRoles?: string[];
+    isPaid?: boolean; budget?: string;
   }) => api.post<Project>("/projects", data),
   update: (id: string, data: Partial<Project> & {
     coverImage?: string; category?: string;
@@ -58,6 +62,8 @@ export const projectMembersAPI = {
     api.get<{ isMember: boolean; role: string | null; joinedAt?: string }>(`/projects/${projectId}/membership`),
   removeMember: (projectId: string, userId: string) =>
     api.delete(`/projects/${projectId}/members/${userId}`),
+  addMember: (projectId: string, userId: string) =>
+    api.post(`/projects/${projectId}/members`, { userId }),
 };
 
 export const accessRequestsAPI = {
@@ -186,6 +192,60 @@ export const aiAPI = {
 export const profileDataAPI = {
   getMyProfile: () => api.get<any>("/profile-data/me"),
   getPublicProfile: (userId: string) => api.get<any>(`/profile-data/${userId}`),
+};
+
+export const bugReportsAPI = {
+  create: (data: { projectId: string; title: string; description: string; type?: string; severity?: string }) =>
+    api.post("/bug-reports", data),
+  getMine: () => api.get<any[]>("/bug-reports/mine"),
+  getForProject: (projectId: string, params?: { status?: string; type?: string }) =>
+    api.get<any>(`/bug-reports/project/${projectId}`, { params }),
+  getById: (id: string) => api.get<any>(`/bug-reports/${id}`),
+  update: (id: string, data: { status?: string; resolution?: string; severity?: string }) =>
+    api.put(`/bug-reports/${id}`, data),
+  delete: (id: string) => api.delete(`/bug-reports/${id}`),
+};
+
+export const pullRequestsAPI = {
+  create: (data: { projectId: string; title: string; description: string; branchName?: string; prUrl?: string; type?: string; isPaid?: boolean; agreedPrice?: number; bugReportId?: string }) =>
+    api.post("/pull-requests", data),
+  getMine: () => api.get<any[]>("/pull-requests/mine"),
+  getIncoming: (params?: { status?: string }) => api.get<any[]>("/pull-requests/incoming", { params }),
+  getForProject: (projectId: string, params?: { status?: string }) =>
+    api.get<any>(`/pull-requests/project/${projectId}`, { params }),
+  getById: (id: string) => api.get<any>(`/pull-requests/${id}`),
+  review: (id: string, data: { status: string; reviewNote?: string }) =>
+    api.put(`/pull-requests/${id}/review`, data),
+};
+
+export const ratingsAPI = {
+  rateContributor: (data: { receiverId: string; projectId: string; pullRequestId?: string; codeQuality: number; communication: number; timeliness: number; overall: number; comment?: string }) =>
+    api.post("/ratings/contributor", data),
+  getUserRatings: (userId: string) => api.get<any>(`/ratings/contributor/${userId}`),
+  rateProject: (data: { projectId: string; ui: number; performance: number; codeQuality: number; overall: number; comment?: string }) =>
+    api.post("/ratings/project", data),
+  getProjectRatings: (projectId: string) => api.get<any>(`/ratings/project/${projectId}`),
+};
+
+export const resourcesAPI = {
+  getForProject: (projectId: string, params?: { fileType?: string }) =>
+    api.get<any[]>(`/projects/${projectId}/resources`, { params }),
+  add: (projectId: string, data: { title: string; description?: string; fileUrl: string; fileType?: string }) =>
+    api.post(`/projects/${projectId}/resources`, data),
+  delete: (projectId: string, resourceId: string) =>
+    api.delete(`/projects/${projectId}/resources/${resourceId}`),
+};
+
+export const announcementsAPI = {
+  get: (projectId: string) => api.get<any[]>(`/projects/${projectId}/announcements`),
+  create: (projectId: string, data: { title: string; content: string; audience?: string }) =>
+    api.post(`/projects/${projectId}/announcements`, data),
+  delete: (projectId: string, id: string) =>
+    api.delete(`/projects/${projectId}/announcements/${id}`),
+  markComplete: (projectId: string) =>
+    api.post(`/projects/${projectId}/announcements/complete`),
+  reopen: (projectId: string) =>
+    api.post(`/projects/${projectId}/announcements/reopen`),
 };
 
 export default api;

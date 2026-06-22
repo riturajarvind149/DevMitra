@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   Home, FolderGit2, Plus, Compass, Bell, MessageSquare, User,
   Settings, LogOut, Network, MoreHorizontal, Bookmark, KeyRound,
-  Activity, BarChart2, X, AlertTriangle,
+  Activity, BarChart2, X, AlertTriangle, GitPullRequest,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
@@ -57,10 +57,12 @@ export default function Sidebar() {
   ];
 
   const moreItems = [
-    { name: "Settings",       href: "/settings",      icon: Settings },
-    { name: "Your Activity",  href: "/activity",      icon: Activity },
-    { name: "Saved Projects", href: "/saved",         icon: Bookmark },
-    { name: "Repo Requests",  href: "/repo-requests", icon: KeyRound },
+    { name: "Settings",       href: "/settings",       icon: Settings },
+    { name: "Your Activity",  href: "/activity",       icon: Activity },
+    { name: "Saved Projects", href: "/saved",          icon: Bookmark },
+    { name: "Repo Requests",  href: "/repo-requests",  icon: KeyRound },
+    { name: "Bug Reports",    href: "/bug-reports",    icon: AlertTriangle },
+    { name: "Pull Requests",  href: "/pull-requests",  icon: GitPullRequest },
     ...(user?.isAdmin ? [{ name: "Analytics", href: "/admin", icon: BarChart2 }] : []),
   ];
 

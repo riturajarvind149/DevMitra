@@ -2,18 +2,18 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { usersAPI, savesAPI, repoRequestsAPI, opportunitiesAPI, accessRequestsAPI, activitiesAPI } from "@/lib/api";
+import { usersAPI, savesAPI, repoRequestsAPI, opportunitiesAPI, accessRequestsAPI, activitiesAPI, bugReportsAPI, pullRequestsAPI } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Heart, MessageSquare, Bookmark, KeyRound, Briefcase,
   Activity, CheckCircle, Clock, XCircle, FolderGit2,
-  UserPlus, GitPullRequest,
+  UserPlus, GitPullRequest, AlertTriangle, GitMerge,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Tab = "likes" | "comments" | "saved" | "repo" | "applications";
+type Tab = "likes" | "comments" | "saved" | "repo" | "applications" | "bugs" | "prs";
 
 const STATUS_PILL: Record<string, string> = {
   PENDING:  "text-yellow-400 bg-yellow-900/30 border border-yellow-800/40",
@@ -112,6 +112,22 @@ export default function YourActivityPage() {
     staleTime: 30000,
   });
 
+  // My bug reports
+  const { data: myBugReports, isLoading: bugsLoading } = useQuery({
+    queryKey: ["myBugReports"],
+    queryFn: async () => { const { data } = await bugReportsAPI.getMine(); return data; },
+    enabled: isAuthenticated && !!user?.id,
+    staleTime: 30000,
+  });
+
+  // My pull requests
+  const { data: myPRs, isLoading: prsLoading } = useQuery({
+    queryKey: ["myPRs"],
+    queryFn: async () => { const { data } = await pullRequestsAPI.getMine(); return data; },
+    enabled: isAuthenticated && !!user?.id,
+    staleTime: 30000,
+  });
+
   // Recent activity timeline — user's own activity log entries
   const { data: recentActivity } = useQuery({
     queryKey: ["activity-timeline", user?.id],
@@ -133,11 +149,13 @@ export default function YourActivityPage() {
   const repoCount = (repoRequests?.length ?? 0) + (accessRequests?.length ?? 0);
 
   const TABS: { key: Tab; label: string; icon: React.ElementType; count: number }[] = [
-    { key: "likes",        label: "Likes",         icon: Heart,          count: likedProjects?.length ?? 0 },
-    { key: "comments",     label: "Comments",       icon: MessageSquare,  count: userComments?.length ?? 0 },
-    { key: "saved",        label: "Saved",          icon: Bookmark,       count: savedProjects?.length ?? 0 },
-    { key: "repo",         label: "Repo Requests",  icon: KeyRound,       count: repoCount },
-    { key: "applications", label: "Applications",   icon: Briefcase,      count: myApplications?.length ?? 0 },
+    { key: "likes",        label: "Likes",         icon: Heart,           count: likedProjects?.length ?? 0 },
+    { key: "comments",     label: "Comments",       icon: MessageSquare,   count: userComments?.length ?? 0 },
+    { key: "saved",        label: "Saved",          icon: Bookmark,        count: savedProjects?.length ?? 0 },
+    { key: "repo",         label: "Repo Requests",  icon: KeyRound,        count: repoCount },
+    { key: "applications", label: "Applications",   icon: Briefcase,       count: myApplications?.length ?? 0 },
+    { key: "bugs",         label: "Bug Reports",    icon: AlertTriangle,   count: myBugReports?.length ?? 0 },
+    { key: "prs",          label: "Pull Requests",  icon: GitPullRequest,  count: myPRs?.length ?? 0 },
   ];
 
   return (
@@ -426,6 +444,93 @@ export default function YourActivityPage() {
         ) : (
           <Empty icon={Briefcase} label="You haven't applied to any opportunities yet"
             sub="Browse the Opportunities tab in Explore and apply" />
+        )
+      )}
+
+      {/* ── Bug Reports ────────────────────────────────────────────────────── */}
+      {tab === "bugs" && (
+        bugsLoading ? <Spinner /> :
+        (myBugReports ?? []).length ? (
+          <div className="space-y-3">
+            {(myBugReports as any[]).map((report: any) => (
+              <div key={report.id} className="p-4 bg-gray-900 border border-gray-800 rounded-2xl">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                        report.severity === "CRITICAL" ? "bg-red-900/40 text-red-400" :
+                        report.severity === "HIGH"     ? "bg-orange-900/40 text-orange-400" :
+                        report.severity === "MEDIUM"   ? "bg-yellow-900/40 text-yellow-400" :
+                        "bg-blue-900/40 text-blue-400"
+                      }`}>{report.severity}</span>
+                      <span className="text-[10px] text-gray-600">{report.type.replace("_", " ")}</span>
+                    </div>
+                    <p className="text-sm font-semibold text-white">{report.title}</p>
+                    {report.project && (
+                      <Link href={`/projects/${report.project.id}`}
+                        className="text-[10px] text-indigo-400 hover:text-indigo-300 block mt-0.5">
+                        → {report.project.title}
+                      </Link>
+                    )}
+                    <p className="text-[10px] text-gray-600 mt-0.5">
+                      {formatDistanceToNow(new Date(report.createdAt), { addSuffix: true })}
+                    </p>
+                  </div>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${STATUS_PILL[report.status] ?? "text-gray-400 bg-gray-800"}`}>
+                    {report.status.replace("_", " ")}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Empty icon={AlertTriangle} label="No bug reports yet"
+            sub="Report bugs or issues on project pages" />
+        )
+      )}
+
+      {/* ── Pull Requests ───────────────────────────────────────────────────── */}
+      {tab === "prs" && (
+        prsLoading ? <Spinner /> :
+        (myPRs ?? []).length ? (
+          <div className="space-y-3">
+            {(myPRs as any[]).map((pr: any) => (
+              <div key={pr.id} className="p-4 bg-gray-900 border border-gray-800 rounded-2xl">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] text-gray-500">{pr.type.replace("_", " ")}</span>
+                      {pr.isPaid && <span className="text-[10px] bg-green-900/30 text-green-400 px-1.5 py-0.5 rounded-full">Paid</span>}
+                    </div>
+                    <p className="text-sm font-semibold text-white">{pr.title}</p>
+                    {pr.project && (
+                      <Link href={`/projects/${pr.project.id}`}
+                        className="text-[10px] text-indigo-400 hover:text-indigo-300 block mt-0.5">
+                        → {pr.project.title}
+                      </Link>
+                    )}
+                    <p className="text-[10px] text-gray-600 mt-0.5">
+                      {formatDistanceToNow(new Date(pr.createdAt), { addSuffix: true })}
+                    </p>
+                    {pr.reviewNote && (
+                      <p className="text-[11px] text-gray-500 italic mt-1">"{pr.reviewNote}"</p>
+                    )}
+                  </div>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${
+                    pr.status === "MERGED"       ? "bg-green-900/40 text-green-400" :
+                    pr.status === "CLOSED"       ? "bg-gray-700 text-gray-400" :
+                    pr.status === "UNDER_REVIEW" ? "bg-yellow-900/40 text-yellow-400" :
+                    "bg-indigo-900/40 text-indigo-400"
+                  }`}>
+                    {pr.status.replace("_", " ")}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Empty icon={GitPullRequest} label="No pull requests submitted yet"
+            sub="Submit pull requests to contribute to projects" />
         )
       )}
     </div>

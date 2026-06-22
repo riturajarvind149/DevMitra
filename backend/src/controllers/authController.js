@@ -1,6 +1,7 @@
 const axios = require("axios");
 const prisma = require("../config/db");
 const generateToken = require("../utils/generateToken");
+const { recordLoginDay } = require("./profileController");
 
 
 const loginWithGithub = async (req, res) => {
@@ -98,6 +99,9 @@ const githubCallback = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
       sameSite: "lax",
     });
+
+    // Count this login toward totalActiveDays (not streak — only real contributions count)
+    recordLoginDay(user.id).catch(() => {});
 
     // Redirect to frontend after successful login
     res.redirect("http://localhost:3000");

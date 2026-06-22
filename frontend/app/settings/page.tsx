@@ -217,8 +217,11 @@ export default function SettingsPage() {
 
   // Billing
   const [isPaidContributor, setIsPaidContributor] = useState(false);
-  const [ratePerProject, setRatePerProject] = useState("");
+  const [pricePerBug, setPricePerBug] = useState("");
+  const [pricePerFeature, setPricePerFeature] = useState("");
+  const [hourlyRate, setHourlyRate] = useState("");
   const [openForPaid, setOpenForPaid] = useState(false);
+  const [billingSaved, setBillingSaved] = useState(false);
 
   // Profile data for billing eligibility
   const { data: profileData } = useQuery({
@@ -230,6 +233,19 @@ export default function SettingsPage() {
 
   const isEligibleForBilling = (profileData?.reputation?.level ?? 0) >= 6
     || (profileData?.badges ?? []).length >= 5;
+
+  // Initialize billing state from profileData once it loads
+  const [billingHydrated, setBillingHydrated] = useState(false);
+  useEffect(() => {
+    if (profileData && !billingHydrated) {
+      setIsPaidContributor(profileData.user?.isPaidContributor ?? false);
+      setPricePerBug(profileData.user?.pricePerBug?.toString() ?? "");
+      setPricePerFeature(profileData.user?.pricePerFeature?.toString() ?? "");
+      setHourlyRate(profileData.user?.hourlyRate?.toString() ?? "");
+      setOpenForPaid(profileData.user?.openForPaidWork ?? false);
+      setBillingHydrated(true);
+    }
+  }, [profileData, billingHydrated]);
 
   useEffect(() => {
     if (user && !hydrated) {
@@ -266,6 +282,18 @@ export default function SettingsPage() {
     } as any),
     onSuccess: async () => { await refreshUser(); setSaved(true); setTimeout(() => setSaved(false), 2500); },
     onError: (e: any) => alert(e.response?.data?.message || "Failed to save"),
+  });
+
+  const billingMut = useMutation({
+    mutationFn: () => usersAPI.update(user!.id, {
+      isPaidContributor,
+      pricePerBug:     pricePerBug     ? parseFloat(pricePerBug)     : undefined,
+      pricePerFeature: pricePerFeature ? parseFloat(pricePerFeature) : undefined,
+      hourlyRate:      hourlyRate      ? parseFloat(hourlyRate)      : undefined,
+      openForPaidWork: openForPaid,
+    } as any),
+    onSuccess: async () => { await refreshUser(); setBillingSaved(true); setTimeout(() => setBillingSaved(false), 2500); },
+    onError: (e: any) => alert(e.response?.data?.message || "Failed to save billing settings"),
   });
 
   if (!user) return null;
@@ -557,15 +585,36 @@ export default function SettingsPage() {
 
                   {isPaidContributor && (
                     <div className="space-y-4 pt-4 border-t border-gray-800">
-                      <div>
-                        <label className="block text-sm text-gray-400 mb-1.5">Rate per Project (USD)</label>
-                        <div className="relative">
-                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                          <input type="number" min="0" value={ratePerProject} onChange={e => setRatePerProject(e.target.value)}
-                            placeholder="e.g. 500" className={`${inputCls} pl-9`} />
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1.5">Per Bug Fix ($)</label>
+                          <div className="relative">
+                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
+                            <input type="number" min="0" step="0.01" value={pricePerBug}
+                              onChange={e => setPricePerBug(e.target.value)}
+                              placeholder="50" className={`${inputCls} pl-8 text-xs`} />
+                          </div>
                         </div>
-                        <p className="text-[10px] text-gray-600 mt-1">Set your base rate. Project owners will see this on your profile.</p>
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1.5">Per Feature ($)</label>
+                          <div className="relative">
+                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
+                            <input type="number" min="0" step="0.01" value={pricePerFeature}
+                              onChange={e => setPricePerFeature(e.target.value)}
+                              placeholder="200" className={`${inputCls} pl-8 text-xs`} />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1.5">Hourly Rate ($)</label>
+                          <div className="relative">
+                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
+                            <input type="number" min="0" step="0.01" value={hourlyRate}
+                              onChange={e => setHourlyRate(e.target.value)}
+                              placeholder="30" className={`${inputCls} pl-8 text-xs`} />
+                          </div>
+                        </div>
                       </div>
+                      <p className="text-[10px] text-gray-600">Rates are shown on your public profile to project owners looking to hire.</p>
                       <div className="flex items-center justify-between py-3 border-t border-gray-800">
                         <div>
                           <p className="text-sm font-medium text-white">Open for Paid Collaborations</p>
@@ -578,35 +627,23 @@ export default function SettingsPage() {
                 </div>
 
                 {isPaidContributor && (
-                  <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
-                    <h2 className="text-sm font-semibold text-white mb-3">Current Plan</h2>
-                    <div className="bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-700/40 rounded-xl p-4 flex items-center justify-between mb-4">
-                      <div>
-                        <p className="text-sm font-bold text-white">Pro Contributor</p>
-                        <p className="text-xs text-gray-400">Unlimited projects · Priority listing · Verified badge</p>
-                      </div>
-                      <span className="text-base font-bold text-indigo-300">$12<span className="text-xs text-gray-500">/mo</span></span>
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Billing History</h3>
-                      {[
-                        { date: "Jun 1, 2026", amount: "$12.00" },
-                        { date: "May 1, 2026", amount: "$12.00" },
-                      ].map(({ date, amount }) => (
-                        <div key={date} className="flex items-center justify-between py-2.5 border-b border-gray-800 last:border-0">
-                          <span className="text-sm text-gray-400">{date}</span>
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm text-white font-medium">{amount}</span>
-                            <span className="text-[10px] text-green-400 bg-green-900/30 px-2 py-0.5 rounded-full">Paid</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="bg-indigo-900/20 rounded-2xl border border-indigo-800/40 p-4">
+                    <p className="text-xs text-indigo-400 flex items-center gap-1.5">
+                      <Zap className="h-3.5 w-3.5" />
+                      Your paid contributor rates are now visible on your public profile. Project owners can contact you directly.
+                    </p>
                   </div>
                 )}
 
-                <button className="w-full bg-indigo-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition flex items-center justify-center gap-2">
-                  <Save className="h-4 w-4" />Save Billing Settings
+                <button
+                  onClick={() => billingMut.mutate()}
+                  disabled={billingMut.isPending}
+                  className={`w-full py-3 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 ${
+                    billingSaved ? "bg-green-600 text-white" : "bg-indigo-600 text-white hover:bg-indigo-700"
+                  } disabled:opacity-50`}
+                >
+                  <Save className="h-4 w-4" />
+                  {billingSaved ? "Saved!" : billingMut.isPending ? "Saving…" : "Save Billing Settings"}
                 </button>
               </div>
             ) : (

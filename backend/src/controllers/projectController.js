@@ -1,5 +1,6 @@
 const prisma = require("../config/db");
 const { logActivity } = require("../utils/activityLogger");
+const { recordDailyActivity, awardBadges } = require("./profileController");
 
 // Helper — check if requesting user is a member of the project
 async function isMember(projectId, userId) {
@@ -26,7 +27,7 @@ const createProject = async (req, res) => {
     const {
       title, description, deployedUrl, githubRepoUrl,
       tags, coverImage, images, category,
-      isRepoPrivate, visibility, openRoles,
+      isRepoPrivate, visibility, openRoles, isPaid, budget,
     } = req.body;
 
     if (!title || !description || !deployedUrl) {
@@ -59,6 +60,8 @@ const createProject = async (req, res) => {
           isRepoPrivate: !!isRepoPrivate,
           visibility: vis,
           openRoles: openRoles || [],
+          isPaid: !!isPaid,
+          budget: budget || null,
           ownerId,
         },
       });
@@ -69,6 +72,11 @@ const createProject = async (req, res) => {
     });
 
     await logActivity("PROJECT_CREATED", `${req.user.username} created project "${title}"`, project.id, req.user.id, { title });
+
+    // Record contribution activity for streak
+    recordDailyActivity(req.user.id).catch(() => {});
+    awardBadges(req.user.id).catch(() => {});
+
     res.status(201).json(project);
   } catch (error) {
     console.error(error);
@@ -213,7 +221,7 @@ const updateProject = async (req, res) => {
     const {
       title, description, deployedUrl, githubRepoUrl,
       tags, coverImage, images, category,
-      isRepoPrivate, visibility, openRoles,
+      isRepoPrivate, visibility, openRoles, isPaid, budget,
     } = req.body;
 
     if (visibility) {
@@ -235,6 +243,8 @@ const updateProject = async (req, res) => {
     if (isRepoPrivate !== undefined) data.isRepoPrivate = !!isRepoPrivate;
     if (visibility !== undefined) data.visibility = visibility.toUpperCase();
     if (openRoles !== undefined) data.openRoles = openRoles;
+    if (isPaid !== undefined) data.isPaid = !!isPaid;
+    if (budget !== undefined) data.budget = budget || null;
 
     if (Object.keys(data).length === 0) {
       return res.status(400).json({ message: "At least one field is required to update" });

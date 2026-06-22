@@ -32,6 +32,8 @@ export default function NewProjectPage() {
   const [isRepoPrivate, setIsRepoPrivate] = useState(false);
   const [openRoles, setOpenRoles] = useState<string[]>([]);
   const [roleInput, setRoleInput] = useState("");
+  const [isPaid, setIsPaid] = useState(false);
+  const [budget, setBudget] = useState("");
 
   const addRole = () => {
     const r = roleInput.trim();
@@ -53,7 +55,7 @@ export default function NewProjectPage() {
       title, description, deployedUrl,
       githubRepoUrl: githubRepoUrl || undefined,
       tags, coverImage: coverImage || undefined, category: category || undefined,
-      visibility, isRepoPrivate, openRoles,
+      visibility, isRepoPrivate, openRoles, isPaid, budget: budget || undefined,
     });
   };
 
@@ -159,6 +161,24 @@ export default function NewProjectPage() {
                     Private repository <span className="text-gray-600">(only members can see the link)</span>
                   </label>
                 </div>
+              )}
+            </Field>
+
+            {/* Paid Contributions */}
+            <Field label="Paid Contributions">
+              <div className="flex items-center justify-between p-4 bg-gray-800 rounded-xl border border-gray-700">
+                <div>
+                  <p className="text-sm font-medium text-white">This project pays contributors</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Enable if you plan to pay contributors for their work</p>
+                </div>
+                <button type="button" onClick={() => setIsPaid(v => !v)}
+                  className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${isPaid ? "bg-green-600" : "bg-gray-600"}`}>
+                  <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${isPaid ? "translate-x-4" : ""}`} />
+                </button>
+              </div>
+              {isPaid && (
+                <input type="text" value={budget} onChange={e => setBudget(e.target.value)} className={`${inputCls} mt-2`}
+                  placeholder="e.g. $500 total budget, $50/bug fix, $200/feature" />
               )}
             </Field>
 

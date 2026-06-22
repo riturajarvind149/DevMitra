@@ -38,10 +38,27 @@ function getLevel(score) {
   return               { level: 1,  label: "Beginner",    next: 20   };
 }
 
+// ── Helpers: week/month keys ──────────────────────────────────────────────────
+function getWeekKey(date) {
+  // ISO week: "YYYY-WW"
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+  const week1 = new Date(d.getFullYear(), 0, 4);
+  const weekNum = 1 + Math.round(((d - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+  return `${d.getFullYear()}-${String(weekNum).padStart(2, "0")}`;
+}
+function getMonthKey(date) {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 // ── Record daily activity & update streak ─────────────────────────────────────
 async function recordDailyActivity(userId) {
   const todayStr = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
   const today = new Date(todayStr);
+  const thisWeek  = getWeekKey(today);
+  const thisMonth = getMonthKey(today);
 
   let streak = await prisma.userStreak.findUnique({ where: { userId } });
 
@@ -51,7 +68,11 @@ async function recordDailyActivity(userId) {
         userId,
         currentStreak: 1,
         longestStreak: 1,
+        weeklyStreak: 1,
+        monthlyStreak: 1,
         lastActiveDate: today,
+        lastActiveWeek: thisWeek,
+        lastActiveMonth: thisMonth,
         totalActiveDays: 1,
         activityGrid: { [todayStr]: 1 },
       },
@@ -59,39 +80,59 @@ async function recordDailyActivity(userId) {
     return streak;
   }
 
-  const grid = (streak.activityGrid || {});
-  const lastDate = streak.lastActiveDate ? new Date(streak.lastActiveDate).toISOString().slice(0, 10) : null;
+  const grid     = (streak.activityGrid || {});
+  const lastDate = streak.lastActiveDate  ? new Date(streak.lastActiveDate).toISOString().slice(0, 10) : null;
+  const lastWeek = streak.lastActiveWeek  ?? null;
+  const lastMon  = streak.lastActiveMonth ?? null;
 
   // Increment count for today
   grid[todayStr] = (grid[todayStr] || 0) + 1;
 
-  // Streak logic
+  // ── Daily streak ──────────────────────────────────────────────────────────
   let newCurrent = streak.currentStreak;
-  let newTotal = streak.totalActiveDays;
+  let newTotal   = streak.totalActiveDays;
 
   if (lastDate !== todayStr) {
     newTotal += 1;
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().slice(0, 10);
-
-    if (lastDate === yesterdayStr) {
-      newCurrent += 1; // continued streak
-    } else {
-      newCurrent = 1; // streak broken
-    }
+    newCurrent = lastDate === yesterdayStr ? newCurrent + 1 : 1;
   }
 
   const newLongest = Math.max(streak.longestStreak, newCurrent);
 
+  // ── Weekly streak ─────────────────────────────────────────────────────────
+  let newWeekly = streak.weeklyStreak;
+  if (lastWeek !== thisWeek) {
+    // Was last active week exactly 1 iso-week before?
+    const [ly, lw] = lastWeek ? lastWeek.split("-").map(Number) : [0, 0];
+    const [ty, tw] = thisWeek.split("-").map(Number);
+    const prevWeek = tw === 1 ? `${ty - 1}-52` : `${ty}-${String(tw - 1).padStart(2, "0")}`;
+    newWeekly = lastWeek === prevWeek ? newWeekly + 1 : 1;
+  }
+
+  // ── Monthly streak ────────────────────────────────────────────────────────
+  let newMonthly = streak.monthlyStreak;
+  if (lastMon !== thisMonth) {
+    const [ly2, lm2] = lastMon ? lastMon.split("-").map(Number) : [0, 0];
+    const [ty2, tm2] = thisMonth.split("-").map(Number);
+    const prevMonth = tm2 === 1 ? `${ty2 - 1}-12` : `${ty2}-${String(tm2 - 1).padStart(2, "0")}`;
+    newMonthly = lastMon === prevMonth ? newMonthly + 1 : 1;
+  }
+
   return prisma.userStreak.update({
     where: { userId },
     data: {
-      currentStreak: newCurrent,
-      longestStreak: newLongest,
+      currentStreak:  newCurrent,
+      longestStreak:  newLongest,
+      weeklyStreak:   newWeekly,
+      monthlyStreak:  newMonthly,
       lastActiveDate: today,
+      lastActiveWeek: thisWeek,
+      lastActiveMonth: thisMonth,
       totalActiveDays: newTotal,
-      activityGrid: grid,
+      activityGrid:   grid,
     },
   });
 }
@@ -143,13 +184,15 @@ const getMyFullProfile = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Record today's activity + update streak
-    await recordDailyActivity(userId);
+    // Only award badges passively — DO NOT record daily activity on page load.
+    // Activity is recorded when real contribution events happen (PRs, comments, joins, etc.)
     await awardBadges(userId);
 
     const [
       user, projects, contributions, connections, comments,
-      likesReceived, streak, badges, recentActivity,
+      likesReceived, streak, badges, activityLogs,
+      prsSubmitted, ratingsReceived, avgRating,
+      recentPRs, recentBadges, recentMemberships,
     ] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, select: {
         id: true, username: true, email: true, avatarUrl: true,
@@ -157,6 +200,9 @@ const getMyFullProfile = async (req, res) => {
         bio: true, location: true, website: true, skills: true,
         linkedinUrl: true, twitterUrl: true, portfolioUrl: true,
         availabilityHours: true, createdAt: true,
+        contributorTier: true, isPaidContributor: true,
+        pricePerBug: true, pricePerFeature: true, hourlyRate: true,
+        openForPaidWork: true, totalEarnings: true,
       }}),
       prisma.project.count({ where: { ownerId: userId } }),
       prisma.projectMember.count({ where: { userId, role: "CONTRIBUTOR" } }),
@@ -171,6 +217,13 @@ const getMyFullProfile = async (req, res) => {
         take: 10,
         include: { project: { select: { id: true, title: true } } },
       }),
+      prisma.pullRequest.count({ where: { authorId: userId } }),
+      prisma.contributorRating.findMany({ where: { receiverId: userId }, select: { overall: true } }),
+      prisma.contributorRating.aggregate({ where: { receiverId: userId }, _avg: { overall: true, codeQuality: true, communication: true, timeliness: true } }),
+      // Rich activity sources
+      prisma.pullRequest.findMany({ where: { authorId: userId }, orderBy: { createdAt: "desc" }, take: 5, include: { project: { select: { id: true, title: true } } } }),
+      prisma.userBadge.findMany({ where: { userId }, orderBy: { awardedAt: "desc" }, take: 3 }),
+      prisma.projectMember.findMany({ where: { userId, role: "CONTRIBUTOR" }, orderBy: { joinedAt: "desc" }, take: 3, include: { project: { select: { id: true, title: true } } } }),
     ]);
 
     const reputationScore = calcReputation({
@@ -180,20 +233,83 @@ const getMyFullProfile = async (req, res) => {
     });
     const levelInfo = getLevel(reputationScore);
 
-    // Enrich badges with display info
     const enrichedBadges = badges.map(b => {
       const def = BADGE_DEFS.find(d => d.key === b.badgeKey);
       return { ...b, ...(def ?? { label: b.badgeKey, desc: "", icon: "🏅", color: "from-gray-600 to-gray-700" }) };
     });
 
+    // ── Build rich recent activity feed ───────────────────────────────────────
+    const richActivity = [];
+
+    // PRs
+    for (const pr of recentPRs) {
+      const emoji = pr.status === "MERGED" ? "🔀" : pr.status === "CLOSED" ? "❌" : "📬";
+      const label = pr.status === "MERGED" ? "PR merged" : pr.status === "CLOSED" ? "PR closed" : "PR submitted";
+      richActivity.push({
+        id: `pr-${pr.id}`, type: "PR", emoji, description: `${label}: "${pr.title}"`,
+        project: pr.project, createdAt: pr.createdAt,
+      });
+    }
+
+    // Recently earned badges
+    for (const b of recentBadges) {
+      const def = BADGE_DEFS.find(d => d.key === b.badgeKey);
+      if (def) {
+        richActivity.push({
+          id: `badge-${b.id}`, type: "BADGE", emoji: def.icon,
+          description: `Earned badge: ${def.label} — ${def.desc}`,
+          project: null, createdAt: b.awardedAt,
+        });
+      }
+    }
+
+    // Joined projects
+    for (const m of recentMemberships) {
+      richActivity.push({
+        id: `member-${m.id}`, type: "CONTRIBUTION", emoji: "🤝",
+        description: `Joined "${m.project.title}" as contributor`,
+        project: m.project, createdAt: m.joinedAt,
+      });
+    }
+
+    // Activity logs (filtered to interesting actions)
+    const INTERESTING = ["PROJECT_CREATED", "MEMBER_JOINED", "ACCESS_REQUEST_APPROVED"];
+    for (const act of activityLogs) {
+      if (INTERESTING.includes(act.action)) {
+        richActivity.push({
+          id: `log-${act.id}`, type: "LOG", emoji: act.action === "PROJECT_CREATED" ? "🚀" : act.action === "MEMBER_JOINED" ? "👥" : "✅",
+          description: act.description, project: act.project, createdAt: act.createdAt,
+        });
+      }
+    }
+
+    // Earnings (if any)
+    if (user && user.totalEarnings > 0) {
+      richActivity.push({
+        id: "earnings", type: "EARNINGS", emoji: "💰",
+        description: `Total earnings: $${user.totalEarnings.toFixed(2)}`,
+        project: null, createdAt: new Date().toISOString(),
+      });
+    }
+
+    // Sort by date desc, take top 10
+    richActivity.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
     res.status(200).json({
       user,
-      stats: { projects, contributions, connections, comments, likesReceived },
-      streak: streak ?? { currentStreak: 0, longestStreak: 0, totalActiveDays: 0, activityGrid: {} },
+      stats: { projects, contributions, connections, comments, likesReceived, prsSubmitted },
+      streak: streak ?? { currentStreak: 0, longestStreak: 0, weeklyStreak: 0, monthlyStreak: 0, totalActiveDays: 0, activityGrid: {} },
       badges: enrichedBadges,
       allBadgeDefs: BADGE_DEFS,
       reputation: { score: reputationScore, ...levelInfo },
-      recentActivity,
+      recentActivity: richActivity.slice(0, 10),
+      ratings: {
+        count: ratingsReceived.length,
+        avgOverall: avgRating._avg.overall ? +avgRating._avg.overall.toFixed(1) : null,
+        avgCodeQuality: avgRating._avg.codeQuality ? +avgRating._avg.codeQuality.toFixed(1) : null,
+        avgCommunication: avgRating._avg.communication ? +avgRating._avg.communication.toFixed(1) : null,
+        avgTimeliness: avgRating._avg.timeliness ? +avgRating._avg.timeliness.toFixed(1) : null,
+      },
     });
   } catch (error) {
     console.error(error);
@@ -208,7 +324,8 @@ const getPublicProfile = async (req, res) => {
 
     const [
       user, projects, contributions, connections, comments,
-      likesReceived, streak, badges,
+      likesReceived, streak, badges, recentActivity,
+      prsSubmitted, avgRating,
     ] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, select: {
         id: true, username: true, email: true, avatarUrl: true,
@@ -216,6 +333,9 @@ const getPublicProfile = async (req, res) => {
         bio: true, location: true, website: true, skills: true,
         linkedinUrl: true, twitterUrl: true, portfolioUrl: true,
         availabilityHours: true, createdAt: true, profileVisibility: true,
+        contributorTier: true, isPaidContributor: true,
+        pricePerBug: true, pricePerFeature: true, hourlyRate: true,
+        openForPaidWork: true,
       }}),
       prisma.project.count({ where: { ownerId: userId } }),
       prisma.projectMember.count({ where: { userId, role: "CONTRIBUTOR" } }),
@@ -224,6 +344,14 @@ const getPublicProfile = async (req, res) => {
       prisma.projectLike.count({ where: { project: { ownerId: userId } } }),
       prisma.userStreak.findUnique({ where: { userId } }),
       prisma.userBadge.findMany({ where: { userId }, orderBy: { awardedAt: "desc" } }),
+      prisma.activityLog.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: { project: { select: { id: true, title: true } } },
+      }),
+      prisma.pullRequest.count({ where: { authorId: userId } }),
+      prisma.contributorRating.aggregate({ where: { receiverId: userId }, _avg: { overall: true, codeQuality: true, communication: true, timeliness: true } }),
     ]);
 
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -242,10 +370,18 @@ const getPublicProfile = async (req, res) => {
 
     res.status(200).json({
       user,
-      stats: { projects, contributions, connections, comments, likesReceived },
-      streak: streak ?? { currentStreak: 0, longestStreak: 0, totalActiveDays: 0, activityGrid: {} },
+      stats: { projects, contributions, connections, comments, likesReceived, prsSubmitted },
+      streak: streak ?? { currentStreak: 0, longestStreak: 0, weeklyStreak: 0, monthlyStreak: 0, totalActiveDays: 0, activityGrid: {} },
       badges: enrichedBadges,
+      allBadgeDefs: BADGE_DEFS,
       reputation: { score: reputationScore, ...levelInfo },
+      recentActivity,
+      ratings: {
+        avgOverall: avgRating._avg.overall ? +avgRating._avg.overall.toFixed(1) : null,
+        avgCodeQuality: avgRating._avg.codeQuality ? +avgRating._avg.codeQuality.toFixed(1) : null,
+        avgCommunication: avgRating._avg.communication ? +avgRating._avg.communication.toFixed(1) : null,
+        avgTimeliness: avgRating._avg.timeliness ? +avgRating._avg.timeliness.toFixed(1) : null,
+      },
     });
   } catch (error) {
     console.error(error);
@@ -254,3 +390,23 @@ const getPublicProfile = async (req, res) => {
 };
 
 module.exports = { getMyFullProfile, getPublicProfile, recordDailyActivity, awardBadges };
+
+// ── Record login (counts toward totalActiveDays only, not streak) ─────────────
+async function recordLoginDay(userId) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const today = new Date(todayStr);
+  let streak = await prisma.userStreak.findUnique({ where: { userId } });
+  if (!streak) {
+    await prisma.userStreak.create({
+      data: { userId, currentStreak: 0, longestStreak: 0, weeklyStreak: 0, monthlyStreak: 0, lastActiveDate: today, totalActiveDays: 1, activityGrid: {} },
+    });
+    return;
+  }
+  const lastDate = streak.lastActiveDate ? new Date(streak.lastActiveDate).toISOString().slice(0, 10) : null;
+  if (lastDate !== todayStr) {
+    await prisma.userStreak.update({ where: { userId }, data: { totalActiveDays: streak.totalActiveDays + 1, lastActiveDate: today } });
+  }
+}
+
+// Re-export so auth controller can call it
+module.exports.recordLoginDay = recordLoginDay;

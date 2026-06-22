@@ -7,36 +7,71 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   Calendar, FolderGit2, Users, ExternalLink, MapPin,
   Globe, Lock, Link2, Clock, Flame, Trophy, Star, Zap,
-  GitPullRequest, Heart, TrendingUp,
+  Heart, TrendingUp, Shield, DollarSign,
 } from "lucide-react";
-import { formatDistanceToNow, format, subDays } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import ConnectButton from "@/components/ConnectButton";
 import { ProfileSkeleton } from "@/components/Skeleton";
 import Link from "next/link";
 
-// Reuse heatmap + badge card from profile page
+// Reuse weekly heatmap from profile page
 function ActivityHeatmap({ grid }: { grid: Record<string, number> }) {
   const today = new Date();
-  const days: { date: string; count: number }[] = [];
-  for (let i = 363; i >= 0; i--) {
-    const d = subDays(today, i);
-    const key = format(d, "yyyy-MM-dd");
-    days.push({ date: key, count: grid[key] ?? 0 });
+  const weeks: { startDate: string; total: number }[] = [];
+  for (let w = 51; w >= 0; w--) {
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - (w * 7) - today.getDay());
+    let total = 0;
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(weekStart);
+      day.setDate(weekStart.getDate() + d);
+      total += grid[day.toISOString().slice(0, 10)] ?? 0;
+    }
+    weeks.push({ startDate: weekStart.toISOString().slice(0, 10), total });
   }
-  const weeks: { date: string; count: number }[][] = [];
-  for (let w = 0; w < 52; w++) weeks.push(days.slice(w * 7, w * 7 + 7));
-  const getColor = (c: number) => c === 0 ? "bg-gray-800" : c === 1 ? "bg-indigo-900" : c <= 3 ? "bg-indigo-700" : c <= 6 ? "bg-indigo-500" : "bg-indigo-400";
+  const maxWeek = Math.max(...weeks.map(w => w.total), 1);
+  const getColor = (n: number) => {
+    if (n === 0) return "bg-gray-800";
+    const pct = n / maxWeek;
+    if (pct <= 0.25) return "bg-indigo-900";
+    if (pct <= 0.5)  return "bg-indigo-700";
+    if (pct <= 0.75) return "bg-indigo-500";
+    return "bg-indigo-400";
+  };
+  const totalContribs = weeks.reduce((s, w) => s + w.total, 0);
+  const maxWeekVal = Math.max(...weeks.map(w => w.total));
+  const activeWeeks = weeks.filter(w => w.total > 0).length;
   return (
-    <div className="overflow-x-auto">
-      <div className="flex gap-0.5 min-w-max">
-        {weeks.map((week, wi) => (
-          <div key={wi} className="flex flex-col gap-0.5">
-            {week.map(day => (
-              <div key={day.date} title={`${day.date}: ${day.count}`}
-                className={`w-3 h-3 rounded-sm ${getColor(day.count)}`} />
+    <div className="space-y-3">
+      <div className="flex gap-3 items-start">
+        <div className="flex-1 min-w-0">
+          <div className="flex gap-0.5 flex-wrap">
+            {weeks.map((wk, i) => (
+              <div key={i} title={`Week of ${wk.startDate}: ${wk.total}`}
+                className={`w-4 h-8 rounded-sm cursor-default ${getColor(wk.total)}`} />
             ))}
           </div>
-        ))}
+          <div className="flex items-center gap-1.5 mt-2">
+            <span className="text-[10px] text-gray-600">Less</span>
+            {["bg-gray-800","bg-indigo-900","bg-indigo-700","bg-indigo-500","bg-indigo-400"].map(c => (
+              <div key={c} className={`w-3 h-3 rounded-sm ${c}`} />
+            ))}
+            <span className="text-[10px] text-gray-600">More</span>
+          </div>
+        </div>
+        <div className="flex-shrink-0 w-36 bg-gray-800/60 rounded-xl border border-gray-700/50 p-2.5 space-y-1.5">
+          <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">Stats</p>
+          {[
+            { label: "Total", value: totalContribs },
+            { label: "Best week", value: maxWeekVal },
+            { label: "Active weeks", value: activeWeeks },
+          ].map(({ label, value }) => (
+            <div key={label} className="flex justify-between">
+              <span className="text-[10px] text-gray-500">{label}</span>
+              <span className="text-[10px] font-bold text-white">{value}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -160,8 +195,7 @@ export default function UserProfilePage() {
                 <div className="text-[10px] text-gray-500 mt-0.5">{label}</div>
               </div>
             ))}
-          </div>
-        </div>
+          </div>        </div>
       </div>
 
       {/* ── Two-column: left = streak/rep/heatmap/projects, right = badges/activity ── */}
@@ -182,6 +216,8 @@ export default function UserProfilePage() {
                 <div className="flex-1 space-y-2 text-xs">
                   <div className="flex justify-between"><span className="text-gray-500">Longest</span><span className="text-white font-semibold">{streak?.longestStreak ?? 0}d</span></div>
                   <div className="flex justify-between"><span className="text-gray-500">Total days</span><span className="text-white font-semibold">{streak?.totalActiveDays ?? 0}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Weekly</span><span className="text-orange-300 font-semibold">{streak?.weeklyStreak ?? 0} wks</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Monthly</span><span className="text-orange-300 font-semibold">{streak?.monthlyStreak ?? 0} mo</span></div>
                 </div>
               </div>
             </div>
@@ -208,16 +244,68 @@ export default function UserProfilePage() {
             <h2 className="text-sm font-semibold text-white mb-1 flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-indigo-400" />Contribution Activity
             </h2>
-            <p className="text-xs text-gray-500 mb-3">Last 52 weeks</p>
+            <p className="text-xs text-gray-500 mb-3">Weekly contributions — last 52 weeks</p>
             {streak?.activityGrid
               ? <ActivityHeatmap grid={streak.activityGrid as Record<string, number>} />
               : <div className="h-16 bg-gray-800 rounded-xl animate-pulse" />
             }
           </div>
 
-          {/* Projects */}
-          {userProjects && userProjects.length > 0 && (
+          {/* Contributor Profile */}
+          {(stats?.prsSubmitted > 0 || profileFull?.ratings?.avgOverall || profile?.isPaidContributor) && (
             <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+              <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <Shield className="h-4 w-4 text-purple-400" /> Contributor Profile
+              </h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] text-gray-500 mb-1">Tier</p>
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-900/40 text-purple-400">
+                    {(profile?.contributorTier ?? "TESTER").replace("_", " ")}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-500 mb-1">PRs Submitted</p>
+                  <span className="text-sm font-bold text-indigo-400">{stats?.prsSubmitted ?? 0}</span>
+                </div>
+                {profileFull?.ratings?.avgOverall && (
+                  <>
+                    <div>
+                      <p className="text-[10px] text-gray-500 mb-1">Avg Rating</p>
+                      <span className="text-sm font-bold text-yellow-400">⭐ {profileFull.ratings.avgOverall}/5</span>
+                    </div>
+                    <div className="space-y-1">
+                      {[
+                        { label: "Code Quality",   val: profileFull.ratings.avgCodeQuality },
+                        { label: "Communication",  val: profileFull.ratings.avgCommunication },
+                        { label: "Timeliness",     val: profileFull.ratings.avgTimeliness },
+                      ].map(({ label, val }) => val && (
+                        <div key={label} className="flex justify-between text-[10px]">
+                          <span className="text-gray-500">{label}</span>
+                          <span className="text-white">{val}/5</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {profile?.isPaidContributor && (
+                  <div className="col-span-2 pt-2 border-t border-gray-800">
+                    <p className="text-[10px] text-gray-500 mb-2 flex items-center gap-1">
+                      <DollarSign className="h-3 w-3 text-green-400" /> Paid Contributor Rates
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {profile.pricePerBug    && <span className="text-[10px] bg-green-900/30 text-green-400 px-2 py-0.5 rounded-full">${profile.pricePerBug}/bug</span>}
+                      {profile.pricePerFeature && <span className="text-[10px] bg-green-900/30 text-green-400 px-2 py-0.5 rounded-full">${profile.pricePerFeature}/feature</span>}
+                      {profile.hourlyRate      && <span className="text-[10px] bg-green-900/30 text-green-400 px-2 py-0.5 rounded-full">${profile.hourlyRate}/hr</span>}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Projects */}
+          {userProjects && userProjects.length > 0 && (            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base font-semibold text-white">Projects by {profile.username}</h2>
                 {userProjects.length > 4 && (
@@ -277,8 +365,8 @@ export default function UserProfilePage() {
               <div className="space-y-3 overflow-y-auto" style={{ maxHeight: 192, scrollbarWidth: "thin" }}>
                 {(profileFull.recentActivity as any[]).map((act: any) => (
                   <div key={act.id} className="flex items-start gap-2.5">
-                    <div className="w-6 h-6 rounded-lg bg-gray-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <GitPullRequest className="h-3 w-3 text-indigo-400" />
+                    <div className="w-6 h-6 rounded-lg bg-gray-800 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs">
+                      {act.emoji ?? "⚡"}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] text-gray-300 leading-snug">{act.description}</p>

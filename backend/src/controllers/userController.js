@@ -157,11 +157,27 @@ const updateUser = async (req, res) => {
       username, bio, location, website,
       skills, linkedinUrl, twitterUrl, profileVisibility,
       portfolioUrl, availabilityHours,
+      // Paid contributor fields
+      isPaidContributor, pricePerBug, pricePerFeature, hourlyRate, openForPaidWork,
     } = req.body;
 
     const VALID_VIS = ["PUBLIC", "CONNECTIONS_ONLY", "PRIVATE"];
     if (profileVisibility && !VALID_VIS.includes(profileVisibility)) {
       return res.status(400).json({ message: "Invalid profileVisibility" });
+    }
+
+    // Validate paid contributor unlock: must have level >= 6 OR badges >= 5
+    if (isPaidContributor === true) {
+      const [badgeCount, user] = await Promise.all([
+        prisma.userBadge.count({ where: { userId: id } }),
+        prisma.user.findUnique({ where: { id } }),
+      ]);
+      // We'll allow it if they pass the check — the frontend billing tab enforces the UI lock,
+      // but for safety we also check here
+      // (reputation level is computed dynamically, so we just check badge count as proxy)
+      if (badgeCount < 5) {
+        return res.status(403).json({ message: "You need at least 5 badges to become a Paid Contributor" });
+      }
     }
 
     const data = {};
@@ -175,6 +191,11 @@ const updateUser = async (req, res) => {
     if (portfolioUrl !== undefined) data.portfolioUrl = portfolioUrl;
     if (availabilityHours !== undefined) data.availabilityHours = availabilityHours ? parseInt(availabilityHours) : null;
     if (profileVisibility)  data.profileVisibility = profileVisibility;
+    if (isPaidContributor !== undefined) data.isPaidContributor = !!isPaidContributor;
+    if (pricePerBug !== undefined)     data.pricePerBug     = pricePerBug     ? parseFloat(pricePerBug)     : null;
+    if (pricePerFeature !== undefined) data.pricePerFeature = pricePerFeature ? parseFloat(pricePerFeature) : null;
+    if (hourlyRate !== undefined)      data.hourlyRate      = hourlyRate      ? parseFloat(hourlyRate)      : null;
+    if (openForPaidWork !== undefined) data.openForPaidWork = !!openForPaidWork;
 
     if (Object.keys(data).length === 0) return res.status(400).json({ message: "No fields to update" });
 

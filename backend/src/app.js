@@ -22,6 +22,11 @@ const opportunityRoutes    = require("./routes/opportunityRoutes");
 const developerRoutes      = require("./routes/developerRoutes");
 const aiRoutes             = require("./routes/aiRoutes");
 const profileRoutes        = require("./routes/profileRoutes");
+const bugReportRoutes      = require("./routes/bugReportRoutes");
+const pullRequestRoutes    = require("./routes/pullRequestRoutes");
+const ratingRoutes         = require("./routes/ratingRoutes");
+const projectResourceRoutes = require("./routes/projectResourceRoutes");
+const announcementRoutes    = require("./routes/announcementRoutes");
 
 const { getPlatformStats } = require("./controllers/statsController");
 const { errorHandler, notFound } = require("./middleware/errorHandler");
@@ -57,10 +62,17 @@ app.use("/developers",       developerRoutes);
 app.use("/ai",               aiRoutes);
 app.use("/profile-data",     profileRoutes);
 
+// Phase 4 new routes
+app.use("/bug-reports",      bugReportRoutes);
+app.use("/pull-requests",    pullRequestRoutes);
+app.use("/ratings",          ratingRoutes);
+
 // Nested project routes
-app.use("/projects/:projectId/likes",    likeRoutes);
-app.use("/projects/:projectId/comments", commentRoutes);
-app.use("/projects/:projectId/save",     saveRoutes);
+app.use("/projects/:projectId/likes",          likeRoutes);
+app.use("/projects/:projectId/comments",       commentRoutes);
+app.use("/projects/:projectId/save",           saveRoutes);
+app.use("/projects/:projectId/resources",      projectResourceRoutes);
+app.use("/projects/:projectId/announcements",  announcementRoutes);
 
 // Standalone
 app.use("/comments", commentStandaloneRoutes);

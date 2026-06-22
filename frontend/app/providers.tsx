@@ -10,8 +10,13 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000,
-            refetchOnWindowFocus: false,
+            // 30s default stale time — short enough to feel fresh
+            staleTime: 30 * 1000,
+            // Re-fetch when user switches back to the tab — this is the main
+            // fix for "I have to refresh the page to see new messages/notifs"
+            refetchOnWindowFocus: true,
+            // Also re-fetch when the component remounts (navigating back to a page)
+            refetchOnMount: true,
           },
         },
       })

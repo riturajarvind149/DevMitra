@@ -1,5 +1,6 @@
 const prisma = require("../config/db");
 const { createNotification } = require("./notificationController");
+const { recordDailyActivity, awardBadges } = require("./profileController");
 
 // POST /projects/:projectId/comments
 const addComment = async (req, res) => {
@@ -38,6 +39,10 @@ const addComment = async (req, res) => {
         link: `/projects/${projectId}`,
       });
     }
+
+    // Update streak on real contribution
+    recordDailyActivity(req.user.id).catch(() => {});
+    awardBadges(req.user.id).catch(() => {});
 
     res.status(201).json(comment);
   } catch (error) {

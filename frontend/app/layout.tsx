@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} bg-gray-950 dark:bg-gray-950`}>
+      <body className={inter.className}>
         <Providers>
           <AppShell>{children}</AppShell>
         </Providers>

@@ -6,41 +6,80 @@ import { profileDataAPI, usersAPI } from "@/lib/api";
 import {
   Calendar, FolderGit2, Users, ExternalLink,
   MapPin, Globe, Clock, Link2, Flame, Trophy,
-  TrendingUp, Zap, Star, GitPullRequest, Heart,
+  TrendingUp, Zap, Star, Heart,
+  DollarSign, Shield,
 } from "lucide-react";
-import { formatDistanceToNow, format, subDays } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 
 function ActivityHeatmap({ grid }: { grid: Record<string, number> }) {
   const today = new Date();
-  const days: { date: string; count: number }[] = [];
-  for (let i = 363; i >= 0; i--) {
-    const d = subDays(today, i);
-    const key = format(d, "yyyy-MM-dd");
-    days.push({ date: key, count: grid[key] ?? 0 });
+  // Build 52-week array: each entry = total contributions that week
+  const weeks: { weekKey: string; total: number; startDate: string }[] = [];
+  for (let w = 51; w >= 0; w--) {
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - (w * 7) - today.getDay());
+    let total = 0;
+    let maxDay = "";
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(weekStart);
+      day.setDate(weekStart.getDate() + d);
+      const key = day.toISOString().slice(0, 10);
+      total += grid[key] ?? 0;
+      if (!maxDay) maxDay = key;
+    }
+    weeks.push({ weekKey: `W${52 - w}`, total, startDate: weekStart.toISOString().slice(0, 10) });
   }
-  const weeks: { date: string; count: number }[][] = [];
-  for (let w = 0; w < 52; w++) weeks.push(days.slice(w * 7, w * 7 + 7));
-  const getColor = (c: number) =>
-    c === 0 ? "bg-gray-800" : c === 1 ? "bg-indigo-900" : c <= 3 ? "bg-indigo-700" : c <= 6 ? "bg-indigo-500" : "bg-indigo-400";
+
+  const maxWeek = Math.max(...weeks.map(w => w.total), 1);
+  const getColor = (n: number) => {
+    if (n === 0) return "bg-gray-800";
+    const pct = n / maxWeek;
+    if (pct <= 0.25) return "bg-indigo-900";
+    if (pct <= 0.5)  return "bg-indigo-700";
+    if (pct <= 0.75) return "bg-indigo-500";
+    return "bg-indigo-400";
+  };
+
+  // Compute stats
+  const totalContribs = weeks.reduce((s, w) => s + w.total, 0);
+  const maxContribWeek = weeks.reduce((best, w) => w.total > best.total ? w : best, weeks[0]);
+  const activeWeeks = weeks.filter(w => w.total > 0).length;
+
   return (
-    <div className="overflow-x-auto">
-      <div className="flex gap-0.5 min-w-max">
-        {weeks.map((week, wi) => (
-          <div key={wi} className="flex flex-col gap-0.5">
-            {week.map(day => (
-              <div key={day.date} title={`${day.date}: ${day.count}`}
-                className={`w-3 h-3 rounded-sm cursor-default ${getColor(day.count)}`} />
+    <div className="space-y-4">
+      <div className="flex gap-4 items-start">
+        {/* Heatmap — left side */}
+        <div className="flex-1 min-w-0">
+          <div className="flex gap-0.5 flex-wrap">
+            {weeks.map((wk, i) => (
+              <div key={i} title={`Week of ${wk.startDate}: ${wk.total} contributions`}
+                className={`w-4 h-8 rounded-sm cursor-default transition-opacity hover:opacity-80 ${getColor(wk.total)}`} />
             ))}
           </div>
-        ))}
-      </div>
-      <div className="flex items-center gap-1.5 mt-2">
-        <span className="text-[10px] text-gray-600">Less</span>
-        {["bg-gray-800","bg-indigo-900","bg-indigo-700","bg-indigo-500","bg-indigo-400"].map(c => (
-          <div key={c} className={`w-3 h-3 rounded-sm ${c}`} />
-        ))}
-        <span className="text-[10px] text-gray-600">More</span>
+          <div className="flex items-center gap-1.5 mt-2">
+            <span className="text-[10px] text-gray-600">Less</span>
+            {["bg-gray-800","bg-indigo-900","bg-indigo-700","bg-indigo-500","bg-indigo-400"].map(c => (
+              <div key={c} className={`w-3 h-3 rounded-sm ${c}`} />
+            ))}
+            <span className="text-[10px] text-gray-600">More</span>
+          </div>
+        </div>
+
+        {/* Stats box — right side */}
+        <div className="flex-shrink-0 w-44 bg-gray-800/60 rounded-xl border border-gray-700/50 p-3 space-y-2">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Contribution Stats</p>
+          {[
+            { label: "Total contributions", value: totalContribs },
+            { label: "Max in a week",       value: maxContribWeek?.total ?? 0 },
+            { label: "Active weeks",         value: activeWeeks },
+          ].map(({ label, value }) => (
+            <div key={label} className="flex justify-between items-center">
+              <span className="text-[10px] text-gray-500 leading-tight">{label}</span>
+              <span className="text-xs font-bold text-white">{value}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -163,8 +202,7 @@ export default function ProfilePage() {
                 <div className="text-[10px] text-gray-500 mt-0.5">{label}</div>
               </div>
             ))}
-          </div>
-        </div>
+          </div>        </div>
       </div>
 
       {/* Two-column layout */}
@@ -177,7 +215,7 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
               <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <Flame className="h-4 w-4 text-orange-400" />Daily Streak
+                <Flame className="h-4 w-4 text-orange-400" />Contribution Streak
               </h2>
               <div className="flex items-center gap-5">
                 <div className="text-center">
@@ -187,6 +225,8 @@ export default function ProfilePage() {
                 <div className="flex-1 space-y-2.5">
                   <div className="flex justify-between text-xs"><span className="text-gray-500">Longest</span><span className="text-white font-semibold">{streak?.longestStreak ?? 0} days</span></div>
                   <div className="flex justify-between text-xs"><span className="text-gray-500">Total days</span><span className="text-white font-semibold">{streak?.totalActiveDays ?? 0}</span></div>
+                  <div className="flex justify-between text-xs"><span className="text-gray-500">Weekly</span><span className="text-orange-300 font-semibold">{streak?.weeklyStreak ?? 0} wks</span></div>
+                  <div className="flex justify-between text-xs"><span className="text-gray-500">Monthly</span><span className="text-orange-300 font-semibold">{streak?.monthlyStreak ?? 0} mo</span></div>
                   <div className="flex gap-1">{[...Array(7)].map((_, i) => <div key={i} className={`flex-1 h-2 rounded-full ${i < Math.min(streak?.currentStreak ?? 0, 7) ? "bg-orange-400" : "bg-gray-800"}`} />)}</div>
                 </div>
               </div>
@@ -228,16 +268,69 @@ export default function ProfilePage() {
             <h2 className="text-sm font-semibold text-white mb-1 flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-indigo-400" />Contribution Activity
             </h2>
-            <p className="text-xs text-gray-500 mb-4">Last 52 weeks</p>
+            <p className="text-xs text-gray-500 mb-4">Weekly contributions — last 52 weeks</p>
             {streak?.activityGrid
               ? <ActivityHeatmap grid={streak.activityGrid as Record<string, number>} />
               : <div className="h-20 bg-gray-800 rounded-xl animate-pulse" />
             }
           </div>
 
-          {/* Owned Projects */}
-          {myProjects && myProjects.length > 0 && (
+          {/* Contributor Tier + Ratings */}
+          {(p?.stats?.prsSubmitted > 0 || p?.ratings?.count > 0 || p?.user?.isPaidContributor) && (
             <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+              <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <Shield className="h-4 w-4 text-purple-400" /> Contributor Profile
+              </h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] text-gray-500 mb-1">Tier</p>
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-900/40 text-purple-400">
+                    {(p?.user?.contributorTier ?? "TESTER").replace("_", " ")}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-500 mb-1">PRs Submitted</p>
+                  <span className="text-sm font-bold text-indigo-400">{p?.stats?.prsSubmitted ?? 0}</span>
+                </div>
+                {p?.ratings?.count > 0 && (
+                  <>
+                    <div>
+                      <p className="text-[10px] text-gray-500 mb-1">Avg Rating</p>
+                      <span className="text-sm font-bold text-yellow-400">⭐ {p.ratings.avgOverall}/5</span>
+                      <p className="text-[10px] text-gray-600">({p.ratings.count} reviews)</p>
+                    </div>
+                    <div className="space-y-1">
+                      {[
+                        { label: "Code Quality", val: p.ratings.avgCodeQuality },
+                        { label: "Communication", val: p.ratings.avgCommunication },
+                        { label: "Timeliness", val: p.ratings.avgTimeliness },
+                      ].map(({ label, val }) => val && (
+                        <div key={label} className="flex justify-between text-[10px]">
+                          <span className="text-gray-500">{label}</span>
+                          <span className="text-white">{val}/5</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {p?.user?.isPaidContributor && (
+                  <div className="col-span-2 pt-2 border-t border-gray-800">
+                    <p className="text-[10px] text-gray-500 mb-2 flex items-center gap-1">
+                      <DollarSign className="h-3 w-3 text-green-400" /> Paid Contributor Rates
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {p.user.pricePerBug    && <span className="text-[10px] bg-green-900/30 text-green-400 px-2 py-0.5 rounded-full">${p.user.pricePerBug}/bug</span>}
+                      {p.user.pricePerFeature && <span className="text-[10px] bg-green-900/30 text-green-400 px-2 py-0.5 rounded-full">${p.user.pricePerFeature}/feature</span>}
+                      {p.user.hourlyRate      && <span className="text-[10px] bg-green-900/30 text-green-400 px-2 py-0.5 rounded-full">${p.user.hourlyRate}/hr</span>}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Owned Projects */}
+          {myProjects && myProjects.length > 0 && (            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-semibold text-white flex items-center gap-2"><FolderGit2 className="h-4 w-4 text-indigo-400" />Projects</h2>
                 <Link href="/my-projects" className="text-xs text-indigo-400 hover:text-indigo-300">View all →</Link>
@@ -290,14 +383,18 @@ export default function ProfilePage() {
               {(p?.recentActivity ?? []).length > 0 ? (
                 (p.recentActivity as any[]).map((act: any) => (
                   <div key={act.id} className="flex items-start gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-gray-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <GitPullRequest className="h-3 w-3 text-indigo-400" />
+                    <div className="w-7 h-7 rounded-lg bg-gray-800 flex items-center justify-center flex-shrink-0 mt-0.5 text-sm">
+                      {act.emoji ?? "⚡"}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-gray-300 leading-snug">{act.description}</p>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                         <span className="text-[10px] text-gray-600">{formatDistanceToNow(new Date(act.createdAt), { addSuffix: true })}</span>
-                        {act.project && <Link href={`/projects/${act.project.id}`} className="text-[10px] text-indigo-400 hover:text-indigo-300 truncate">{act.project.title}</Link>}
+                        {act.project && (
+                          <Link href={`/projects/${act.project.id}`} className="text-[10px] text-indigo-400 hover:text-indigo-300 truncate">
+                            {act.project.title}
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -306,7 +403,10 @@ export default function ProfilePage() {
                 [...Array(3)].map((_, i) => (
                   <div key={i} className="flex gap-2.5">
                     <div className="w-7 h-7 bg-gray-800 rounded-lg animate-pulse flex-shrink-0" />
-                    <div className="flex-1 space-y-1.5 py-0.5"><div className="h-2.5 bg-gray-800 animate-pulse rounded w-4/5" /><div className="h-2 bg-gray-800 animate-pulse rounded w-2/5" /></div>
+                    <div className="flex-1 space-y-1.5 py-0.5">
+                      <div className="h-2.5 bg-gray-800 animate-pulse rounded w-4/5" />
+                      <div className="h-2 bg-gray-800 animate-pulse rounded w-2/5" />
+                    </div>
                   </div>
                 ))
               )}

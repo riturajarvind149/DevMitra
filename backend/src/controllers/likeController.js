@@ -1,5 +1,6 @@
 const prisma = require("../config/db");
 const { createNotification } = require("./notificationController");
+const { recordDailyActivity, awardBadges } = require("./profileController");
 
 // POST /projects/:projectId/like
 const likeProject = async (req, res) => {
@@ -28,6 +29,10 @@ const likeProject = async (req, res) => {
         link: `/projects/${projectId}`,
       });
     }
+
+    // Update streak on real engagement
+    recordDailyActivity(userId).catch(() => {});
+    awardBadges(userId).catch(() => {});
 
     const count = await prisma.projectLike.count({ where: { projectId } });
     res.status(201).json({ liked: true, count });

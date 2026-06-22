@@ -4,9 +4,49 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { messagesAPI, usersAPI } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
-import { MessageSquare, Send, Search, ArrowLeft, Plus, Edit } from "lucide-react";
+import { MessageSquare, Send, Search, ArrowLeft, Plus, Edit, ExternalLink } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { User, Message, Conversation } from "@/types";
+import Link from "next/link";
+
+// Detects "Check out this project: "TITLE" — URL" pattern and renders a card
+function MessageBubble({ content, isMine }: { content: string; isMine: boolean }) {
+  const projectMatch = content.match(/^Check out this project: "(.+)" — (https?:\/\/\S+)$/);
+
+  if (projectMatch) {
+    const [, title, url] = projectMatch;
+    return (
+      <Link
+        href={url.startsWith("http://localhost") ? url.replace("http://localhost:3000", "") : url}
+        className={`block max-w-[260px] rounded-2xl overflow-hidden border transition hover:opacity-90 ${
+          isMine ? "border-indigo-500/50 bg-indigo-700/80" : "border-gray-700 bg-gray-800"
+        }`}
+      >
+        {/* Card header */}
+        <div className={`px-3 py-2 flex items-center gap-2 border-b ${isMine ? "border-indigo-500/40 bg-indigo-800/60" : "border-gray-700 bg-gray-900"}`}>
+          <div className="w-6 h-6 rounded bg-indigo-600 flex items-center justify-center flex-shrink-0">
+            <ExternalLink className="h-3 w-3 text-white" />
+          </div>
+          <span className="text-[10px] text-gray-400 font-medium">Shared Project</span>
+        </div>
+        <div className="px-3 py-2.5">
+          <p className={`text-sm font-semibold leading-snug ${isMine ? "text-white" : "text-white"}`}>{title}</p>
+          <p className="text-[10px] text-indigo-400 mt-1">Tap to view →</p>
+        </div>
+      </Link>
+    );
+  }
+
+  return (
+    <div className={`px-4 py-2.5 text-sm leading-relaxed ${
+      isMine
+        ? "bg-indigo-600 text-white rounded-3xl rounded-br-md"
+        : "bg-gray-800 text-gray-100 rounded-3xl rounded-bl-md"
+    }`}>
+      {content}
+    </div>
+  );
+}
 
 export default function MessagesPage() {
   const { user } = useAuth();
@@ -150,13 +190,18 @@ export default function MessagesPage() {
                   onClick={() => {
                     setSelectedConv(conv);
                     setShowNewChat(false);
-                    // Immediately clear unread badge for this conversation in cache
+                    // Immediately clear unread badge optimistically in the cache
                     qc.setQueryData(["conversations"], (old: any) => {
                       if (!Array.isArray(old)) return old;
                       return old.map((c: any) => c.id === conv.id ? { ...c, unreadCount: 0 } : c);
                     });
+                    // Tell the server the messages are read (use the last message id as a proxy)
+                    if (conv.unreadCount > 0 && conv.lastMessage?.id) {
+                      messagesAPI.getMessages(conv.id).catch(() => {});
+                    }
                     // Refetch unread count so TopBar badge updates right away
                     qc.invalidateQueries({ queryKey: ["messageUnreadCount"] });
+                    qc.invalidateQueries({ queryKey: ["messages", conv.id] });
                   }}
                   className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition text-left ${
                     selectedConv?.id === conv.id ? "bg-gray-800" : "hover:bg-gray-800/60"
@@ -271,13 +316,7 @@ export default function MessagesPage() {
                           </div>
                         )}
                         <div className={`group relative max-w-[65%]`}>
-                          <div className={`px-4 py-2.5 text-sm leading-relaxed ${
-                            isMine
-                              ? "bg-indigo-600 text-white rounded-3xl rounded-br-md"
-                              : "bg-gray-800 text-gray-100 rounded-3xl rounded-bl-md"
-                          }`}>
-                            {msg.content}
-                          </div>
+                          <MessageBubble content={msg.content} isMine={isMine} />
                           {/* Timestamp on hover */}
                           <div className={`absolute top-1/2 -translate-y-1/2 hidden group-hover:flex items-center ${isMine ? "right-full mr-2" : "left-full ml-2"}`}>
                             <span className="text-[10px] text-gray-600 whitespace-nowrap">

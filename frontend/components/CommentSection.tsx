@@ -6,7 +6,7 @@ import { commentsAPI } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { Comment } from "@/types";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, Pencil, Trash2, CornerDownRight, Send } from "lucide-react";
+import { MessageCircle, Pencil, Trash2, CornerDownRight, Send, AlertTriangle } from "lucide-react";
 
 function CommentItem({ comment, projectId, depth = 0 }: { comment: Comment; projectId: string; depth?: number }) {
   const { user } = useAuth();
@@ -15,6 +15,7 @@ function CommentItem({ comment, projectId, depth = 0 }: { comment: Comment; proj
   const [editText, setEditText] = useState(comment.content);
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyText, setReplyText] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const updateMut = useMutation({
     mutationFn: () => commentsAPI.updateComment(comment.id, editText),
@@ -22,7 +23,7 @@ function CommentItem({ comment, projectId, depth = 0 }: { comment: Comment; proj
   });
   const deleteMut = useMutation({
     mutationFn: () => commentsAPI.deleteComment(comment.id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["comments", projectId] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["comments", projectId] }); setConfirmDelete(false); },
   });
   const replyMut = useMutation({
     mutationFn: () => commentsAPI.addComment(projectId, { content: replyText, parentCommentId: comment.id }),
@@ -75,8 +76,11 @@ function CommentItem({ comment, projectId, depth = 0 }: { comment: Comment; proj
                   className="flex items-center gap-1 text-xs text-gray-500 hover:text-white transition">
                   <Pencil className="h-3 w-3" />Edit
                 </button>
-                <button onClick={() => deleteMut.mutate()} disabled={deleteMut.isPending}
-                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-400 transition">
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={deleteMut.isPending}
+                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-400 transition"
+                >
                   <Trash2 className="h-3 w-3" />Delete
                 </button>
               </>
@@ -95,6 +99,37 @@ function CommentItem({ comment, projectId, depth = 0 }: { comment: Comment; proj
           )}
         </div>
       </div>
+
+      {/* Confirm delete comment modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4">
+          <div className="bg-gray-900 rounded-2xl p-5 border border-gray-700 max-w-sm w-full shadow-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 bg-red-900/40 rounded-xl flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="h-4 w-4 text-red-400" />
+              </div>
+              <h3 className="text-sm font-semibold text-white">Delete Comment?</h3>
+            </div>
+            <p className="text-sm text-gray-400 mb-4">This comment will be permanently deleted.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => deleteMut.mutate()}
+                disabled={deleteMut.isPending}
+                className="flex-1 bg-red-600 text-white py-2 rounded-xl text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition"
+              >
+                {deleteMut.isPending ? "Deleting…" : "Delete"}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="flex-1 bg-gray-800 text-gray-300 py-2 rounded-xl text-sm font-medium hover:bg-gray-700 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {comment.replies && comment.replies.length > 0 && (
         <div>
           {comment.replies.map(r => <CommentItem key={r.id} comment={r} projectId={projectId} depth={depth + 1} />)}
@@ -142,7 +177,7 @@ export default function CommentSection({ projectId }: { projectId: string }) {
       {isLoading ? (
         <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" /></div>
       ) : comments && comments.length > 0 ? (
-        <div className="divide-y divide-gray-800/50">
+        <div className="overflow-y-auto divide-y divide-gray-800/50" style={{ maxHeight: 480, scrollbarWidth: "thin" }}>
           {comments.map(c => <CommentItem key={c.id} comment={c} projectId={projectId} />)}
         </div>
       ) : (

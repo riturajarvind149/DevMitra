@@ -282,6 +282,11 @@ const approveAccessRequest = async (req, res) => {
       link: `/projects/${existingRequest.projectId}`,
     });
 
+    // Record contribution activity for the new contributor
+    const { recordDailyActivity, awardBadges } = require("./profileController");
+    recordDailyActivity(existingRequest.requesterId).catch(() => {});
+    awardBadges(existingRequest.requesterId).catch(() => {});
+
     res.status(200).json(result);
 
   } catch (error) {

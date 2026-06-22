@@ -28,6 +28,15 @@ model User {
   isOnline          Boolean @default(false)
   lastSeenAt        DateTime?
 
+  // Contributor tier & pricing
+  contributorTier   String  @default("TESTER") // TESTER | VERIFIED_TESTER | EXPERT_TESTER | PAID_CONTRIBUTOR | TRUSTED_REVIEWER
+  isPaidContributor Boolean @default(false)
+  pricePerBug       Float?
+  pricePerFeature   Float?
+  hourlyRate        Float?
+  openForPaidWork   Boolean @default(false)
+  totalEarnings     Float   @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt @default(now())
 
@@ -53,6 +62,14 @@ model User {
   aiProfile                UserAIProfile?
   streak                   UserStreak?
   badges                   UserBadge[]
+  bugReports               BugReport[]
+  pullRequests             PullRequest[]       @relation("PRAuthor")
+  pullRequestReviews       PullRequest[]       @relation("PRReviewer")
+  ratingsGiven             ContributorRating[] @relation("RatingGiver")
+  ratingsReceived          ContributorRating[] @relation("RatingReceiver")
+  projectRatingsGiven      ProjectRating[]
+  projectResources         ProjectResource[]
+  announcements            ProjectAnnouncement[]
 }
 
 // ── Repository Access Request ────────────────────────────────────────────────
@@ -163,6 +180,10 @@ model Project {
   visibility      String  @default("PUBLIC")
   openRoles       String[] @default([])
   category        String?
+  isCompleted     Boolean @default(false)
+  completedAt     DateTime?
+  isPaid          Boolean @default(false)
+  budget          String?   // e.g. "$500 total", "$50/bug"
   ownerId         String
   owner           User     @relation(fields: [ownerId], references: [id])
 
@@ -178,6 +199,12 @@ model Project {
   savedBy           SavedProject[]
   comments          ProjectComment[]
   opportunities     Opportunity[]
+  bugReports        BugReport[]
+  pullRequests      PullRequest[]
+  contributorRatings ContributorRating[]
+  projectRatings    ProjectRating[]
+  resources         ProjectResource[]
+  announcements     ProjectAnnouncement[]
 }
 
 model ProjectLike {
@@ -330,6 +357,136 @@ model ActivityLog {
   @@index([createdAt])
 }
 
+// ── Bug Report ───────────────────────────────────────────────────────────────
+model BugReport {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  type        String   @default("BUG") // BUG | UI_ISSUE | PERFORMANCE | SECURITY | FEATURE_REQUEST
+  severity    String   @default("MEDIUM") // LOW | MEDIUM | HIGH | CRITICAL
+  status      String   @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED | WONT_FIX
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reporterId  String
+  reporter    User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  assignedTo  String?
+  resolution  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt @default(now())
+
+  pullRequests PullRequest[]
+
+  @@index([projectId])
+  @@index([reporterId])
+  @@index([status])
+}
+
+// ── Pull Request ──────────────────────────────────────────────────────────────
+model PullRequest {
+  id            String    @id @default(cuid())
+  title         String
+  description   String
+  branchName    String?
+  prUrl         String?   // link to actual GitHub PR if available
+  type          String    @default("FEATURE") // BUG_FIX | FEATURE | REFACTOR | DOCS | TEST
+  status        String    @default("OPEN")    // OPEN | UNDER_REVIEW | MERGED | CLOSED
+  isPaid        Boolean   @default(false)
+  agreedPrice   Float?
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User      @relation("PRAuthor",   fields: [authorId],   references: [id], onDelete: Cascade)
+  reviewerId    String?
+  reviewer      User?     @relation("PRReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  bugReportId   String?
+  bugReport     BugReport? @relation(fields: [bugReportId], references: [id], onDelete: SetNull)
+  mergedAt      DateTime?
+  reviewNote    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt @default(now())
+
+  ratings ContributorRating[]
+
+  @@index([projectId])
+  @@index([authorId])
+  @@index([status])
+}
+
+// ── Contributor Rating ────────────────────────────────────────────────────────
+// Owner rates contributor after a PR is merged / contribution completed
+model ContributorRating {
+  id              String      @id @default(cuid())
+  projectId       String
+  project         Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  giverId         String
+  giver           User        @relation("RatingGiver",    fields: [giverId],    references: [id], onDelete: Cascade)
+  receiverId      String
+  receiver        User        @relation("RatingReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  pullRequestId   String?
+  pullRequest     PullRequest? @relation(fields: [pullRequestId], references: [id], onDelete: SetNull)
+  codeQuality     Int         // 1-5
+  communication   Int         // 1-5
+  timeliness      Int         // 1-5
+  overall         Int         // 1-5
+  comment         String?
+  createdAt       DateTime    @default(now())
+
+  @@unique([pullRequestId, giverId])
+  @@index([receiverId])
+  @@index([projectId])
+}
+
+// ── Project Rating ────────────────────────────────────────────────────────────
+// Contributor rates a project they worked on
+model ProjectRating {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ui          Int      // 1-5
+  performance Int      // 1-5
+  codeQuality Int      // 1-5
+  overall     Int      // 1-5
+  comment     String?
+  createdAt   DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+}
+
+// ── Project Resource ──────────────────────────────────────────────────────────
+model ProjectResource {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploaderId  String
+  uploader    User     @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  fileUrl     String   // base64 or external URL
+  fileType    String   @default("OTHER") // PDF | VIDEO | IMAGE | DESIGN | LINK | OTHER
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+}
+
+// ── Project Announcement ──────────────────────────────────────────────────────
+model ProjectAnnouncement {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title       String
+  content     String
+  audience    String   @default("ALL") // ALL | CONTRIBUTORS
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt @default(now())
+
+  @@index([projectId])
+}
+
 // ── Daily Streak ─────────────────────────────────────────────────────────────
 model UserStreak {
   id              String   @id @default(cuid())
@@ -337,7 +494,11 @@ model UserStreak {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   currentStreak   Int      @default(0)  // consecutive active days
   longestStreak   Int      @default(0)
+  weeklyStreak    Int      @default(0)  // consecutive active weeks
+  monthlyStreak   Int      @default(0)  // consecutive active months
   lastActiveDate  DateTime? // date (no time) of last activity
+  lastActiveWeek  String?  // "YYYY-WW" format
+  lastActiveMonth String?  // "YYYY-MM" format
   totalActiveDays Int      @default(0)
   // 52-week activity grid: stores count of activities per day for the heatmap
   // stored as JSON: { "2026-06-17": 3, "2026-06-18": 1, ... }
