@@ -9,8 +9,62 @@ import { formatDistanceToNow, format } from "date-fns";
 import { User, Message, Conversation } from "@/types";
 import Link from "next/link";
 
-// Detects "Check out this project: "TITLE" — URL" pattern and renders a card
+// Detects story reply/share format and renders card
+// Detects "Check out this project: "TITLE" — URL" pattern and renders project card
 function MessageBubble({ content, isMine }: { content: string; isMine: boolean }) {
+  // Story reply: "📖 Replied to @USERNAME's story\n[story:URL]\nTEXT"
+  const storyReplyMatch = content.match(/^📖 Replied to @(.+?)'s story\n\[story:(.+?)\]\n?([\s\S]*)$/);
+  if (storyReplyMatch) {
+    const [, username, mediaUrl, replyText] = storyReplyMatch;
+    const isVid = mediaUrl.startsWith("data:video") || /\.(mp4|webm|ogg|mov)(\?|$)/i.test(mediaUrl);
+    return (
+      <div className={`max-w-[260px] rounded-2xl overflow-hidden border ${isMine ? "border-indigo-500/50 bg-indigo-700/80" : "border-gray-700 bg-gray-800"}`}>
+        <div className={`px-3 py-2 text-[10px] flex items-center gap-1.5 ${isMine ? "text-indigo-200 bg-indigo-800/60 border-b border-indigo-500/40" : "text-gray-400 bg-gray-900 border-b border-gray-700"}`}>
+          <span>📖</span>
+          <span>Replied to <span className="font-semibold text-white">@{username}</span>'s story</span>
+        </div>
+        <div className="relative mx-2 mt-2 rounded-xl overflow-hidden" style={{ height: 100 }}>
+          {isVid
+            ? <video src={mediaUrl} className="w-full h-full object-cover" muted playsInline />
+            : <img src={mediaUrl} alt="story" className="w-full h-full object-cover" />}
+          <div className="absolute inset-0 bg-black/20" />
+        </div>
+        {replyText?.trim() && (
+          <div className="px-3 py-2.5">
+            <p className="text-sm text-white leading-relaxed">{replyText.trim()}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Story share: "📤 Shared a story by @USERNAME\n[story:URL]\nCAPTION"
+  const storyShareMatch = content.match(/^📤 Shared a story by @(.+?)\n\[story:(.+?)\]\n?([\s\S]*)$/);
+  if (storyShareMatch) {
+    const [, username, mediaUrl, caption] = storyShareMatch;
+    const isVid = mediaUrl.startsWith("data:video") || /\.(mp4|webm|ogg|mov)(\?|$)/i.test(mediaUrl);
+    return (
+      <div className={`max-w-[260px] rounded-2xl overflow-hidden border ${isMine ? "border-indigo-500/50 bg-indigo-700/80" : "border-gray-700 bg-gray-800"}`}>
+        <div className={`px-3 py-2 text-[10px] flex items-center gap-1.5 ${isMine ? "text-indigo-200 bg-indigo-800/60 border-b border-indigo-500/40" : "text-gray-400 bg-gray-900 border-b border-gray-700"}`}>
+          <span>📤</span>
+          <span>Story by <span className="font-semibold text-white">@{username}</span></span>
+        </div>
+        <div className="relative mx-2 mt-2 rounded-xl overflow-hidden" style={{ height: 100 }}>
+          {isVid
+            ? <video src={mediaUrl} className="w-full h-full object-cover" muted playsInline />
+            : <img src={mediaUrl} alt="story" className="w-full h-full object-cover" />}
+          <div className="absolute inset-0 bg-black/20" />
+        </div>
+        {caption?.trim() && (
+          <div className="px-3 py-2.5">
+            <p className="text-sm text-white leading-relaxed">{caption.trim()}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Project share
   const projectMatch = content.match(/^Check out this project: "(.+)" — (https?:\/\/\S+)$/);
 
   if (projectMatch) {

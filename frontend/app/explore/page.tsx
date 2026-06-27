@@ -1,71 +1,22 @@
 ﻿"use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { projectsAPI, developersAPI, opportunitiesAPI } from "@/lib/api";
+import { projectsAPI, opportunitiesAPI } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
-import { useSearchParams } from "next/navigation";
-import { Search, Compass, Users, Briefcase, FolderGit2, MapPin, Clock, ChevronRight, Wifi, DollarSign, ExternalLink, Plus } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Search, Compass, Briefcase, FolderGit2, Clock, ChevronRight, Wifi, DollarSign, Plus } from "lucide-react";
 import ProjectFeedCard from "@/components/ProjectFeedCard";
-import ConnectButton from "@/components/ConnectButton";
 import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
 import { FeedSkeleton } from "@/components/Skeleton";
 
 const TABS = [
   { key: "projects",      label: "Projects",      icon: FolderGit2 },
-  { key: "developers",    label: "Developers",    icon: Users },
   { key: "opportunities", label: "Opportunities", icon: Briefcase },
 ] as const;
 type Tab = typeof TABS[number]["key"];
 
-const SKILLS = ["React","Node.js","Python","TypeScript","Go","Rust","Vue","Docker","AWS","Swift"];
-const AVAIL  = [{ label:"Any", value:"" },{ label:"5+ hrs/wk", value:"5" },{ label:"10+ hrs/wk", value:"10" },{ label:"20+ hrs/wk", value:"20" }];
-const CATS   = ["All","SaaS","AI/ML","Health","Marketing","E-commerce","DevTools","Mobile","Other"];
-
-/* ─── Developer Card ─────────────────────────────────────────────────────── */
-function DeveloperCard({ dev }: { dev: any }) {
-  return (
-    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 hover:border-gray-700 transition flex flex-col gap-3">
-      <div className="flex items-start gap-3">
-        <Link href={`/users/${dev.id}`}>
-          {dev.avatarUrl
-            ? <img src={dev.avatarUrl} alt="" className="w-12 h-12 rounded-2xl flex-shrink-0" />
-            : <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold flex-shrink-0">{dev.username.charAt(0).toUpperCase()}</div>
-          }
-        </Link>
-        <div className="min-w-0 flex-1">
-          <Link href={`/users/${dev.id}`} className="text-sm font-semibold text-white hover:text-indigo-400 transition block truncate">{dev.username}</Link>
-          {dev.bio && <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{dev.bio}</p>}
-          <div className="flex flex-wrap gap-2 mt-1.5">
-            {dev.location && <span className="flex items-center gap-1 text-[10px] text-gray-600"><MapPin className="h-3 w-3" />{dev.location}</span>}
-            {dev.availabilityHours && <span className="flex items-center gap-1 text-[10px] text-green-500"><Clock className="h-3 w-3" />{dev.availabilityHours}h/wk</span>}
-            {dev.githubUsername && (
-              <a href={dev.githubProfileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] text-indigo-400 hover:text-indigo-300">
-                <ExternalLink className="h-3 w-3" />@{dev.githubUsername}
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
-      {dev.skills?.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {dev.skills.slice(0, 5).map((s: string, i: number) => (
-            <span key={i} className="text-[10px] text-indigo-300 bg-indigo-900/40 px-2 py-0.5 rounded-full">{s}</span>
-          ))}
-          {dev.skills.length > 5 && <span className="text-[10px] text-gray-600">+{dev.skills.length - 5}</span>}
-        </div>
-      )}
-      <div className="flex items-center justify-between pt-2 border-t border-gray-800">
-        <div className="flex items-center gap-3 text-xs text-gray-600">
-          <span className="flex items-center gap-1"><FolderGit2 className="h-3 w-3" />{dev._count?.projects ?? 0}</span>
-          <span className="flex items-center gap-1"><Users className="h-3 w-3" />{dev._count?.projectMemberships ?? 0}</span>
-        </div>
-        <ConnectButton userId={dev.id} />
-      </div>
-    </div>
-  );
-}
+const CATS = ["All","SaaS","AI/ML","Health","Marketing","E-commerce","DevTools","Mobile","Other"];
 
 /* ─── Opportunity Card ───────────────────────────────────────────────────── */
 function OppCard({ opp, onApply }: { opp: any; onApply: (id: string) => void }) {
@@ -160,17 +111,25 @@ function ApplyModal({ oppId, onClose }: { oppId: string; onClose: () => void }) 
 function ExploreContent() {
   const { isAuthenticated } = useAuth();
   const qc = useQueryClient();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get("tab") as Tab) || "projects";
+  const initialSearch = searchParams.get("search") || "";
+
   const [tab, setTab]       = useState<Tab>(initialTab);
-  const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [search, setSearch] = useState(initialSearch);
   const [category, setCategory] = useState("All");
-  const [skill, setSkill]   = useState("");
-  const [avail, setAvail]   = useState("");
   const [applyId, setApplyId] = useState<string | null>(null);
   const [showPostOpp, setShowPostOpp] = useState(false);
 
-  /* Projects */
+  // Sync search from URL when TopBar submits (pushes to /explore?search=…)
+  useEffect(() => {
+    const urlSearch = searchParams.get("search") || "";
+    setSearch(urlSearch);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.get("search")]);
+
+  // Projects
   const { data: projData, isLoading: projLoading } = useQuery({
     queryKey: ["explore-projects", search, category],
     queryFn: async () => {
@@ -181,22 +140,7 @@ function ExploreContent() {
     enabled: tab === "projects",
   });
 
-  /* Developers */
-  const { data: devData, isLoading: devLoading } = useQuery({
-    queryKey: ["explore-devs", search, skill, avail],
-    queryFn: async () => {
-      const { data } = await developersAPI.getAll({
-        search: search || undefined,
-        skill: skill || undefined,
-        availability: avail ? parseInt(avail) : undefined,
-        limit: 40,
-      });
-      return data;
-    },
-    enabled: tab === "developers",
-  });
-
-  /* Opportunities */
+  // Opportunities
   const { data: oppData, isLoading: oppLoading } = useQuery({
     queryKey: ["explore-opps", search],
     queryFn: async () => {
@@ -206,16 +150,15 @@ function ExploreContent() {
     enabled: tab === "opportunities",
   });
 
-  const loading = projLoading || devLoading || oppLoading;
+  const loading = projLoading || oppLoading;
 
   return (
     <div className="min-h-screen bg-gray-950">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <Compass className="h-6 w-6 text-indigo-400" />Explore
         </h1>
-        <p className="text-sm text-gray-500 mt-0.5">Discover projects, developers, and opportunities</p>
+        <p className="text-sm text-gray-500 mt-0.5">Discover projects and collaboration opportunities</p>
       </div>
 
       {/* Tabs */}
@@ -228,12 +171,22 @@ function ExploreContent() {
         ))}
       </div>
 
-      {/* Search + optional Post button */}
+      {/* Search + Post button */}
       <div className="flex gap-3 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-          <input type="text" placeholder={`Search ${tab}…`} value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-800 text-white text-sm pl-11 pr-4 py-3 rounded-2xl focus:border-indigo-500 focus:outline-none" />
+          <input
+            type="text"
+            placeholder={`Search ${tab}…`}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter" && search.trim()) {
+                router.push(`/explore?search=${encodeURIComponent(search.trim())}&tab=${tab}`);
+              }
+            }}
+            className="w-full bg-gray-900 border border-gray-800 text-white text-sm pl-11 pr-4 py-3 rounded-2xl focus:border-indigo-500 focus:outline-none"
+          />
         </div>
         {tab === "opportunities" && isAuthenticated && (
           <button onClick={() => setShowPostOpp(true)}
@@ -243,24 +196,12 @@ function ExploreContent() {
         )}
       </div>
 
-      {/* Tab-specific filters */}
+      {/* Category filter */}
       {tab === "projects" && (
         <div className="flex flex-wrap gap-2 mb-5">
           {CATS.map(c => (
             <button key={c} onClick={() => setCategory(c)}
               className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${category === c ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"}`}>{c}</button>
-          ))}
-        </div>
-      )}
-      {tab === "developers" && (
-        <div className="flex flex-wrap gap-2 mb-5 items-center">
-          <select value={avail} onChange={e => setAvail(e.target.value)}
-            className="bg-gray-800 border border-gray-700 text-white text-xs px-3 py-1.5 rounded-full focus:outline-none">
-            {AVAIL.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
-          </select>
-          {SKILLS.map(s => (
-            <button key={s} onClick={() => setSkill(skill === s ? "" : s)}
-              className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${skill === s ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>{s}</button>
           ))}
         </div>
       )}
@@ -278,16 +219,6 @@ function ExploreContent() {
               </>
             ) : <EmptyState icon={FolderGit2} label="No projects found" sub="Try different search terms or filters" />
           )}
-          {tab === "developers" && (
-            devData?.developers.length ? (
-              <>
-                <p className="text-xs text-gray-600 mb-4">{devData.pagination.total} developers</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {devData.developers.map((d: any) => <DeveloperCard key={d.id} dev={d} />)}
-                </div>
-              </>
-            ) : <EmptyState icon={Users} label="No developers found" sub="Try different filters" />
-          )}
           {tab === "opportunities" && (
             oppData?.opportunities.length ? (
               <>
@@ -298,7 +229,9 @@ function ExploreContent() {
                   ))}
                 </div>
               </>
-            ) : <EmptyState icon={Briefcase} label="No opportunities found" sub={isAuthenticated ? "Be the first to post a collaboration opportunity" : "Try different search terms or login to post"} cta={isAuthenticated ? { label: "Post Opportunity", onClick: () => setShowPostOpp(true) } : undefined} />
+            ) : <EmptyState icon={Briefcase} label="No opportunities found"
+                sub={isAuthenticated ? "Be the first to post" : "Login to post an opportunity"}
+                cta={isAuthenticated ? { label: "Post Opportunity", onClick: () => setShowPostOpp(true) } : undefined} />
           )}
         </>
       )}

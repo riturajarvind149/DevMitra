@@ -41,6 +41,8 @@ model User {
   updatedAt DateTime @updatedAt @default(now())
 
   projects                 Project[]
+  storyViews               StoryView[]
+  storyLikes               StoryLike[]
   accessRequests           ProjectAccessRequest[]
   repoAccessRequests       RepositoryAccessRequest[] @relation("RepoRequester")
   repoAccessReviews        RepositoryAccessRequest[] @relation("RepoReviewer")
@@ -260,8 +262,35 @@ model Story {
   expiresAt  DateTime
   createdAt  DateTime @default(now())
 
+  views      StoryView[]
+  likes      StoryLike[]
+
   @@index([userId])
   @@index([expiresAt])
+}
+
+model StoryLike {
+  id        String   @id @default(cuid())
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([storyId, userId])
+  @@index([storyId])
+}
+
+model StoryView {
+  id        String   @id @default(cuid())
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  viewerId  String
+  viewer    User     @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+  viewedAt  DateTime @default(now())
+
+  @@unique([storyId, viewerId])
+  @@index([storyId])
 }
 
 model ProjectAccessRequest {

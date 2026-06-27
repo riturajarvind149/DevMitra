@@ -25,6 +25,9 @@ const TYPE_CATEGORY: Record<string, string> = {
   PROJECT_COMMENTED: "comments",
   PROJECT_LIKED: "social", CONNECTION_REQUEST: "social", CONNECTION_ACCEPTED: "social",
   CONTRIBUTOR_REMOVED: "social",
+  STORY_LIKE: "social",
+  BUG_REPORT: "proposals", PULL_REQUEST: "proposals", PR_REVIEWED: "proposals",
+  NEW_RATING: "social", ANNOUNCEMENT: "proposals", PROJECT_COMPLETED: "social",
 };
 
 const NOTIF_META: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
@@ -38,9 +41,16 @@ const NOTIF_META: Record<string, { icon: React.ElementType; color: string; bg: s
   OPPORTUNITY_APPROVED:    { icon: CheckCircle,    color: "text-green-400",   bg: "bg-green-900/40"  },
   PROJECT_COMMENTED:       { icon: MessageSquare,  color: "text-blue-400",    bg: "bg-blue-900/40"   },
   PROJECT_LIKED:           { icon: Heart,          color: "text-red-400",     bg: "bg-red-900/40"    },
+  STORY_LIKE:              { icon: Heart,          color: "text-red-400",     bg: "bg-red-900/40"    },
   CONNECTION_REQUEST:      { icon: Users,          color: "text-purple-400",  bg: "bg-purple-900/40" },
   CONNECTION_ACCEPTED:     { icon: CheckCircle,    color: "text-green-400",   bg: "bg-green-900/40"  },
   CONTRIBUTOR_REMOVED:     { icon: XCircle,        color: "text-red-400",     bg: "bg-red-900/40"    },
+  BUG_REPORT:              { icon: Bell,           color: "text-orange-400",  bg: "bg-orange-900/40" },
+  PULL_REQUEST:            { icon: GitPullRequest, color: "text-indigo-400",  bg: "bg-indigo-900/40" },
+  PR_REVIEWED:             { icon: CheckCircle,    color: "text-green-400",   bg: "bg-green-900/40"  },
+  NEW_RATING:              { icon: Heart,          color: "text-yellow-400",  bg: "bg-yellow-900/40" },
+  ANNOUNCEMENT:            { icon: Bell,           color: "text-yellow-400",  bg: "bg-yellow-900/40" },
+  PROJECT_COMPLETED:       { icon: CheckCircle,    color: "text-green-400",   bg: "bg-green-900/40"  },
 };
 
 function timeLabel(date: string) {

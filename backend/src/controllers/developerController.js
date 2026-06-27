@@ -45,7 +45,7 @@ const getDevelopers = async (req, res) => {
   }
 };
 
-// GET /developers/suggested  — developers to connect with
+// GET /developers/suggested  — developers to connect with (with mutual count)
 const getSuggestedDevelopers = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -53,23 +53,43 @@ const getSuggestedDevelopers = async (req, res) => {
     // Get IDs already connected or pending
     const existing = await prisma.connection.findMany({
       where: { OR: [{ senderId: userId }, { receiverId: userId }] },
-      select: { senderId: true, receiverId: true },
+      select: { senderId: true, receiverId: true, status: true },
     });
     const excludeIds = new Set([userId]);
     existing.forEach(c => { excludeIds.add(c.senderId); excludeIds.add(c.receiverId); });
+
+    // My accepted connection IDs
+    const myConnectedIds = new Set(
+      existing.filter(c => c.status === "ACCEPTED")
+        .map(c => c.senderId === userId ? c.receiverId : c.senderId)
+    );
 
     const developers = await prisma.user.findMany({
       where: { id: { notIn: Array.from(excludeIds) } },
       select: {
         id: true, username: true, avatarUrl: true, bio: true, skills: true,
-        githubUsername: true, location: true,
+        githubUsername: true, location: true, availabilityHours: true,
         _count: { select: { projects: true, projectMemberships: true } },
       },
-      take: 8,
+      take: 20,
       orderBy: { createdAt: "desc" },
     });
 
-    res.status(200).json(developers);
+    // Add mutual count for each suggested dev
+    const result = await Promise.all(developers.map(async (dev) => {
+      const devConns = await prisma.connection.findMany({
+        where: {
+          status: "ACCEPTED",
+          OR: [{ senderId: dev.id }, { receiverId: dev.id }],
+        },
+        select: { senderId: true, receiverId: true },
+      });
+      const devConnIds = new Set(devConns.map(c => c.senderId === dev.id ? c.receiverId : c.senderId));
+      const mutualCount = [...myConnectedIds].filter(id => devConnIds.has(id)).length;
+      return { ...dev, mutualCount };
+    }));
+
+    res.status(200).json(result);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch suggestions" });

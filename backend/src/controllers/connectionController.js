@@ -143,12 +143,37 @@ const getConnections = async (req, res) => {
       orderBy: { updatedAt: "desc" },
     });
 
-    // Return the "other" person for each connection
-    const result = connections.map((c) => ({
-      id: c.id,
-      user: c.senderId === userId ? c.receiver : c.sender,
-      connectedAt: c.updatedAt,
+    // Get my connection IDs for mutual calculation
+    const myConnectedIds = new Set(
+      connections.map(c => c.senderId === userId ? c.receiverId : c.senderId)
+    );
+
+    // Return the "other" person for each connection + mutual count
+    const result = await Promise.all(connections.map(async (c) => {
+      const other = c.senderId === userId ? c.receiver : c.sender;
+
+      // Mutual connections = people connected to BOTH me and the other person
+      const otherConns = await prisma.connection.findMany({
+        where: {
+          status: "ACCEPTED",
+          OR: [{ senderId: other.id }, { receiverId: other.id }],
+        },
+        select: { senderId: true, receiverId: true },
+      });
+      const otherConnectedIds = new Set(
+        otherConns.map(oc => oc.senderId === other.id ? oc.receiverId : oc.senderId)
+      );
+      // mutual = intersection of my connections and their connections (excluding each other)
+      const mutualIds = [...myConnectedIds].filter(id => id !== other.id && otherConnectedIds.has(id));
+
+      return {
+        id: c.id,
+        user: other,
+        connectedAt: c.updatedAt,
+        mutualCount: mutualIds.length,
+      };
     }));
+
     res.status(200).json(result);
   } catch (error) {
     console.error(error);

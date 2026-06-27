@@ -37,7 +37,10 @@ export default function TopBar() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/explore?search=${encodeURIComponent(searchQuery.trim())}`);
+      // If already on explore, push with current path to preserve tab; otherwise go to projects tab
+      const isExplore = typeof window !== "undefined" && window.location.pathname.startsWith("/explore");
+      const tabParam = isExplore ? "" : "&tab=projects";
+      router.push(`/explore?search=${encodeURIComponent(searchQuery.trim())}${tabParam}`);
     }
   };
 
@@ -86,6 +89,7 @@ export default function TopBar() {
               placeholder="Search…"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleSearch(e as any); }}
               className="w-44 bg-gray-800 text-white text-sm pl-9 pr-3 py-2 rounded-lg border border-gray-700 focus:border-indigo-500 focus:outline-none focus:w-64 transition-all placeholder-gray-500"
             />
           </div>

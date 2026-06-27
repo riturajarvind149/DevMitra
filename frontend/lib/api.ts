@@ -95,6 +95,10 @@ export const storiesAPI = {
   create: (data: { mediaUrl: string; mediaType?: string; caption?: string; label?: string; visibility?: string }) =>
     api.post<Story>("/stories", data),
   delete: (id: string) => api.delete(`/stories/${id}`),
+  recordView: (id: string) => api.post(`/stories/${id}/view`),
+  getViewers: (id: string) => api.get<any[]>(`/stories/${id}/viewers`),
+  toggleLike: (id: string) => api.post<{ liked: boolean }>(`/stories/${id}/like`),
+  getLikeStatus: (id: string) => api.get<{ liked: boolean; count: number }>(`/stories/${id}/like`),
 };
 
 export const notificationsAPI = {
