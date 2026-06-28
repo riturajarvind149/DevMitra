@@ -9,7 +9,7 @@ import {
   ExternalLink, Users, Calendar, ArrowLeft, FolderGit2, GitPullRequest,
   CheckCircle, Lock, Globe, EyeOff, Briefcase, Shield, GitBranch, Clock,
   XCircle, Pencil, KeyRound, UserMinus, AlertTriangle, Megaphone, Plus,
-  Trash2, CheckSquare, RotateCcw, Send, UserPlus, X,
+  Trash2, CheckSquare, RotateCcw, Send, UserPlus, X, MessageSquare,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
@@ -60,6 +60,10 @@ export default function ProjectDetailPage() {
   const [bugForm, setBugForm] = useState({ title: "", description: "", type: "BUG", severity: "MEDIUM" });
   const [showBugList, setShowBugList] = useState(false);
   const [confirmAddContributor, setConfirmAddContributor] = useState<{ userId: string; username: string } | null>(null);
+  // Bug detail chat modal
+  const [activeBug, setActiveBug] = useState<any | null>(null);
+  const [confirmResolveBug, setConfirmResolveBug] = useState<string | null>(null);
+  const [bugChatMsg, setBugChatMsg] = useState("");
 
   const { data: project, isLoading, error } = useQuery({
     queryKey: ["project", projectId],
@@ -333,7 +337,9 @@ export default function ProjectDetailPage() {
             </div>
             <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-0" style={{ scrollbarWidth: "thin" }}>
               {(bugReports as any[]).length > 0 ? (bugReports as any[]).map((bug: any) => (
-                <div key={bug.id} className="p-2.5 bg-gray-800/70 rounded-xl border border-gray-700/50">
+                <button key={bug.id}
+                  onClick={() => setActiveBug(bug)}
+                  className="w-full text-left p-2.5 bg-gray-800/70 rounded-xl border border-gray-700/50 hover:border-gray-600 transition">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-1 mb-0.5">
@@ -345,35 +351,14 @@ export default function ProjectDetailPage() {
                         {bug.reporter?.avatarUrl && <img src={bug.reporter.avatarUrl} alt="" className="w-3 h-3 rounded-full" />}
                         <span className="text-[10px] text-gray-500">{bug.reporter?.username}</span>
                         <span className="text-[10px] text-gray-600">· {formatDistanceToNow(new Date(bug.createdAt), { addSuffix: true })}</span>
+                        <MessageSquare className="h-2.5 w-2.5 text-gray-600 ml-auto" />
                       </div>
-                      {/* Owner actions — OPEN gets: Resolve + In Progress + Add */}
-                      {/* IN_PROGRESS gets: Resolve + Won't Fix + Add */}
-                      {isOwner && (bug.status === "OPEN" || bug.status === "IN_PROGRESS") && (
-                        <div className="flex flex-wrap gap-1.5 mt-1.5">
-                          <button onClick={() => bugUpdateMut.mutate({ id: bug.id, status: "RESOLVED" })}
-                            className="text-[10px] text-green-400 hover:text-green-300 border border-green-800/50 px-2 py-0.5 rounded-lg transition">✓ Resolve</button>
-                          {bug.status === "OPEN" && (
-                            <button onClick={() => bugUpdateMut.mutate({ id: bug.id, status: "IN_PROGRESS" })}
-                              className="text-[10px] text-yellow-400 hover:text-yellow-300 border border-yellow-800/50 px-2 py-0.5 rounded-lg transition">⚡ In Progress</button>
-                          )}
-                          {bug.status === "IN_PROGRESS" && (
-                            <button onClick={() => bugUpdateMut.mutate({ id: bug.id, status: "WONT_FIX" })}
-                              className="text-[10px] text-gray-400 hover:text-gray-300 border border-gray-700 px-2 py-0.5 rounded-lg transition">✕ Won't Fix</button>
-                          )}
-                          {bug.reporter && !project.members?.some((m: any) => m.userId === bug.reporter.id) && (
-                            <button onClick={() => setConfirmAddContributor({ userId: bug.reporter.id, username: bug.reporter.username })}
-                              className="text-[10px] text-indigo-400 hover:text-indigo-300 border border-indigo-800/50 px-2 py-0.5 rounded-lg transition flex items-center gap-0.5">
-                              <UserPlus className="h-2.5 w-2.5" /> Add
-                            </button>
-                          )}
-                        </div>
-                      )}
                     </div>
                     <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${STATUS_COLOR[bug.status] ?? "bg-gray-800 text-gray-400"}`}>
                       {bug.status.replace("_", " ")}
                     </span>
                   </div>
-                </div>
+                </button>
               )) : <p className="text-xs text-gray-600 text-center py-4">No bug reports yet</p>}
             </div>
           </div>
@@ -382,6 +367,124 @@ export default function ProjectDetailPage() {
       </div>
 
       {/* ═══ MODALS ═══ */}
+
+      {/* ── Confirm Resolve Bug ──────────────────────────────────────────────────── */}
+      {confirmResolveBug && (
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-[55] p-4">
+          <div className="bg-gray-900 rounded-2xl p-6 border border-green-900/50 max-w-sm w-full">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-green-900/40 rounded-xl flex items-center justify-center flex-shrink-0"><CheckCircle className="h-5 w-5 text-green-400" /></div>
+              <h3 className="text-base font-semibold text-white">Mark as Resolved?</h3>
+            </div>
+            <p className="text-sm text-gray-400 mb-5">This will close the bug report. The reporter will be able to reopen it if the issue persists.</p>
+            <div className="flex gap-3">
+              <button onClick={() => { bugUpdateMut.mutate({ id: confirmResolveBug, status: "RESOLVED" }); setConfirmResolveBug(null); setActiveBug(null); }}
+                disabled={bugUpdateMut.isPending}
+                className="flex-1 bg-green-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition">
+                {bugUpdateMut.isPending ? "Resolving…" : "Mark Resolved"}
+              </button>
+              <button onClick={() => setConfirmResolveBug(null)} className="flex-1 bg-gray-800 text-gray-300 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Bug Detail + Chat Modal ────────────────────────────────────────────── */}
+      {activeBug && (
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-2xl w-full max-w-lg border border-gray-700 flex flex-col max-h-[85vh]">
+            {/* Header */}
+            <div className="flex items-start justify-between p-5 border-b border-gray-800 flex-shrink-0">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${SEV_COLOR[activeBug.severity] ?? "bg-gray-800 text-gray-400"}`}>{activeBug.severity}</span>
+                  <span className="text-[10px] text-gray-500">{activeBug.type.replace("_", " ")}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${STATUS_COLOR[activeBug.status] ?? "bg-gray-800 text-gray-400"}`}>{activeBug.status.replace("_", " ")}</span>
+                </div>
+                <h2 className="text-base font-semibold text-white">{activeBug.title}</h2>
+                <div className="flex items-center gap-2 mt-1">
+                  {activeBug.reporter?.avatarUrl
+                    ? <img src={activeBug.reporter.avatarUrl} alt="" className="w-4 h-4 rounded-full" />
+                    : <div className="w-4 h-4 rounded-full bg-indigo-700 flex items-center justify-center"><span className="text-[8px] font-bold text-white">{activeBug.reporter?.username?.charAt(0)}</span></div>}
+                  <Link href={`/users/${activeBug.reporter?.id}`} className="text-xs text-gray-500 hover:text-indigo-400 transition" onClick={() => setActiveBug(null)}>
+                    @{activeBug.reporter?.username}
+                  </Link>
+                  <span className="text-[10px] text-gray-600">· {formatDistanceToNow(new Date(activeBug.createdAt), { addSuffix: true })}</span>
+                </div>
+              </div>
+              <button onClick={() => setActiveBug(null)} className="text-gray-500 hover:text-white ml-3 flex-shrink-0"><X className="h-4 w-4" /></button>
+            </div>
+
+            {/* Description */}
+            <div className="px-5 py-4 border-b border-gray-800 flex-shrink-0">
+              <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{activeBug.description}</p>
+            </div>
+
+            {/* Owner actions */}
+            {isOwner && (activeBug.status === "OPEN" || activeBug.status === "IN_PROGRESS") && (
+              <div className="px-5 py-3 border-b border-gray-800 flex flex-wrap gap-2 flex-shrink-0">
+                <button onClick={() => setConfirmResolveBug(activeBug.id)}
+                  className="flex items-center gap-1.5 text-xs text-green-400 border border-green-800/50 px-3 py-1.5 rounded-lg hover:bg-green-900/20 transition">
+                  <CheckCircle className="h-3.5 w-3.5" /> Resolve
+                </button>
+                {activeBug.status === "OPEN" && (
+                  <button onClick={() => { bugUpdateMut.mutate({ id: activeBug.id, status: "IN_PROGRESS" }); setActiveBug((b: any) => ({ ...b, status: "IN_PROGRESS" })); }}
+                    className="flex items-center gap-1.5 text-xs text-yellow-400 border border-yellow-800/50 px-3 py-1.5 rounded-lg hover:bg-yellow-900/20 transition">
+                    ⚡ In Progress
+                  </button>
+                )}
+                {activeBug.status === "IN_PROGRESS" && (
+                  <button onClick={() => { bugUpdateMut.mutate({ id: activeBug.id, status: "WONT_FIX" }); setActiveBug((b: any) => ({ ...b, status: "WONT_FIX" })); }}
+                    className="flex items-center gap-1.5 text-xs text-gray-400 border border-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-800 transition">
+                    ✕ Won't Fix
+                  </button>
+                )}
+                {activeBug.reporter && !project.members?.some((m: any) => m.userId === activeBug.reporter.id) && (
+                  <button onClick={() => { setConfirmAddContributor({ userId: activeBug.reporter.id, username: activeBug.reporter.username }); setActiveBug(null); }}
+                    className="flex items-center gap-1.5 text-xs text-indigo-400 border border-indigo-800/50 px-3 py-1.5 rounded-lg hover:bg-indigo-900/20 transition">
+                    <UserPlus className="h-3.5 w-3.5" /> Add as Contributor
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Chat thread — send message to reporter */}
+            <div className="flex-1 min-h-0 flex flex-col">
+              <div className="px-5 py-3 border-b border-gray-800 flex-shrink-0">
+                <p className="text-xs text-gray-500">💬 Discussion — messages go directly to <span className="text-white">@{activeBug.reporter?.username}</span></p>
+              </div>
+              <div className="flex-1 overflow-y-auto px-5 py-3">
+                <p className="text-xs text-gray-600 text-center">Use the message box below to discuss this bug with the reporter.</p>
+              </div>
+              {/* Message input to reporter */}
+              {isAuthenticated && activeBug.reporter?.id !== user?.id && (
+                <form className="px-5 py-4 border-t border-gray-800 flex gap-3 flex-shrink-0"
+                  onSubmit={async e => {
+                    e.preventDefault();
+                    if (!bugChatMsg.trim()) return;
+                    try {
+                      const { messagesAPI } = await import("@/lib/api");
+                      await messagesAPI.send({
+                        receiverId: activeBug.reporter.id,
+                        content: `🐛 Re: Bug report "${activeBug.title}" on project "${project.title}"\n\n${bugChatMsg.trim()}`,
+                      });
+                      setBugChatMsg("");
+                      alert(`Message sent to @${activeBug.reporter.username}`);
+                    } catch { alert("Failed to send message"); }
+                  }}>
+                  <input type="text" value={bugChatMsg} onChange={e => setBugChatMsg(e.target.value)}
+                    placeholder={`Message @${activeBug.reporter?.username}…`}
+                    className="flex-1 bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none" />
+                  <button type="submit" disabled={!bugChatMsg.trim()}
+                    className="bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-700 disabled:opacity-40 transition flex items-center gap-2">
+                    <Send className="h-4 w-4" />Send
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmComplete && (
         <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">

@@ -41,7 +41,7 @@ export default function RightSidebar() {
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
               <TrendingUp className="h-3.5 w-3.5 text-indigo-400" />Trending This Week
             </h3>
-            <Link href="/explore" className="text-[10px] text-indigo-400 hover:text-indigo-300">All →</Link>
+            <Link href="/trending" className="text-[10px] text-indigo-400 hover:text-indigo-300">All →</Link>
           </div>
           <div className="space-y-0.5">
             {projectsData?.projects.slice(0, 5).map((project, i) => (
@@ -63,13 +63,13 @@ export default function RightSidebar() {
           </div>
         </section>
 
-        {/* Top Contributors This Week */}
+        {/* Top Contributors */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5 text-purple-400" />Top Contributors
             </h3>
-            <Link href="/explore?tab=developers" className="text-[10px] text-indigo-400 hover:text-indigo-300">All →</Link>
+            <Link href="/trending?tab=contributors" className="text-[10px] text-indigo-400 hover:text-indigo-300">All →</Link>
           </div>
           <div className="space-y-0.5">
             {(topUsers ?? []).map((u, i) => (

@@ -312,7 +312,7 @@ export default function SettingsPage() {
         <nav className="w-44 flex-shrink-0 self-start sticky top-0">
           <div className="space-y-0.5">
             {NAV.map(({ key, label, icon: Icon }) => {
-              const locked = key === "billing" && !isEligibleForBilling;
+              const locked = false; // billing is unlocked for all users
               return (
                 <button key={key} onClick={() => !locked && setTab(key)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${
@@ -532,35 +532,86 @@ export default function SettingsPage() {
           {tab === "integrations" && (
             <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5 space-y-3">
               <h2 className="text-sm font-semibold text-white mb-1">Integrations</h2>
-              {[
-                { name: "GitHub", desc: `Connected as @${user.githubUsername ?? "unknown"}`, connected: true, logo: "G" },
-                { name: "Vercel", desc: "Auto-import your Vercel deployments as projects", connected: false, logo: "V" },
-                { name: "Linear", desc: "Sync Linear issues with DevMitra proposals", connected: false, logo: "L" },
-              ].map(({ name, desc, connected, logo }) => (
-                <div key={name} className="flex items-center justify-between p-4 bg-gray-800 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-gray-700 flex items-center justify-center text-sm font-bold text-white">{logo}</div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-white">{name}</p>
-                        {connected && <span className="text-[10px] text-green-400 bg-green-900/30 px-1.5 py-0.5 rounded-full">Connected</span>}
-                      </div>
-                      <p className="text-xs text-gray-500">{desc}</p>
+              <p className="text-xs text-gray-500 mb-3">Connect external services to enhance your DevMitra experience.</p>
+
+              {/* GitHub — always connected via OAuth */}
+              <div className="flex items-center justify-between p-4 bg-gray-800 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-gray-900 border border-gray-700 flex items-center justify-center text-sm font-bold text-white">G</div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-white">GitHub</p>
+                      <span className="text-[10px] text-green-400 bg-green-900/30 px-1.5 py-0.5 rounded-full">Connected</span>
                     </div>
+                    <p className="text-xs text-gray-500">Connected as @{user.githubUsername ?? user.username}</p>
                   </div>
-                  <button className={`text-xs font-medium px-3 py-1.5 rounded-lg transition ${
-                    connected ? "text-gray-400 border border-gray-700 hover:bg-gray-700" : "text-white bg-indigo-600 hover:bg-indigo-700"}`}>
-                    {connected ? "Disconnect" : "Connect"}
-                  </button>
                 </div>
-              ))}
+                <a href={user.githubProfileUrl ?? `https://github.com/${user.githubUsername}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="text-xs font-medium px-3 py-1.5 rounded-lg transition text-indigo-400 border border-indigo-800 hover:bg-indigo-900/20">
+                  View Profile
+                </a>
+              </div>
+
+              {/* Vercel */}
+              <div className="flex items-center justify-between p-4 bg-gray-800 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-black border border-gray-700 flex items-center justify-center text-sm font-bold text-white">▲</div>
+                  <div>
+                    <p className="text-sm font-medium text-white">Vercel</p>
+                    <p className="text-xs text-gray-500">Deploy your projects directly from DevMitra</p>
+                  </div>
+                </div>
+                <a href="https://vercel.com/new" target="_blank" rel="noopener noreferrer"
+                  className="text-xs font-medium px-3 py-1.5 rounded-lg transition text-white bg-black border border-gray-600 hover:bg-gray-900">
+                  Open Vercel
+                </a>
+              </div>
+
+              {/* Railway */}
+              <div className="flex items-center justify-between p-4 bg-gray-800 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-purple-900 border border-purple-700 flex items-center justify-center text-sm font-bold text-white">R</div>
+                  <div>
+                    <p className="text-sm font-medium text-white">Railway</p>
+                    <p className="text-xs text-gray-500">Deploy backend services in seconds</p>
+                  </div>
+                </div>
+                <a href="https://railway.app" target="_blank" rel="noopener noreferrer"
+                  className="text-xs font-medium px-3 py-1.5 rounded-lg transition text-white bg-indigo-600 hover:bg-indigo-700">
+                  Open Railway
+                </a>
+              </div>
+
+              {/* LinkedIn */}
+              <div className="flex items-center justify-between p-4 bg-gray-800 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-blue-700 border border-blue-600 flex items-center justify-center text-sm font-bold text-white">in</div>
+                  <div>
+                    <p className="text-sm font-medium text-white">LinkedIn</p>
+                    <p className="text-xs text-gray-500">Share your projects on LinkedIn</p>
+                  </div>
+                </div>
+                {(user as any).linkedinUrl ? (
+                  <a href={(user as any).linkedinUrl} target="_blank" rel="noopener noreferrer"
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg transition text-green-400 border border-green-800 hover:bg-green-900/20">
+                    View Profile
+                  </a>
+                ) : (
+                  <button onClick={() => setTab("profile")}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg transition text-white bg-blue-700 hover:bg-blue-800">
+                    Add in Profile
+                  </button>
+                )}
+              </div>
+
+              <p className="text-[10px] text-gray-600 pt-2">More integrations coming soon — API keys, Webhooks, Slack, Jira.</p>
             </div>
           )}
 
           {/* ── Billing tab ─────────────────────────────────────────────── */}
           {tab === "billing" && (
-            isEligibleForBilling ? (
-              <div className="space-y-4">
+            <div className="space-y-4">
                 {/* Eligibility badge */}
                 <div className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 rounded-2xl border border-indigo-700/50 p-4 flex items-center gap-3">
                   <Star className="h-5 w-5 text-yellow-400 flex-shrink-0" />
@@ -645,29 +696,7 @@ export default function SettingsPage() {
                   <Save className="h-4 w-4" />
                   {billingSaved ? "Saved!" : billingMut.isPending ? "Saving…" : "Save Billing Settings"}
                 </button>
-              </div>
-            ) : (
-              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 text-center">
-                <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <CreditCard className="h-8 w-8 text-gray-600" />
-                </div>
-                <h2 className="text-base font-semibold text-white mb-2">Billing Not Available Yet</h2>
-                <p className="text-sm text-gray-500 mb-4 max-w-xs mx-auto">
-                  Billing is unlocked for verified developers with Level 6+ reputation or 5+ badges.
-                </p>
-                <div className="flex items-center justify-center gap-6 text-sm mb-5">
-                  <div className="text-center">
-                    <div className="text-xl font-bold text-indigo-400">{profileData?.reputation?.level ?? 0}</div>
-                    <div className="text-xs text-gray-500">Current Level</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xl font-bold text-yellow-400">{(profileData?.badges ?? []).length}</div>
-                    <div className="text-xs text-gray-500">Badges</div>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-600">Keep contributing to unlock billing features.</p>
-              </div>
-            )
+            </div>
           )}
 
         </div>

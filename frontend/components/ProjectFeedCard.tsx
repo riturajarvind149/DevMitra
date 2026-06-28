@@ -95,8 +95,10 @@ export default function ProjectFeedCard({ project }: Props) {
       <div className="p-4">
         <div className="flex items-center justify-between mb-2.5">
           <div className="flex items-center gap-2">
-            {project.owner?.avatarUrl ? <img src={project.owner.avatarUrl} alt="" className="w-6 h-6 rounded-full" /> : <div className="w-6 h-6 rounded-full bg-indigo-700 flex items-center justify-center"><span className="text-[9px] font-bold text-white">{project.owner?.username?.charAt(0).toUpperCase()}</span></div>}
-            <span className="text-xs text-gray-400">{project.owner?.username}</span>
+            <Link href={`/users/${project.owner?.id}`} onClick={e => e.stopPropagation()} className="flex items-center gap-1.5 hover:opacity-80 transition">
+              {project.owner?.avatarUrl ? <img src={project.owner.avatarUrl} alt="" className="w-6 h-6 rounded-full" /> : <div className="w-6 h-6 rounded-full bg-indigo-700 flex items-center justify-center"><span className="text-[9px] font-bold text-white">{project.owner?.username?.charAt(0).toUpperCase()}</span></div>}
+              <span className="text-xs text-gray-400 hover:text-indigo-400 transition">{project.owner?.username}</span>
+            </Link>
             <span className="text-[10px] text-gray-600">·</span>
             <span className="text-[10px] text-gray-600">{formatDistanceToNow(new Date(project.createdAt), { addSuffix: true })}</span>
           </div>

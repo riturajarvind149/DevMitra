@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import FileUploader from "./FileUploader";
 import { formatDistanceToNow } from "date-fns";
+import Link from "next/link";
 
 const STORY_LABELS = ["Release", "Bug Fix", "Milestone", "Update", "Looking for Help"];
 const VIS_OPTIONS = [
@@ -484,7 +485,12 @@ export default function StoryBar({ stories }: StoryBarProps) {
             {/* Top bar */}
             <div className="absolute top-6 left-0 right-0 z-20 flex items-center justify-between px-3 pt-2"
               onClick={e => e.stopPropagation()}>
-              <div className="flex items-center gap-2">
+              {/* Clicking avatar/name goes to user profile */}
+              <Link
+                href={`/users/${viewStory.user.id}`}
+                className="flex items-center gap-2 hover:opacity-80 transition"
+                onClick={() => { cancelAnimationFrame(rafRef.current); setViewStory(null); }}
+              >
                 {viewStory.user.avatarUrl
                   ? <img src={viewStory.user.avatarUrl} alt="" className="w-8 h-8 rounded-full border border-white/30" />
                   : <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center">
@@ -499,7 +505,7 @@ export default function StoryBar({ stories }: StoryBarProps) {
                 {currentStory.label && (
                   <span className="text-[10px] bg-indigo-600/90 text-white px-2 py-0.5 rounded-full ml-1">{currentStory.label}</span>
                 )}
-              </div>
+              </Link>
               <div className="flex items-center gap-1.5">
                 <button onClick={() => setPaused(p => !p)} className="p-1.5 bg-black/40 rounded-full text-white/80 hover:text-white transition">
                   {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
