@@ -208,6 +208,8 @@ export const bugReportsAPI = {
   update: (id: string, data: { status?: string; resolution?: string; severity?: string }) =>
     api.put(`/bug-reports/${id}`, data),
   delete: (id: string) => api.delete(`/bug-reports/${id}`),
+  getComments: (id: string) => api.get<any[]>(`/bug-reports/${id}/comments`),
+  addComment: (id: string, content: string) => api.post<any>(`/bug-reports/${id}/comments`, { content }),
 };
 
 export const pullRequestsAPI = {

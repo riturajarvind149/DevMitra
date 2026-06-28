@@ -72,6 +72,7 @@ model User {
   projectRatingsGiven      ProjectRating[]
   projectResources         ProjectResource[]
   announcements            ProjectAnnouncement[]
+  bugComments              BugComment[] @relation("BugCommentAuthor")
 }
 
 // ── Repository Access Request ────────────────────────────────────────────────
@@ -386,6 +387,20 @@ model ActivityLog {
   @@index([createdAt])
 }
 
+// ── Bug Comment (private thread between reporter and project owner) ──────────
+model BugComment {
+  id          String    @id @default(cuid())
+  bugReportId String
+  bugReport   BugReport @relation(fields: [bugReportId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User      @relation("BugCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  content     String
+  createdAt   DateTime  @default(now())
+
+  @@index([bugReportId])
+  @@index([authorId])
+}
+
 // ── Bug Report ───────────────────────────────────────────────────────────────
 model BugReport {
   id          String   @id @default(cuid())
@@ -404,6 +419,7 @@ model BugReport {
   updatedAt   DateTime @updatedAt @default(now())
 
   pullRequests PullRequest[]
+  bugComments  BugComment[]
 
   @@index([projectId])
   @@index([reporterId])

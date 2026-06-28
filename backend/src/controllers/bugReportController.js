@@ -167,4 +167,85 @@ const getMyBugReports = async (req, res) => {
   }
 };
 
-module.exports = { createBugReport, getProjectBugReports, getBugReport, updateBugReport, deleteBugReport, getMyBugReports };
+// getBugComments and addBugComment are exported below
+
+// ── Get bug comments (reporter + project owner only) ─────────────────────────
+const getBugComments = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const bug = await prisma.bugReport.findUnique({
+      where: { id },
+      include: { project: { select: { ownerId: true } } },
+    });
+    if (!bug) return res.status(404).json({ message: "Bug report not found" });
+
+    // Only reporter or project owner can see these comments
+    if (bug.reporterId !== userId && bug.project.ownerId !== userId) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    const comments = await prisma.bugComment.findMany({
+      where: { bugReportId: id },
+      include: { author: { select: { id: true, username: true, avatarUrl: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+
+    res.status(200).json(comments);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch bug comments" });
+  }
+};
+
+// ── Add bug comment (reporter + project owner only) ───────────────────────────
+const addBugComment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content } = req.body;
+    const userId = req.user.id;
+
+    if (!content?.trim()) return res.status(400).json({ message: "Content is required" });
+
+    const bug = await prisma.bugReport.findUnique({
+      where: { id },
+      include: { project: { select: { ownerId: true, title: true } } },
+    });
+    if (!bug) return res.status(404).json({ message: "Bug report not found" });
+
+    // Only reporter or project owner can comment
+    if (bug.reporterId !== userId && bug.project.ownerId !== userId) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    const comment = await prisma.bugComment.create({
+      data: { bugReportId: id, authorId: userId, content: content.trim() },
+      include: { author: { select: { id: true, username: true, avatarUrl: true } } },
+    });
+
+    // Notify the other party
+    const notifyId = userId === bug.reporterId ? bug.project.ownerId : bug.reporterId;
+    await prisma.notification.create({
+      data: {
+        type: "BUG_REPORT",
+        message: `New reply on bug report "${bug.title}" in "${bug.project.title}"`,
+        receiverId: notifyId,
+        senderId: userId,
+        projectId: bug.projectId,
+        link: `/projects/${bug.projectId}`,
+      },
+    }).catch(() => {});
+
+    res.status(201).json(comment);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to add comment" });
+  }
+};
+
+module.exports = {
+  createBugReport, getProjectBugReports, getBugReport,
+  updateBugReport, deleteBugReport, getMyBugReports,
+  getBugComments, addBugComment,
+};

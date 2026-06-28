@@ -16,6 +16,7 @@ import Link from "next/link";
 import LikeButton from "@/components/LikeButton";
 import SaveButton from "@/components/SaveButton";
 import CommentSection from "@/components/CommentSection";
+import BugCommentThread from "@/components/BugCommentThread";
 
 function VisibilityBadge({ visibility }: { visibility: string }) {
   if (visibility === "PRIVATE")
@@ -63,7 +64,6 @@ export default function ProjectDetailPage() {
   // Bug detail chat modal
   const [activeBug, setActiveBug] = useState<any | null>(null);
   const [confirmResolveBug, setConfirmResolveBug] = useState<string | null>(null);
-  const [bugChatMsg, setBugChatMsg] = useState("");
 
   const { data: project, isLoading, error } = useQuery({
     queryKey: ["project", projectId],
@@ -448,39 +448,14 @@ export default function ProjectDetailPage() {
               </div>
             )}
 
-            {/* Chat thread — send message to reporter */}
+            {/* Chat thread — in-modal, private between reporter and owner */}
             <div className="flex-1 min-h-0 flex flex-col">
-              <div className="px-5 py-3 border-b border-gray-800 flex-shrink-0">
-                <p className="text-xs text-gray-500">💬 Discussion — messages go directly to <span className="text-white">@{activeBug.reporter?.username}</span></p>
+              <div className="px-5 py-2.5 border-b border-gray-800 flex-shrink-0 flex items-center gap-2">
+                <MessageSquare className="h-3.5 w-3.5 text-indigo-400" />
+                <p className="text-xs text-gray-400">Private thread — visible only to <span className="text-white font-medium">@{activeBug.reporter?.username}</span> and the project owner</p>
               </div>
-              <div className="flex-1 overflow-y-auto px-5 py-3">
-                <p className="text-xs text-gray-600 text-center">Use the message box below to discuss this bug with the reporter.</p>
-              </div>
-              {/* Message input to reporter */}
-              {isAuthenticated && activeBug.reporter?.id !== user?.id && (
-                <form className="px-5 py-4 border-t border-gray-800 flex gap-3 flex-shrink-0"
-                  onSubmit={async e => {
-                    e.preventDefault();
-                    if (!bugChatMsg.trim()) return;
-                    try {
-                      const { messagesAPI } = await import("@/lib/api");
-                      await messagesAPI.send({
-                        receiverId: activeBug.reporter.id,
-                        content: `🐛 Re: Bug report "${activeBug.title}" on project "${project.title}"\n\n${bugChatMsg.trim()}`,
-                      });
-                      setBugChatMsg("");
-                      alert(`Message sent to @${activeBug.reporter.username}`);
-                    } catch { alert("Failed to send message"); }
-                  }}>
-                  <input type="text" value={bugChatMsg} onChange={e => setBugChatMsg(e.target.value)}
-                    placeholder={`Message @${activeBug.reporter?.username}…`}
-                    className="flex-1 bg-gray-800 border border-gray-700 text-white text-sm px-4 py-2.5 rounded-xl focus:border-indigo-500 focus:outline-none" />
-                  <button type="submit" disabled={!bugChatMsg.trim()}
-                    className="bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-700 disabled:opacity-40 transition flex items-center gap-2">
-                    <Send className="h-4 w-4" />Send
-                  </button>
-                </form>
-              )}
+              {/* Comment list */}
+              <BugCommentThread bugId={activeBug.id} projectOwnerId={project.ownerId} reporterId={activeBug.reporter?.id} />
             </div>
           </div>
         </div>
