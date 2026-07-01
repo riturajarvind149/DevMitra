@@ -1,12 +1,20 @@
+const crypto = require("crypto");
 const axios = require("axios");
 const prisma = require("../config/db");
 const generateToken = require("../utils/generateToken");
 const { recordLoginDay } = require("./profileController");
 
+const FRONTEND_URL = process.env.FRONTEND_URL ?? "http://localhost:3000";
 
-const loginWithGithub = async (req, res) => {
-  // Add state param + allow GitHub account switcher so second accounts work
-  const state = Math.random().toString(36).substring(2);
+
+const loginWithGithub = (req, res) => {
+  const state = crypto.randomBytes(16).toString("hex");
+  res.cookie("oauth_state", state, {
+    httpOnly: true,
+    maxAge: 10 * 60 * 1000, // 10 minutes
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
   const githubUrl =
     `https://github.com/login/oauth/authorize` +
     `?client_id=${process.env.GITHUB_CLIENT_ID}` +
@@ -19,7 +27,16 @@ const loginWithGithub = async (req, res) => {
 
 const githubCallback = async (req, res) => {
   try {
-    const { code } = req.query;
+    const { code, state } = req.query;
+    const storedState = req.cookies.oauth_state;
+
+    // Invalidate state cookie immediately (single-use enforcement)
+    res.clearCookie("oauth_state");
+
+    // Validate CSRF state — reject if missing or mismatched
+    if (!state || !storedState || state !== storedState) {
+      return res.redirect(`${FRONTEND_URL}?error=oauth_csrf`);
+    }
 
     const tokenResponse = await axios.post(
       "https://github.com/login/oauth/access_token",
@@ -40,7 +57,7 @@ const githubCallback = async (req, res) => {
     // If GitHub token exchange failed (bad code, expired, etc.)
     if (!accessToken) {
       console.error("GitHub token exchange failed:", tokenResponse.data);
-      return res.redirect("http://localhost:3000?error=auth_failed");
+      return res.redirect(`${FRONTEND_URL}?error=auth_failed`);
     }
 
     const githubUser = await axios.get(
@@ -94,23 +111,25 @@ const githubCallback = async (req, res) => {
 
     const token = generateToken(user.id);
 
+    const isProd = process.env.NODE_ENV === "production";
     res.cookie("token", token, {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: "lax",
+      sameSite: isProd ? "strict" : "lax",
+      secure: isProd,
     });
 
     // Count this login toward totalActiveDays (not streak — only real contributions count)
     recordLoginDay(user.id).catch(() => {});
 
     // Redirect to frontend after successful login
-    res.redirect("http://localhost:3000");
+    res.redirect(FRONTEND_URL);
 
   } catch (error) {
     console.error(error);
 
     // Redirect to frontend with error
-    res.redirect("http://localhost:3000?error=auth_failed");
+    res.redirect(`${FRONTEND_URL}?error=auth_failed`);
   }
 };
 

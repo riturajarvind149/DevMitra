@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const protect = require("../middleware/authMiddleware");
+const { createLimiter } = require("../middleware/rateLimiter");
 const {
   createPullRequest,
   getProjectPullRequests,
@@ -14,7 +15,7 @@ router.get("/mine",     protect, getMyPullRequests);
 router.get("/incoming", protect, getIncomingPullRequests);
 
 router.get("/project/:projectId", getProjectPullRequests);
-router.post("/",                  protect, createPullRequest);
+router.post("/",                  protect, createLimiter, createPullRequest);
 router.get("/:id",                getPullRequest);
 router.put("/:id/review",         protect, reviewPullRequest);
 

@@ -1,5 +1,6 @@
 const prisma = require("../config/db");
 const { createNotification } = require("./notificationController");
+const { parsePagination } = require("../utils/pagination");
 
 const OPPORTUNITY_INCLUDE = {
   owner: { select: { id:true, username:true, avatarUrl:true, skills:true } },
@@ -35,7 +36,7 @@ const createOpportunity = async (req, res) => {
 // GET /opportunities
 const getOpportunities = async (req, res) => {
   try {
-    const { search, skill, remote, limit = 50, offset = 0 } = req.query;
+    const { search, skill, remote } = req.query;
     const where = { status: "OPEN" };
     if (search) where.OR = [
       { title: { contains: search, mode: "insensitive" } },
@@ -45,8 +46,7 @@ const getOpportunities = async (req, res) => {
     if (skill) where.requiredSkills = { has: skill };
     if (remote === "true") where.isRemote = true;
 
-    const take = Math.min(parseInt(limit)||50, 100);
-    const skip = parseInt(offset)||0;
+    const { take, skip } = parsePagination(req.query, 50);
     const [total, opps] = await Promise.all([
       prisma.opportunity.count({ where }),
       prisma.opportunity.findMany({ where, include: OPPORTUNITY_INCLUDE, orderBy: { createdAt: "desc" }, take, skip }),
@@ -66,7 +66,9 @@ const getOpportunityById = async (req, res) => {
       include: { ...OPPORTUNITY_INCLUDE, applications: { include: { applicant: { select: { id:true, username:true, avatarUrl:true, skills:true } } }, orderBy: { createdAt: "desc" } } },
     });
     if (!opp) return res.status(404).json({ message: "Opportunity not found" });
-    res.status(200).json(opp);
+    const isOwner = req.user?.id === opp.ownerId;
+    const response = isOwner ? opp : { ...opp, applications: undefined };
+    res.status(200).json(response);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch opportunity" });
@@ -94,7 +96,24 @@ const updateOpportunity = async (req, res) => {
     const opp = await prisma.opportunity.findUnique({ where: { id: req.params.id } });
     if (!opp) return res.status(404).json({ message: "Not found" });
     if (opp.ownerId !== req.user.id) return res.status(403).json({ message: "Not authorized" });
-    const updated = await prisma.opportunity.update({ where: { id: req.params.id }, data: req.body, include: OPPORTUNITY_INCLUDE });
+
+    // Explicit whitelist — ownerId and other protected fields are excluded
+    const { title, role, description, requiredSkills, duration, budget, isRemote, status } = req.body;
+    const data = {};
+    if (title !== undefined)          data.title = title;
+    if (role !== undefined)           data.role = role;
+    if (description !== undefined)    data.description = description;
+    if (requiredSkills !== undefined) data.requiredSkills = Array.isArray(requiredSkills) ? requiredSkills : [];
+    if (duration !== undefined)       data.duration = duration;
+    if (budget !== undefined)         data.budget = budget;
+    if (isRemote !== undefined)       data.isRemote = !!isRemote;
+    if (status !== undefined)         data.status = status;
+
+    const updated = await prisma.opportunity.update({
+      where: { id: req.params.id },
+      data,
+      include: OPPORTUNITY_INCLUDE,
+    });
     res.status(200).json(updated);
   } catch (error) {
     console.error(error);
@@ -233,3 +252,92 @@ const getUserApplications = async (req, res) => {
 };
 
 module.exports = { createOpportunity, getOpportunities, getOpportunityById, getMyOpportunities, updateOpportunity, deleteOpportunity, applyToOpportunity, approveApplication, rejectApplication, checkApplied, getUserApplications };
+
+// ── Get opp comments (owner + applicant for that app only) ───────────────────
+const getOppComments = async (req, res) => {
+  try {
+    const { id, appId } = req.params;
+    const userId = req.user.id;
+
+    const opp = await prisma.opportunity.findUnique({ where: { id } });
+    if (!opp) return res.status(404).json({ message: "Not found" });
+
+    // Owner sees all comments; applicant sees only their thread
+    const where = { opportunityId: id };
+    if (userId !== opp.ownerId) {
+      // Must be the applicant for this appId
+      const app = await prisma.opportunityApplication.findUnique({ where: { id: appId } });
+      if (!app || app.applicantId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      where.applicationId = appId;
+    } else if (appId) {
+      where.applicationId = appId;
+    }
+
+    const comments = await prisma.oppComment.findMany({
+      where,
+      include: { author: { select: { id: true, username: true, avatarUrl: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+    res.status(200).json(comments);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch comments" });
+  }
+};
+
+// ── Add opp comment (owner + specific applicant) ─────────────────────────────
+const addOppComment = async (req, res) => {
+  try {
+    const { id, appId } = req.params;
+    const { content } = req.body;
+    const userId = req.user.id;
+
+    if (!content?.trim()) return res.status(400).json({ message: "Content required" });
+
+    const opp = await prisma.opportunity.findUnique({ where: { id } });
+    if (!opp) return res.status(404).json({ message: "Not found" });
+
+    // Validate: must be owner or the specific applicant
+    let applicationId = appId || null;
+    if (userId !== opp.ownerId) {
+      const app = await prisma.opportunityApplication.findUnique({ where: { id: appId } });
+      if (!app || app.applicantId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      applicationId = appId;
+    }
+
+    const comment = await prisma.oppComment.create({
+      data: { opportunityId: id, applicationId, authorId: userId, content: content.trim() },
+      include: { author: { select: { id: true, username: true, avatarUrl: true } } },
+    });
+
+    // Notify the other party
+    const notifyId = userId === opp.ownerId
+      ? (applicationId ? (await prisma.opportunityApplication.findUnique({ where: { id: applicationId } }))?.applicantId : null)
+      : opp.ownerId;
+
+    if (notifyId) {
+      await prisma.notification.create({
+        data: {
+          type: "OPPORTUNITY_APPLICATION",
+          message: `New message on opportunity "${opp.title}"`,
+          receiverId: notifyId,
+          senderId: userId,
+          link: `/opportunities`,
+        },
+      }).catch(() => {});
+    }
+
+    res.status(201).json(comment);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to add comment" });
+  }
+};
+
+// Re-export everything
+const _orig = module.exports;
+module.exports = { ..._orig, getOppComments, addOppComment };

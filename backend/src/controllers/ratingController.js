@@ -1,4 +1,5 @@
 const prisma = require("../config/db");
+const { checkDuplicateRating } = require("../utils/ratingUtils");
 
 // ── Rate a contributor (owner → contributor) ──────────────────────────────────
 const rateContributor = async (req, res) => {
@@ -14,6 +15,14 @@ const rateContributor = async (req, res) => {
     if (!project) return res.status(404).json({ message: "Project not found" });
     if (project.ownerId !== giverId) return res.status(403).json({ message: "Only the project owner can rate contributors" });
     if (giverId === receiverId) return res.status(400).json({ message: "Cannot rate yourself" });
+
+    // Check for an existing rating before attempting to create
+    const existingRating = pullRequestId
+      ? await prisma.contributorRating.findUnique({ where: { giverId_receiverId_pullRequestId: { giverId, receiverId, pullRequestId } } }).catch(() => null)
+      : null;
+    if (checkDuplicateRating(existingRating)) {
+      return res.status(409).json({ message: "You have already rated this contributor for this PR" });
+    }
 
     const rating = await prisma.contributorRating.create({
       data: {
@@ -72,6 +81,7 @@ const getUserRatings = async (req, res) => {
     });
 
     // Compute averages
+    // Averages are computed in JS over the already-fetched ratings array.
     const avg = ratings.length ? {
       codeQuality:  +(ratings.reduce((s, r) => s + r.codeQuality, 0)  / ratings.length).toFixed(1),
       communication:+(ratings.reduce((s, r) => s + r.communication, 0)/ ratings.length).toFixed(1),

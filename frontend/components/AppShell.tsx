@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import RightSidebar from "./RightSidebar";
+import MobileNavDrawer from "./MobileNavDrawer";
 
 // Pages that should use full-height, no padding, no centering
 const FULLSCREEN_PATHS = ["/messages"];
@@ -35,13 +36,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-gray-950 overflow-hidden relative">
-      {/* Left Sidebar — absolute so it overlays content without pushing it */}
-      <div className="absolute top-0 left-0 h-full z-30">
+      {/* Left Sidebar — hidden below lg (1024px), shown on lg+ */}
+      <div className="hidden lg:block absolute top-0 left-0 h-full z-30">
         <Sidebar />
       </div>
 
-      {/* Center column — always full width, 64px left padding for collapsed sidebar */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden" style={{ paddingLeft: 64 }}>
+      {/* Center column — no padding on mobile, 64px left padding on lg+ for sidebar */}
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden lg:pl-16">
         {/* Hide TopBar on fullscreen pages (messages has its own header) */}
         {!isFullscreen && <TopBar />}
 
@@ -61,6 +62,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           )}
         </main>
+      </div>
+
+      {/* Mobile nav drawer — only visible below sm breakpoint */}
+      <div className="sm:hidden">
+        <MobileNavDrawer />
+      </div>
+
+      {/* Mobile Nav Drawer — visible only on screens < 640px */}
+      <div className="sm:hidden">
+        <MobileNavDrawer />
       </div>
 
       {/* Right sidebar — collapsible, arrow always visible */}

@@ -251,6 +251,7 @@ export default function PullRequestsPage() {
                 <p className="text-[10px] text-gray-600 mt-1">Enter the project ID directly if not listed:</p>
                 <input
                   type="text"
+                  aria-label="Project ID"
                   placeholder="Or paste project ID"
                   value={form.projectId}
                   onChange={e => setForm(f => ({ ...f, projectId: e.target.value }))}

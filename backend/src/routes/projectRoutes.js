@@ -2,13 +2,14 @@ const express = require("express");
 const router = express.Router();
 const protect = require("../middleware/authMiddleware");
 const { optionalAuth } = require("../middleware/authMiddleware");
+const { createLimiter } = require("../middleware/rateLimiter");
 
 const {
   createProject, getProjects, getMyProjects, getProjectById,
   getProjectStats, updateProject, deleteProject,
 } = require("../controllers/projectController");
 
-router.post("/", protect, createProject);
+router.post("/", protect, createLimiter, createProject);
 
 // Public/optional-auth reads
 router.get("/", optionalAuth, getProjects);

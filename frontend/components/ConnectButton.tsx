@@ -65,7 +65,7 @@ export default function ConnectButton({ userId }: { userId: string }) {
                 <h3 className="text-base font-semibold text-white">Remove Connection?</h3>
               </div>
               <p className="text-sm text-gray-400 mb-5">
-                Are you sure you want to disconnect? You'll need to send a new request to reconnect.
+                Are you sure you want to disconnect? You&apos;ll need to send a new request to reconnect.
               </p>
               <div className="flex gap-3">
                 <button

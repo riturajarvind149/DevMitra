@@ -778,7 +778,7 @@ export default function StoryBar({ stories }: StoryBarProps) {
               <div className="w-10 h-10 bg-red-900/40 rounded-xl flex items-center justify-center"><Trash2 className="h-5 w-5 text-red-400" /></div>
               <h3 className="text-base font-semibold text-white">Delete Story?</h3>
             </div>
-            <p className="text-sm text-gray-400 mb-5">This will be permanently removed from everyone's feed.</p>
+            <p className="text-sm text-gray-400 mb-5">This will be permanently removed from everyone&apos;s feed.</p>
             <div className="flex gap-3">
               <button onClick={() => deleteMut.mutate(confirmDelete)} disabled={deleteMut.isPending}
                 className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition">

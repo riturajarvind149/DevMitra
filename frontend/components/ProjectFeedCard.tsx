@@ -82,7 +82,7 @@ export default function ProjectFeedCard({ project }: Props) {
         {project.coverImage ? (
           project.coverImage.startsWith("data:video") || /\.(mp4|webm|ogg|mov)(\?|$)/i.test(project.coverImage)
             ? <video src={project.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" muted autoPlay loop playsInline />
-            : <img src={project.coverImage} alt={project.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+            : <img src={project.coverImage} alt={`${project.title} cover image`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (
           <div className="w-full h-full flex items-center justify-center"><FolderGit2 className="h-12 w-12 text-gray-700 group-hover:text-gray-600 transition" /></div>
         )}
@@ -96,7 +96,7 @@ export default function ProjectFeedCard({ project }: Props) {
         <div className="flex items-center justify-between mb-2.5">
           <div className="flex items-center gap-2">
             <Link href={`/users/${project.owner?.id}`} onClick={e => e.stopPropagation()} className="flex items-center gap-1.5 hover:opacity-80 transition">
-              {project.owner?.avatarUrl ? <img src={project.owner.avatarUrl} alt="" className="w-6 h-6 rounded-full" /> : <div className="w-6 h-6 rounded-full bg-indigo-700 flex items-center justify-center"><span className="text-[9px] font-bold text-white">{project.owner?.username?.charAt(0).toUpperCase()}</span></div>}
+              {project.owner?.avatarUrl ? <img src={project.owner.avatarUrl} alt={project.owner?.username ? `${project.owner.username}'s avatar` : 'Owner avatar'} className="w-6 h-6 rounded-full" /> : <div className="w-6 h-6 rounded-full bg-indigo-700 flex items-center justify-center"><span className="text-[9px] font-bold text-white">{project.owner?.username?.charAt(0).toUpperCase()}</span></div>}
               <span className="text-xs text-gray-400 hover:text-indigo-400 transition">{project.owner?.username}</span>
             </Link>
             <span className="text-[10px] text-gray-600">·</span>
@@ -230,7 +230,7 @@ export default function ProjectFeedCard({ project }: Props) {
                 ) : (connections as any[]).map((conn: any) => (
                   <div key={conn.id} className="flex items-center justify-between p-2.5 bg-gray-800 rounded-xl">
                     <div className="flex items-center gap-2">
-                      {conn.user.avatarUrl ? <img src={conn.user.avatarUrl} alt="" className="w-8 h-8 rounded-full" /> : <div className="w-8 h-8 rounded-full bg-indigo-700 flex items-center justify-center text-xs font-bold text-white">{conn.user.username.charAt(0).toUpperCase()}</div>}
+                      {conn.user.avatarUrl ? <img src={conn.user.avatarUrl} alt={`${conn.user.username}'s avatar`} className="w-8 h-8 rounded-full" /> : <div className="w-8 h-8 rounded-full bg-indigo-700 flex items-center justify-center text-xs font-bold text-white">{conn.user.username.charAt(0).toUpperCase()}</div>}
                       <span className="text-sm text-white">{conn.user.username}</span>
                     </div>
                     <button onClick={() => shareMut.mutate(conn.user.id)}

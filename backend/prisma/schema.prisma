@@ -73,6 +73,7 @@ model User {
   projectResources         ProjectResource[]
   announcements            ProjectAnnouncement[]
   bugComments              BugComment[] @relation("BugCommentAuthor")
+  oppComments              OppComment[] @relation("OppCommentAuthor")
 }
 
 // ── Repository Access Request ────────────────────────────────────────────────
@@ -99,6 +100,22 @@ model RepositoryAccessRequest {
   @@index([status])
 }
 
+// ── Opportunity Comment (private thread: owner ↔ applicant) ─────────────────
+model OppComment {
+  id            String                @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity           @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  applicationId String?               // null = general thread; set = per-applicant thread
+  application   OpportunityApplication? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User                  @relation("OppCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  content       String
+  createdAt     DateTime              @default(now())
+
+  @@index([opportunityId])
+  @@index([applicationId])
+}
+
 // ── Collaboration Opportunity ────────────────────────────────────────────────
 model Opportunity {
   id              String   @id @default(cuid())
@@ -118,6 +135,7 @@ model Opportunity {
   updatedAt       DateTime @updatedAt @default(now())
 
   applications    OpportunityApplication[]
+  comments        OppComment[]
 
   @@index([ownerId])
   @@index([status])
@@ -138,6 +156,7 @@ model OpportunityApplication {
 
   @@unique([opportunityId, applicantId])
   @@index([opportunityId])
+  comments OppComment[]
 }
 
 // ── AI Matching Profile ──────────────────────────────────────────────────────

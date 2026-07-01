@@ -6,10 +6,10 @@ import type {
   RepositoryAccessRequest, Opportunity, OpportunityApplication,
 } from "@/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: API_BASE,
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });
@@ -175,6 +175,9 @@ export const opportunitiesAPI = {
     api.post<OpportunityApplication>(`/opportunities/${id}/apply`, data),
   approveApp: (id: string, appId: string) => api.put(`/opportunities/${id}/applications/${appId}/approve`),
   rejectApp: (id: string, appId: string) => api.put(`/opportunities/${id}/applications/${appId}/reject`),
+  getAppComments: (id: string, appId: string) => api.get<any[]>(`/opportunities/${id}/applications/${appId}/comments`),
+  addAppComment: (id: string, appId: string, content: string) =>
+    api.post<any>(`/opportunities/${id}/applications/${appId}/comments`, { content }),
 };
 
 export const developersAPI = {

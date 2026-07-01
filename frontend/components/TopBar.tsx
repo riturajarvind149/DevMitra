@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { notificationsAPI, messagesAPI } from "@/lib/api";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function TopBar() {
   const { user } = useAuth();
@@ -20,8 +21,9 @@ export default function TopBar() {
       const { data } = await notificationsAPI.getAll({ limit: 1 });
       return data.unreadCount;
     },
-    refetchInterval: 15000,  // poll every 15s — fast enough to feel real-time
-    staleTime: 10000,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    staleTime: 20000,
   });
 
   const { data: msgData } = useQuery({
@@ -30,8 +32,9 @@ export default function TopBar() {
       const { data } = await messagesAPI.getUnreadCount();
       return data.unreadCount;
     },
-    refetchInterval: 5000,   // poll every 5s for messages — feels near-instant
-    staleTime: 3000,
+    refetchInterval: 15000,
+    refetchIntervalInBackground: false,
+    staleTime: 10000,
   });
 
   const handleSearch = (e: React.FormEvent) => {
@@ -62,17 +65,18 @@ export default function TopBar() {
       <div className="flex items-center gap-1">
         <Link
           href="/notifications"
+          aria-label="Notifications"
           onClick={handleNotifClick}
           className="relative p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition"
         >
-          <Bell className="h-5 w-5" />
+          <Bell className="h-5 w-5" aria-hidden="true" />
           {(notifData ?? 0) > 0 && (
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
           )}
         </Link>
 
-        <Link href="/messages" className="relative p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition">
-          <MessageSquare className="h-5 w-5" />
+        <Link href="/messages" aria-label="Messages" className="relative p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition">
+          <MessageSquare className="h-5 w-5" aria-hidden="true" />
           {(msgData ?? 0) > 0 && (
             <span className="absolute -top-0.5 -right-0.5 bg-indigo-600 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
               {(msgData ?? 0) > 99 ? "99+" : msgData}
@@ -86,6 +90,7 @@ export default function TopBar() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
+              aria-label="Search"
               placeholder="Search…"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
@@ -97,8 +102,8 @@ export default function TopBar() {
 
         {/* User */}
         <Link href="/profile" className="flex items-center gap-2 ml-2 pl-2 border-l border-gray-700">
-          {user?.avatarUrl
-            ? <img src={user.avatarUrl} alt={user.username} className="w-8 h-8 rounded-full" />
+          {user?.avatarUrl && !user.avatarUrl.startsWith("data:")
+            ? <Image src={user.avatarUrl} alt={`${user.username}'s avatar`} width={32} height={32} className="w-8 h-8 rounded-full" />
             : <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center"><span className="text-xs font-bold text-white">{user?.username?.charAt(0).toUpperCase()}</span></div>}
           <div className="hidden lg:block">
             <p className="text-sm font-medium text-white leading-none">{user?.username}</p>

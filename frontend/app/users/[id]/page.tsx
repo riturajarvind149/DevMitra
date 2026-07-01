@@ -112,7 +112,7 @@ export default function UserProfilePage() {
     <div className="text-center py-20 bg-gray-900 rounded-2xl border border-gray-800">
       <Lock className="h-12 w-12 mx-auto mb-3 text-gray-700" />
       <p className="text-white font-medium mb-1">Private Profile</p>
-      <p className="text-sm text-gray-500">This developer's profile is not publicly visible</p>
+      <p className="text-sm text-gray-500">This developer&apos;s profile is not publicly visible</p>
     </div>
   );
 

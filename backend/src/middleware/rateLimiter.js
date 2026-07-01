@@ -7,10 +7,7 @@ const apiLimiter = rateLimit({
   message: { message: "Too many requests from this IP, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => {
-    // Never rate-limit health checks or static assets
-    return req.path === "/" || req.path === "/stats";
-  },
+  // skip function removed — /stats is no longer exempt
 });
 
 // Auth endpoints — keep strict to prevent brute force

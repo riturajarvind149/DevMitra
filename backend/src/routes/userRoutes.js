@@ -16,7 +16,7 @@ router.get("/:id/contributing",      protect, getUserContributing);
 router.get("/:id/liked-projects",    protect, getUserLikedProjects);
 router.get("/:id/comments",          protect, getUserComments);
 router.get("/:id/applications",      protect, getUserApplications);
-router.post("/",                   createUser);
+router.post("/",                   protect, createUser);
 router.put("/:id",                 protect, updateUser);
 router.delete("/:id",              protect, deleteUser);
 

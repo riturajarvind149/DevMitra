@@ -3,6 +3,9 @@
 import { useRef, useState } from "react";
 import { Upload, X, ImageIcon, Video } from "lucide-react";
 
+const IMAGE_MAX = 5 * 1024 * 1024;   // 5 MB
+const VIDEO_MAX = 35 * 1024 * 1024;  // 35 MB (base64 adds ~33% overhead → ~47 MB on wire, stays under 55 MB server limit)
+
 interface Props {
   value: string;             // current URL or base64 value
   onChange: (val: string) => void;
@@ -23,6 +26,7 @@ export default function FileUploader({
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isVideo = (src: string) =>
     src.startsWith("data:video") ||
@@ -30,6 +34,15 @@ export default function FileUploader({
 
   const processFile = (file: File) => {
     if (!file) return;
+    const isVideoFile = file.type.startsWith("video/");
+    const limit = isVideoFile ? VIDEO_MAX : IMAGE_MAX;
+    const limitLabel = isVideoFile ? "35 MB" : "5 MB";
+
+    if (file.size > limit) {
+      setError(`File exceeds the ${limitLabel} limit. Please choose a smaller file.`);
+      return;
+    }
+    setError(null);
     setLoading(true);
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -115,6 +128,10 @@ export default function FileUploader({
           </p>
         </div>
       </div>
+
+      {error && (
+        <p className="mt-2 text-sm text-red-400" role="alert">{error}</p>
+      )}
 
       {/* URL fallback input */}
       <div className="mt-2">

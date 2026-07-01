@@ -1,12 +1,11 @@
 const prisma = require("../config/db");
+const { parsePagination } = require("../utils/pagination");
 
 // GET /notifications
 // Get all notifications for the logged-in user
 const getNotifications = async (req, res) => {
   try {
-    const { limit = 20, offset = 0 } = req.query;
-    const take = Math.min(parseInt(limit) || 20, 100);
-    const skip = parseInt(offset) || 0;
+    const { take, skip } = parsePagination(req.query, 20);
 
     const [notifications, unreadCount] = await Promise.all([
       prisma.notification.findMany({
@@ -39,8 +38,16 @@ const getNotifications = async (req, res) => {
 const markAsRead = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Ownership check: ensure the notification belongs to the requesting user
+    const notification = await prisma.notification.findUnique({ where: { id } });
+    if (!notification) return res.status(404).json({ message: "Notification not found" });
+    if (notification.receiverId !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized to mark this notification as read" });
+    }
+
     await prisma.notification.update({
-      where: { id },
+      where: { id, receiverId: req.user.id },
       data: { read: true },
     });
     res.status(200).json({ message: "Marked as read" });

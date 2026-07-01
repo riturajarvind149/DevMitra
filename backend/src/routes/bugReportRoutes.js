@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const protect = require("../middleware/authMiddleware");
+const { createLimiter } = require("../middleware/rateLimiter");
 const {
   createBugReport, getProjectBugReports, getBugReport,
   updateBugReport, deleteBugReport, getMyBugReports,
@@ -9,7 +10,7 @@ const {
 
 router.get("/mine",                  protect, getMyBugReports);
 router.get("/project/:projectId",            getProjectBugReports);
-router.post("/",                     protect, createBugReport);
+router.post("/",                     protect, createLimiter, createBugReport);
 router.get("/:id",                           getBugReport);
 router.put("/:id",                   protect, updateBugReport);
 router.delete("/:id",                protect, deleteBugReport);

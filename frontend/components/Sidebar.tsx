@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Home, FolderGit2, Plus, Compass, Bell, MessageSquare, User,
   Settings, LogOut, Network, MoreHorizontal, Bookmark, KeyRound,
-  Activity, BarChart2, X, AlertTriangle, GitPullRequest,
+  Activity, BarChart2, AlertTriangle, GitPullRequest,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
+import LogoutConfirmModal from "./LogoutConfirmModal";
+import SidebarMoreMenu from "./SidebarMoreMenu";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -103,6 +106,7 @@ export default function Sidebar() {
           <Link
             key={name}
             href={href}
+            aria-label={name}
             title={!expanded ? name : undefined}
             className={`relative flex items-center h-11 rounded-xl mx-1.5 my-0.5 transition-colors ${
               active(href)
@@ -145,6 +149,7 @@ export default function Sidebar() {
         <div ref={moreRef} className="relative mx-1.5">
           <button
             onClick={() => setMoreOpen(v => !v)}
+            aria-label="More"
             title={!expanded ? "More" : undefined}
             className={`w-full flex items-center h-11 rounded-xl transition-colors ${
               moreOpen ? "bg-gray-800 text-white" : "text-gray-400 hover:bg-gray-800 hover:text-white"
@@ -166,30 +171,12 @@ export default function Sidebar() {
             </span>
           </button>
 
-          {/* Floating More menu — opens upward */}
           {moreOpen && (
-            <div className="absolute bottom-full left-0 mb-2 w-56 bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden z-50">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">More</span>
-                <button onClick={() => setMoreOpen(false)} className="text-gray-500 hover:text-white transition">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              {moreItems.map(({ name, href, icon: Icon }) => (
-                <Link key={name} href={href} onClick={() => setMoreOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 text-sm transition ${
-                    active(href) ? "bg-indigo-600/20 text-indigo-400" : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                  }`}>
-                  <Icon className="h-4 w-4" />{name}
-                </Link>
-              ))}
-              <div className="border-t border-gray-700">
-                <button onClick={() => { setMoreOpen(false); setConfirmLogout(true); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-gray-700 hover:text-red-300 transition">
-                  <LogOut className="h-4 w-4" />Log Out
-                </button>
-              </div>
-            </div>
+            <SidebarMoreMenu
+              items={moreItems}
+              onClose={() => setMoreOpen(false)}
+              onLogoutClick={() => setConfirmLogout(true)}
+            />
           )}
         </div>
 
@@ -200,8 +187,14 @@ export default function Sidebar() {
         >
           <Link href="/profile" title={!expanded ? user?.username : undefined}
             className="flex items-center gap-2.5 min-w-0 flex-1 px-2 py-1 rounded-xl hover:bg-gray-800 transition">
-            {user?.avatarUrl ? (
-              <img src={user.avatarUrl} alt="" className="w-7 h-7 rounded-full flex-shrink-0" />
+            {user?.avatarUrl && !user.avatarUrl.startsWith("data:") ? (
+              <Image
+                src={user.avatarUrl}
+                alt={`${user.username}'s avatar`}
+                width={28}
+                height={28}
+                className="w-7 h-7 rounded-full flex-shrink-0"
+              />
             ) : (
               <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0">
                 <span className="text-xs font-bold text-white">{user?.username?.charAt(0).toUpperCase()}</span>
@@ -219,7 +212,7 @@ export default function Sidebar() {
             </span>
           </Link>
           {expanded && (
-            <button onClick={() => setConfirmLogout(true)} className="text-gray-600 hover:text-red-400 transition flex-shrink-0 p-1.5 mr-1" title="Sign out">
+            <button onClick={() => setConfirmLogout(true)} aria-label="Sign out" className="text-gray-600 hover:text-red-400 transition flex-shrink-0 p-1.5 mr-1" title="Sign out">
               <LogOut className="h-4 w-4" />
             </button>
           )}
@@ -228,27 +221,10 @@ export default function Sidebar() {
 
       {/* ── Logout Confirmation Modal ────────────────────────────────────── */}
       {confirmLogout && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4">
-          <div className="bg-gray-900 rounded-2xl p-6 border border-gray-700 max-w-sm w-full shadow-2xl">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-red-900/40 rounded-xl flex items-center justify-center flex-shrink-0">
-                <LogOut className="h-5 w-5 text-red-400" />
-              </div>
-              <h3 className="text-base font-semibold text-white">Sign Out?</h3>
-            </div>
-            <p className="text-sm text-gray-400 mb-5">Are you sure you want to sign out of DevMitra?</p>
-            <div className="flex gap-3">
-              <button onClick={logout}
-                className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-red-700 transition">
-                Sign Out
-              </button>
-              <button onClick={() => setConfirmLogout(false)}
-                className="flex-1 bg-gray-800 text-gray-300 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition">
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <LogoutConfirmModal
+          onConfirm={logout}
+          onCancel={() => setConfirmLogout(false)}
+        />
       )}
     </div>
   );

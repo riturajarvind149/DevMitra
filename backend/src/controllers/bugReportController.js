@@ -1,5 +1,6 @@
 const prisma = require("../config/db");
 const { recordDailyActivity, awardBadges } = require("./profileController");
+const { parsePagination } = require("../utils/pagination");
 
 // ── Create bug report ─────────────────────────────────────────────────────────
 const createBugReport = async (req, res) => {
@@ -47,7 +48,19 @@ const createBugReport = async (req, res) => {
 const getProjectBugReports = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { status, type, limit = 20, offset = 0 } = req.query;
+    const { status, type } = req.query;
+    const { take, skip } = parsePagination(req.query, 20);
+
+    const project = await prisma.project.findUnique({ where: { id: projectId }, select: { visibility: true, ownerId: true } });
+    if (!project) return res.status(404).json({ message: "Project not found" });
+    if (project.visibility === "PRIVATE") {
+      const member = await prisma.projectMember.findUnique({
+        where: { projectId_userId: { projectId, userId: req.user?.id ?? "" } },
+      });
+      if (!member && project.ownerId !== req.user?.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+    }
 
     const where = { projectId, ...(status ? { status } : {}), ...(type ? { type } : {}) };
 
@@ -55,8 +68,8 @@ const getProjectBugReports = async (req, res) => {
       prisma.bugReport.findMany({
         where,
         orderBy: { createdAt: "desc" },
-        take: parseInt(limit),
-        skip: parseInt(offset),
+        take,
+        skip,
         include: {
           reporter: { select: { id: true, username: true, avatarUrl: true } },
           pullRequests: { select: { id: true, title: true, status: true } },
@@ -65,7 +78,7 @@ const getProjectBugReports = async (req, res) => {
       prisma.bugReport.count({ where }),
     ]);
 
-    res.json({ bugReports, pagination: { total, limit: parseInt(limit), offset: parseInt(offset) } });
+    res.json({ bugReports, pagination: { total, limit: take, offset: skip } });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch bug reports" });

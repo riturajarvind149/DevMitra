@@ -292,8 +292,8 @@ export default function ProjectDetailPage() {
             </div>
             {isOwner && showAnnForm && (
               <div className="mx-3 mt-2 p-3 bg-gray-800 rounded-xl border border-gray-700 space-y-2 flex-shrink-0">
-                <input type="text" value={annTitle} onChange={e => setAnnTitle(e.target.value)} placeholder="Title…" className="w-full bg-gray-700 border border-gray-600 text-white text-xs px-2.5 py-1.5 rounded-lg focus:border-indigo-500 focus:outline-none" />
-                <textarea rows={2} value={annContent} onChange={e => setAnnContent(e.target.value)} placeholder="Update…" className="w-full bg-gray-700 border border-gray-600 text-white text-xs px-2.5 py-1.5 rounded-lg focus:border-indigo-500 focus:outline-none resize-none" />
+                <input type="text" aria-label="Announcement title" value={annTitle} onChange={e => setAnnTitle(e.target.value)} placeholder="Title…" className="w-full bg-gray-700 border border-gray-600 text-white text-xs px-2.5 py-1.5 rounded-lg focus:border-indigo-500 focus:outline-none" />
+                <textarea aria-label="Announcement content" rows={2} value={annContent} onChange={e => setAnnContent(e.target.value)} placeholder="Update…" className="w-full bg-gray-700 border border-gray-600 text-white text-xs px-2.5 py-1.5 rounded-lg focus:border-indigo-500 focus:outline-none resize-none" />
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {(["ALL", "CONTRIBUTORS"] as const).map(a => (
                     <button key={a} type="button" onClick={() => setAnnAudience(a)} className={`text-[10px] px-2 py-0.5 rounded-md font-medium transition ${annAudience === a ? "bg-indigo-600 text-white" : "bg-gray-700 text-gray-400 hover:text-white"}`}>{a === "ALL" ? "👥 All" : "🔧 Contributors"}</button>

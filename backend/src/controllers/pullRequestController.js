@@ -1,5 +1,9 @@
 const prisma = require("../config/db");
 const { recordDailyActivity, awardBadges } = require("./profileController");
+const { parsePagination } = require("../utils/pagination");
+
+const VALID_PR_STATUS = ["OPEN", "UNDER_REVIEW", "MERGED", "CLOSED"];
+const VALID_PR_TYPE = ["BUG_FIX", "FEATURE", "REFACTOR", "DOCS", "TEST"];
 
 // ── Create pull request ───────────────────────────────────────────────────────
 const createPullRequest = async (req, res) => {
@@ -14,10 +18,39 @@ const createPullRequest = async (req, res) => {
       return res.status(400).json({ message: "projectId, title, and description are required" });
     }
 
+    if (!VALID_PR_TYPE.includes(type)) {
+      return res.status(400).json({ message: "Invalid type value" });
+    }
+
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project) return res.status(404).json({ message: "Project not found" });
     if (project.ownerId === authorId) {
       return res.status(400).json({ message: "You cannot submit a PR to your own project" });
+    }
+
+    // Gate: author must be a member OR have an approved repo-access request
+    const [membership, repoAccess] = await Promise.all([
+      prisma.projectMember.findUnique({
+        where: { projectId_userId: { projectId, userId: authorId } },
+      }),
+      prisma.repositoryAccessRequest.findFirst({
+        where: { projectId, requesterId: authorId, status: "APPROVED" },
+      }),
+    ]);
+    if (!membership && !repoAccess) {
+      return res.status(403).json({
+        message: "You must be a project member or have approved repository access to submit a pull request",
+      });
+    }
+
+    if (bugReportId) {
+      const bug = await prisma.bugReport.findUnique({ where: { id: bugReportId } });
+      if (!bug) return res.status(404).json({ message: "Bug report not found" });
+      if (bug.projectId !== projectId) {
+        return res.status(400).json({
+          message: "The referenced bug report does not belong to this project",
+        });
+      }
     }
 
     const pr = await prisma.pullRequest.create({
@@ -63,7 +96,19 @@ const createPullRequest = async (req, res) => {
 const getProjectPullRequests = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { status, limit = 20, offset = 0 } = req.query;
+    const { status } = req.query;
+    const { take, skip } = parsePagination(req.query, 20);
+
+    const project = await prisma.project.findUnique({ where: { id: projectId }, select: { visibility: true, ownerId: true } });
+    if (!project) return res.status(404).json({ message: "Project not found" });
+    if (project.visibility === "PRIVATE") {
+      const member = await prisma.projectMember.findUnique({
+        where: { projectId_userId: { projectId, userId: req.user?.id ?? "" } },
+      });
+      if (!member && project.ownerId !== req.user?.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+    }
 
     const where = { projectId, ...(status ? { status } : {}) };
 
@@ -71,8 +116,8 @@ const getProjectPullRequests = async (req, res) => {
       prisma.pullRequest.findMany({
         where,
         orderBy: { createdAt: "desc" },
-        take: parseInt(limit),
-        skip: parseInt(offset),
+        take,
+        skip,
         include: {
           author: { select: { id: true, username: true, avatarUrl: true } },
           bugReport: { select: { id: true, title: true, type: true } },
@@ -81,7 +126,7 @@ const getProjectPullRequests = async (req, res) => {
       prisma.pullRequest.count({ where }),
     ]);
 
-    res.json({ pullRequests, pagination: { total, limit: parseInt(limit), offset: parseInt(offset) } });
+    res.json({ pullRequests, pagination: { total, limit: take, offset: skip } });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch pull requests" });
@@ -116,6 +161,10 @@ const reviewPullRequest = async (req, res) => {
     const { id } = req.params;
     const { status, reviewNote } = req.body; // MERGED | CLOSED | UNDER_REVIEW
     const userId = req.user.id;
+
+    if (!VALID_PR_STATUS.includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
 
     const pr = await prisma.pullRequest.findUnique({
       where: { id },

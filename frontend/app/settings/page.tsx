@@ -641,7 +641,7 @@ export default function SettingsPage() {
                           <label className="block text-xs text-gray-400 mb-1.5">Per Bug Fix ($)</label>
                           <div className="relative">
                             <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
-                            <input type="number" min="0" step="0.01" value={pricePerBug}
+                            <input type="number" min="0" step="0.01" aria-label="Price per bug fix (USD)" value={pricePerBug}
                               onChange={e => setPricePerBug(e.target.value)}
                               placeholder="50" className={`${inputCls} pl-8 text-xs`} />
                           </div>
@@ -650,7 +650,7 @@ export default function SettingsPage() {
                           <label className="block text-xs text-gray-400 mb-1.5">Per Feature ($)</label>
                           <div className="relative">
                             <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
-                            <input type="number" min="0" step="0.01" value={pricePerFeature}
+                            <input type="number" min="0" step="0.01" aria-label="Price per feature (USD)" value={pricePerFeature}
                               onChange={e => setPricePerFeature(e.target.value)}
                               placeholder="200" className={`${inputCls} pl-8 text-xs`} />
                           </div>
@@ -659,7 +659,7 @@ export default function SettingsPage() {
                           <label className="block text-xs text-gray-400 mb-1.5">Hourly Rate ($)</label>
                           <div className="relative">
                             <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
-                            <input type="number" min="0" step="0.01" value={hourlyRate}
+                            <input type="number" min="0" step="0.01" aria-label="Hourly rate (USD)" value={hourlyRate}
                               onChange={e => setHourlyRate(e.target.value)}
                               placeholder="30" className={`${inputCls} pl-8 text-xs`} />
                           </div>
@@ -669,7 +669,7 @@ export default function SettingsPage() {
                       <div className="flex items-center justify-between py-3 border-t border-gray-800">
                         <div>
                           <p className="text-sm font-medium text-white">Open for Paid Collaborations</p>
-                          <p className="text-xs text-gray-500">Show a "Hire Me" badge on your profile</p>
+                          <p className="text-xs text-gray-500">Show a &quot;Hire Me&quot; badge on your profile</p>
                         </div>
                         <Toggle checked={openForPaid} onChange={setOpenForPaid} />
                       </div>

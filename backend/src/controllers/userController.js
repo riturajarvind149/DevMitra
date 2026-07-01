@@ -1,7 +1,7 @@
 const prisma = require("../config/db");
 
 const USER_PUBLIC_SELECT = {
-  id: true, username: true, email: true, avatarUrl: true,
+  id: true, username: true, avatarUrl: true,
   githubUsername: true, githubProfileUrl: true,
   bio: true, location: true, website: true,
   skills: true, linkedinUrl: true, twitterUrl: true,
@@ -9,10 +9,14 @@ const USER_PUBLIC_SELECT = {
   profileVisibility: true, isAdmin: true, createdAt: true,
   _count: { select: { projects: true, projectMemberships: true } },
 };
+const USER_PRIVATE_SELECT = { ...USER_PUBLIC_SELECT, email: true };
 
 // POST /users
 const createUser = async (req, res) => {
   try {
+    if (!req.user)         return res.status(401).json({ message: "Not authenticated" });
+    if (!req.user.isAdmin) return res.status(403).json({ message: "Admins only" });
+
     const { username, email } = req.body;
     if (!username || !email) return res.status(400).json({ message: "Username and email are required" });
     const user = await prisma.user.create({ data: { username, email } });
@@ -51,7 +55,9 @@ const getUserById = async (req, res) => {
     const { id } = req.params;
     const requestingUserId = req.user?.id || null;
 
-    const user = await prisma.user.findUnique({ where: { id }, select: USER_PUBLIC_SELECT });
+    const isOwner = requestingUserId === id;
+    const select  = isOwner ? USER_PRIVATE_SELECT : USER_PUBLIC_SELECT;
+    const user    = await prisma.user.findUnique({ where: { id }, select });
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // Profile privacy enforcement
@@ -105,10 +111,19 @@ const getUserById = async (req, res) => {
 const getUserProjects = async (req, res) => {
   try {
     const { id } = req.params;
+    const requestingUserId = req.user?.id ?? null;
+    const isOwner = requestingUserId === id;
+
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) return res.status(404).json({ message: "User not found" });
+
+    const where = {
+      ownerId: id,
+      ...(isOwner ? {} : { visibility: { not: "PRIVATE" } }),
+    };
+
     const projects = await prisma.project.findMany({
-      where: { ownerId: id },
+      where,
       include: {
         owner: { select: { id: true, username: true, avatarUrl: true } },
         _count: { select: { members: true, accessRequests: true, likes: true } },
@@ -126,10 +141,19 @@ const getUserProjects = async (req, res) => {
 const getUserMemberships = async (req, res) => {
   try {
     const { id } = req.params;
+    const requestingUserId = req.user?.id ?? null;
+    const isOwner = requestingUserId === id;
+
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) return res.status(404).json({ message: "User not found" });
+
+    const where = { userId: id };
+    if (!isOwner) {
+      where.project = { visibility: { not: "PRIVATE" } };
+    }
+
     const memberships = await prisma.projectMember.findMany({
-      where: { userId: id },
+      where,
       include: {
         project: {
           include: {

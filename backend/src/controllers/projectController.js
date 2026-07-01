@@ -1,6 +1,7 @@
 const prisma = require("../config/db");
 const { logActivity } = require("../utils/activityLogger");
 const { recordDailyActivity, awardBadges } = require("./profileController");
+const { parsePagination } = require("../utils/pagination");
 
 // Helper — check if requesting user is a member of the project
 async function isMember(projectId, userId) {
@@ -91,7 +92,7 @@ const createProject = async (req, res) => {
 //   PRIVATE — only visible to members + owner
 const getProjects = async (req, res) => {
   try {
-    const { search, owner, limit = 50, offset = 0, sort } = req.query;
+    const { search, owner, sort } = req.query;
     const requestingUserId = req.user?.id || null;
 
     const where = { visibility: "PUBLIC" };
@@ -106,8 +107,7 @@ const getProjects = async (req, res) => {
       where.owner = { username: { contains: owner, mode: "insensitive" } };
     }
 
-    const take = Math.min(parseInt(limit) || 50, 100);
-    const skip = parseInt(offset) || 0;
+    const { take, skip } = parsePagination(req.query, 50);
     const total = await prisma.project.count({ where });
 
     const projects = await prisma.project.findMany({
@@ -125,6 +125,7 @@ const getProjects = async (req, res) => {
     let sorted = projects;
     if (sort === "trending") {
       const now = Date.now();
+      // Trending score: likes*3 + comments*2 + members*2 + max(0, 30-ageDays)
       sorted = [...projects].sort((a, b) => {
         const ageA = (now - new Date(a.createdAt).getTime()) / (1000 * 60 * 60 * 24); // days
         const ageB = (now - new Date(b.createdAt).getTime()) / (1000 * 60 * 60 * 24);
@@ -155,7 +156,7 @@ const getProjectById = async (req, res) => {
         owner: { select: { id: true, username: true, avatarUrl: true, githubUsername: true, githubProfileUrl: true } },
         members: {
           include: {
-            user: { select: { id: true, username: true, avatarUrl: true, githubUsername: true, githubProfileUrl: true, email: true } },
+            user: { select: { id: true, username: true, avatarUrl: true, githubUsername: true, githubProfileUrl: true } },
           },
           orderBy: { joinedAt: "asc" },
         },
@@ -241,6 +242,7 @@ const updateProject = async (req, res) => {
     if (images !== undefined) data.images = images;
     if (category !== undefined) data.category = category;
     if (isRepoPrivate !== undefined) data.isRepoPrivate = !!isRepoPrivate;
+    // visibility is only updated when explicitly provided in req.body — never force-changed on completion
     if (visibility !== undefined) data.visibility = visibility.toUpperCase();
     if (openRoles !== undefined) data.openRoles = openRoles;
     if (isPaid !== undefined) data.isPaid = !!isPaid;
@@ -265,6 +267,12 @@ const getProjectStats = async (req, res) => {
     const { id } = req.params;
     const project = await prisma.project.findUnique({ where: { id } });
     if (!project) return res.status(404).json({ message: "Project not found" });
+
+    // Private project: only owner or members can view stats
+    if (project.visibility === "PRIVATE") {
+      const allowed = req.user?.id === project.ownerId || await isMember(id, req.user?.id);
+      if (!allowed) return res.status(403).json({ message: "Not authorized" });
+    }
 
     const [totalMembers, pending, approved, rejected, totalActivities] = await Promise.all([
       prisma.projectMember.count({ where: { projectId: id } }),

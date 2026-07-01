@@ -116,7 +116,7 @@ export default function MessagesPage() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [selectedConv?.id]);
 
   const { data: conversations, isLoading: loadingConvs } = useQuery({

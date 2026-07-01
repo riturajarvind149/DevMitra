@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const protect = require("../middleware/authMiddleware");
+const { authLimiter } = require("../middleware/rateLimiter");
+
+router.use(authLimiter);
 
 const {
   loginWithGithub,

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const protect = require("../middleware/authMiddleware");
+const { createLimiter } = require("../middleware/rateLimiter");
 const {
   rateContributor,
   getUserRatings,
@@ -9,11 +10,11 @@ const {
 } = require("../controllers/ratingController");
 
 // Contributor ratings
-router.post("/contributor",          protect, rateContributor);
+router.post("/contributor",          protect, createLimiter, rateContributor);
 router.get("/contributor/:userId",   getUserRatings);
 
 // Project ratings
-router.post("/project",              protect, rateProject);
+router.post("/project",              protect, createLimiter, rateProject);
 router.get("/project/:projectId",    getProjectRatings);
 
 module.exports = router;

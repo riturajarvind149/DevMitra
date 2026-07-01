@@ -26,7 +26,7 @@ export default function SavedProjectsPage() {
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <Bookmark className="h-6 w-6 text-indigo-400" /> Saved Projects
         </h1>
-        <p className="text-sm text-gray-500 mt-0.5">Projects you've bookmarked</p>
+        <p className="text-sm text-gray-500 mt-0.5">Projects you&apos;ve bookmarked</p>
       </div>
 
       {isLoading ? (
