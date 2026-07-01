@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   Home, FolderGit2, Plus, Compass, Bell, MessageSquare, User,
   Settings, LogOut, Network, MoreHorizontal, Bookmark, KeyRound,
-  Activity, BarChart2, AlertTriangle, GitPullRequest,
+  Activity, BarChart2, AlertTriangle, GitPullRequest, Briefcase,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
@@ -49,14 +49,15 @@ export default function Sidebar() {
   const msgCount: number   = (qc.getQueryData(["messageUnreadCount"]) as number) ?? 0;
 
   const nav = [
-    { name: "Home",          href: "/",              icon: Home },
-    { name: "My Projects",   href: "/my-projects",   icon: FolderGit2 },
-    { name: "New Project",   href: "/projects/new",  icon: Plus },
-    { name: "Explore",       href: "/explore",       icon: Compass },
-    { name: "Connections",   href: "/connections",   icon: Network },
-    { name: "Notifications", href: "/notifications", icon: Bell,          badge: notifCount },
-    { name: "Messages",      href: "/messages",      icon: MessageSquare, badge: msgCount },
-    { name: "Profile",       href: "/profile",       icon: User },
+    { name: "Home",           href: "/",               icon: Home },
+    { name: "My Projects",    href: "/my-projects",    icon: FolderGit2 },
+    { name: "New Project",    href: "/projects/new",   icon: Plus },
+    { name: "Explore",        href: "/explore",        icon: Compass },
+    { name: "Opportunities",  href: "/opportunities",  icon: Briefcase },
+    { name: "Connections",    href: "/connections",    icon: Network },
+    { name: "Notifications",  href: "/notifications",  icon: Bell,          badge: notifCount },
+    { name: "Messages",       href: "/messages",       icon: MessageSquare, badge: msgCount },
+    { name: "Profile",        href: "/profile",        icon: User },
   ];
 
   const moreItems = [

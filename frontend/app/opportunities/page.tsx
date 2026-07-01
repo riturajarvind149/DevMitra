@@ -123,8 +123,8 @@ function OppCard({ opp, isMyOpp }: { opp: any; isMyOpp: boolean }) {
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden hover:border-gray-700 transition">
-      {/* Main card */}
-      <div className="p-5">
+      {/* Main card — whole card clickable to expand */}
+      <div className="p-5 cursor-pointer" onClick={() => setExpanded(v => !v)}>
         <div className="flex items-start justify-between gap-3 mb-2">
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 mb-1">
@@ -135,9 +135,10 @@ function OppCard({ opp, isMyOpp }: { opp: any; isMyOpp: boolean }) {
             </div>
             <h3 className="text-base font-semibold text-white">{opp.title}</h3>
           </div>
-          <button onClick={() => setExpanded(v => !v)} className="p-1.5 text-gray-500 hover:text-white transition flex-shrink-0">
+          {/* Arrow indicator — clicking also toggles */}
+          <div className="p-1.5 text-gray-500 hover:text-white transition flex-shrink-0">
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </button>
+          </div>
         </div>
         <p className="text-sm text-gray-400 line-clamp-2 mb-3">{opp.description}</p>
         <div className="flex flex-wrap gap-1 mb-3">
@@ -150,8 +151,9 @@ function OppCard({ opp, isMyOpp }: { opp: any; isMyOpp: boolean }) {
             {opp.duration && <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{opp.duration}</span>}
             {opp.budget && <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" />{opp.budget}</span>}
             <span className="flex items-center gap-1"><Users className="h-3 w-3" />{opp._count?.applications ?? 0} applicants</span>
+            <span className="flex items-center gap-1">by {opp.owner?.username}</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
             {isMyOpp && opp.status === "OPEN" && (
               <button onClick={() => setConfirmClose(true)} className="text-xs text-red-400 border border-red-800 px-3 py-1.5 rounded-xl hover:bg-red-900/20 transition">Close</button>
             )}
@@ -366,13 +368,16 @@ export default function OpportunitiesPage() {
   // My posted opportunities
   const { data: myOpps = [], isLoading: loadingMine } = useQuery<any[]>({
     queryKey: ["myOpps"],
-    queryFn: async () => { const { data } = await opportunitiesAPI.getMine(); return data; },
+    queryFn: async () => {
+      const { data } = await opportunitiesAPI.getMine();
+      return Array.isArray(data) ? data : [];
+    },
     enabled: isAuthenticated,
+    staleTime: 10000,
   });
 
   // All opportunities excluding my own
   const allExclMine = (allData?.opportunities ?? []).filter((o: any) => o.ownerId !== user?.id);
-
   const isLoading = tab === "all" ? loadingAll : loadingMine;
 
   return (

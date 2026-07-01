@@ -234,7 +234,7 @@ function EmptyState({ icon: Icon, label, sub, cta }: { icon: any; label: string;
 }
 
 function ExploreContent() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const qc = useQueryClient();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -320,16 +320,20 @@ function ExploreContent() {
             ) : <EmptyState icon={FolderGit2} label="No projects found" sub="Try different search terms or filters" />
           )}
           {tab === "opportunities" && (
-            oppData?.opportunities.length ? (
-              <>
-                <p className="text-xs text-gray-600 mb-4">{oppData.opportunities.length} opportunities</p>
-                <div className="grid grid-cols-1 gap-4">
-                  {oppData.opportunities.map((o: any) => (
-                    <OppCard key={o.id} opp={o} onApply={id => isAuthenticated ? setApplyId(id) : alert("Please login")} />
-                  ))}
-                </div>
-              </>
-            ) : <EmptyState icon={Briefcase} label="No opportunities found" sub={isAuthenticated ? "Be the first to post" : "Login to post"} cta={isAuthenticated ? { label: "Post Opportunity", onClick: () => setShowPostOpp(true) } : undefined} />
+            (() => {
+              // Never show own posted opportunities on Explore
+              const filtered = (oppData?.opportunities ?? []).filter((o: any) => o.ownerId !== user?.id);
+              return filtered.length > 0 ? (
+                <>
+                  <p className="text-xs text-gray-600 mb-4">{filtered.length} opportunities</p>
+                  <div className="grid grid-cols-1 gap-4">
+                    {filtered.map((o: any) => (
+                      <OppCard key={o.id} opp={o} onApply={id => isAuthenticated ? setApplyId(id) : alert("Please login")} />
+                    ))}
+                  </div>
+                </>
+              ) : <EmptyState icon={Briefcase} label="No opportunities found" sub={isAuthenticated ? "Be the first to post" : "Login to post"} cta={isAuthenticated ? { label: "Post Opportunity", onClick: () => setShowPostOpp(true) } : undefined} />;
+            })()
           )}
         </>
       )}
