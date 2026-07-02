@@ -35,6 +35,9 @@ const { apiLimiter } = require("./middleware/rateLimiter");
 
 const app = express();
 
+// Trust Railway/Vercel proxy — required for secure cookies and correct IP detection
+app.set("trust proxy", 1);
+
 // Security headers — must be first
 app.use(helmet({
   contentSecurityPolicy: {
@@ -44,7 +47,6 @@ app.use(helmet({
 app.use(cors({ origin: process.env.FRONTEND_URL ?? "http://localhost:3000", credentials: true }));
 app.use(express.json({ limit: "55mb" }));
 app.use(express.urlencoded({ extended: true, limit: "55mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 app.use(apiLimiter);
 

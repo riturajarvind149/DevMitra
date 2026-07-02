@@ -12,8 +12,11 @@ const loginWithGithub = (req, res) => {
   res.cookie("oauth_state", state, {
     httpOnly: true,
     maxAge: 10 * 60 * 1000, // 10 minutes
-    sameSite: "lax",
+    // Must be "none" in production so the cookie survives the GitHub → backend
+    // cross-origin redirect. "lax" would drop it on the callback request.
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     secure: process.env.NODE_ENV === "production",
+    path: "/",
   });
   const githubUrl =
     `https://github.com/login/oauth/authorize` +
@@ -31,7 +34,12 @@ const githubCallback = async (req, res) => {
     const storedState = req.cookies.oauth_state;
 
     // Invalidate state cookie immediately (single-use enforcement)
-    res.clearCookie("oauth_state");
+    const isProdClear = process.env.NODE_ENV === "production";
+    res.clearCookie("oauth_state", {
+      path: "/",
+      sameSite: isProdClear ? "none" : "lax",
+      secure: isProdClear,
+    });
 
     // Validate CSRF state — reject if missing or mismatched
     if (!state || !storedState || state !== storedState) {
@@ -115,8 +123,13 @@ const githubCallback = async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: isProd ? "strict" : "lax",
-      secure: isProd,
+      // Cross-origin deployment (Vercel frontend ↔ Railway backend):
+      // sameSite must be "none" so the browser sends the cookie on
+      // cross-origin requests from dev-mitra.vercel.app → railway.app.
+      // "strict" silently drops the cookie on cross-site redirect flows.
+      sameSite: isProd ? "none" : "lax",
+      secure: isProd, // "none" requires secure:true per spec
+      path: "/",
     });
 
     // Count this login toward totalActiveDays (not streak — only real contributions count)
