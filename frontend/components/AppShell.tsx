@@ -12,7 +12,7 @@ import MobileNavDrawer from "./MobileNavDrawer";
 const FULLSCREEN_PATHS = ["/messages"];
 
 // Pages that need full available width but keep padding (wider than max-w-2xl)
-const WIDE_PATHS = ["/profile", "/users/", "/settings", "/projects/"];
+const WIDE_PATHS = ["/profile", "/users/", "/settings", "/projects/", "/mentor"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -54,9 +54,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           ) : (
             // Normal pages: centered, max-w-2xl, padded
-            // Wide pages (profile, settings): full width with padding, no max-w cap
+            // Wide pages (profile, settings, mentor): full width with padding
             <div className="px-6 py-6 min-h-full flex flex-col items-center">
-              <div className={`w-full ${isWide ? "max-w-5xl" : "max-w-2xl"}`}>
+              <div className={`w-full ${isWide ? "max-w-6xl" : "max-w-2xl"}`}>
                 {children}
               </div>
             </div>
