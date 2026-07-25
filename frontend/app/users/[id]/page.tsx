@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -202,6 +202,33 @@ export default function UserProfilePage() {
       <div className="flex gap-4 items-start">
         {/* LEFT */}
         <div className="flex-1 min-w-0 space-y-4">
+          {/* AI Mentor Reputation Engine Card */}
+          {profile.githubUsername && (
+            <div className="bg-gradient-to-r from-indigo-900/40 via-purple-900/40 to-neutral-900 rounded-2xl border border-indigo-500/30 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400">
+                    <Zap className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                      AI Mentor Engineering Rating
+                      <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        Live GitHub Evidence
+                      </span>
+                    </h2>
+                    <p className="text-xs text-gray-400">@{profile.githubUsername}</p>
+                  </div>
+                </div>
+                <Link
+                  href={`/mentor`}
+                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-xl transition flex items-center gap-1 shadow-lg"
+                >
+                  Analyze Profile →
+                </Link>
+              </div>
+            </div>
+          )}
           {/* Streak + Reputation */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">

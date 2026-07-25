@@ -28,6 +28,7 @@ const pullRequestRoutes    = require("./routes/pullRequestRoutes");
 const ratingRoutes         = require("./routes/ratingRoutes");
 const projectResourceRoutes = require("./routes/projectResourceRoutes");
 const announcementRoutes    = require("./routes/announcementRoutes");
+const mentorRoutes          = require("./routes/mentorRoutes");
 
 const { getPlatformStats } = require("./controllers/statsController");
 const { errorHandler, notFound } = require("./middleware/errorHandler");
@@ -70,6 +71,7 @@ app.use("/repo-requests",    repoAccessRoutes);
 app.use("/opportunities",    opportunityRoutes);
 app.use("/developers",       developerRoutes);
 app.use("/ai",               aiRoutes);
+app.use("/ai-mentor",        mentorRoutes);
 app.use("/profile-data",     profileRoutes);
 
 // Phase 4 new routes

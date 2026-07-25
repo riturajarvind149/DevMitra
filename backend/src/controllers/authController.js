@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const axios = require("axios");
 const prisma = require("../config/db");
 const generateToken = require("../utils/generateToken");
+const { encryptToken } = require("../utils/tokenEncryption");
 const { recordLoginDay } = require("./profileController");
 
 const FRONTEND_URL = process.env.FRONTEND_URL ?? "http://localhost:3000";
@@ -96,26 +97,55 @@ const githubCallback = async (req, res) => {
       email = `${githubUser.data.login}@github.noemail`;
     }
 
-    const user = await prisma.user.upsert({
-      where: {
-        githubId: String(githubUser.data.id),
-      },
-      update: {
-        username: githubUser.data.name || githubUser.data.login,
-        email,
-        avatarUrl: githubUser.data.avatar_url,
-        githubUsername: githubUser.data.login,
-        githubProfileUrl: githubUser.data.html_url,
-      },
-      create: {
-        githubId: String(githubUser.data.id),
-        username: githubUser.data.name || githubUser.data.login,
-        email,
-        avatarUrl: githubUser.data.avatar_url,
-        githubUsername: githubUser.data.login,
-        githubProfileUrl: githubUser.data.html_url,
-      },
-    });
+    const encryptedAccessToken = encryptToken(accessToken);
+
+    let user;
+    try {
+      user = await prisma.user.upsert({
+        where: {
+          githubId: String(githubUser.data.id),
+        },
+        update: {
+          username: githubUser.data.name || githubUser.data.login,
+          email,
+          avatarUrl: githubUser.data.avatar_url,
+          githubUsername: githubUser.data.login,
+          githubProfileUrl: githubUser.data.html_url,
+          githubAccessToken: encryptedAccessToken,
+        },
+        create: {
+          githubId: String(githubUser.data.id),
+          username: githubUser.data.name || githubUser.data.login,
+          email,
+          avatarUrl: githubUser.data.avatar_url,
+          githubUsername: githubUser.data.login,
+          githubProfileUrl: githubUser.data.html_url,
+          githubAccessToken: encryptedAccessToken,
+        },
+      });
+    } catch (dbError) {
+      console.warn("Retrying upsert without githubAccessToken in case of schema discrepancy:", dbError.message);
+      user = await prisma.user.upsert({
+        where: {
+          githubId: String(githubUser.data.id),
+        },
+        update: {
+          username: githubUser.data.name || githubUser.data.login,
+          email,
+          avatarUrl: githubUser.data.avatar_url,
+          githubUsername: githubUser.data.login,
+          githubProfileUrl: githubUser.data.html_url,
+        },
+        create: {
+          githubId: String(githubUser.data.id),
+          username: githubUser.data.name || githubUser.data.login,
+          email,
+          avatarUrl: githubUser.data.avatar_url,
+          githubUsername: githubUser.data.login,
+          githubProfileUrl: githubUser.data.html_url,
+        },
+      });
+    }
 
     const token = generateToken(user.id);
 

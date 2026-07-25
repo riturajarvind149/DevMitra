@@ -28,6 +28,9 @@ model User {
   isOnline          Boolean @default(false)
   lastSeenAt        DateTime?
 
+  // Encrypted GitHub OAuth Access Token for server-to-server API calls on user's behalf
+  githubAccessToken String?
+
   // Contributor tier & pricing
   contributorTier   String  @default("TESTER") // TESTER | VERIFIED_TESTER | EXPERT_TESTER | PAID_CONTRIBUTOR | TRUSTED_REVIEWER
   isPaidContributor Boolean @default(false)
@@ -74,6 +77,8 @@ model User {
   announcements            ProjectAnnouncement[]
   bugComments              BugComment[] @relation("BugCommentAuthor")
   oppComments              OppComment[] @relation("OppCommentAuthor")
+  githubAnalyses           GithubAnalysis[]
+  reputationSnapshots      ReputationSnapshot[]
 }
 
 // ── Repository Access Request ────────────────────────────────────────────────
@@ -581,3 +586,105 @@ model UserBadge {
   @@unique([userId, badgeKey])
   @@index([userId])
 }
+
+// ── AI Mentor: GitHub evidence + analysis ─────────────────────────────
+model GithubAnalysis {
+  id              String   @id @default(cuid())
+  userId          String?               // null if analyzing a non-DevMitra public profile
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  githubUsername  String
+  status          String   @default("QUEUED") // QUEUED | COLLECTING | SCORING | DONE | FAILED
+  jobId           String?                // job id for progress polling
+  errorMessage    String?
+
+  // Raw evidence snapshot (JSON) — the exact GitHub API responses used,
+  // so every score is re-derivable/auditable later without re-hitting the API
+  evidenceRaw     Json?
+  evidenceVersion String   @default("v1") // bump when collector logic changes
+
+  overallScore      Int?
+  overallConfidence Int?
+  tier               String?  // NO_TIER | BEGINNER | ... | PRINCIPAL
+  reputationScore    Int?
+
+  requestedAt     DateTime @default(now())
+  completedAt     DateTime?
+
+  dimensions      DimensionResult[]
+  mentorPlan      MentorPlan?
+
+  @@index([userId])
+  @@index([githubUsername])
+  @@index([status])
+}
+
+model DimensionResult {
+  id              String         @id @default(cuid())
+  analysisId      String
+  analysis        GithubAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  dimension       String         // codeQuality | architecture | testing | documentation | security | deployment | openSource | consistency
+  score           Int?           // null = insufficient evidence
+  confidence      Int
+  status          String         // SCORED | INSUFFICIENT_EVIDENCE
+  reason          String         @db.Text
+  evidenceSources String[]
+  strengths       String[]
+  weaknesses      String[]
+
+  @@index([analysisId])
+}
+
+// ── The actual product: the mentor plan ───────────────────────────────
+model MentorPlan {
+  id                String         @id @default(cuid())
+  analysisId        String         @unique
+  analysis          GithubAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  currentTier       String
+  targetTier        String
+  estimatedTimeline String
+
+  skillGaps         SkillGap[]
+  weeklyTasks       MentorTask[]
+
+  createdAt         DateTime       @default(now())
+}
+
+model SkillGap {
+  id             String     @id @default(cuid())
+  mentorPlanId   String
+  mentorPlan     MentorPlan @relation(fields: [mentorPlanId], references: [id], onDelete: Cascade)
+  skill          String
+  currentLevel   Int
+  requiredLevel  Int
+  priority       String     // HIGH | MEDIUM | LOW
+  recommendation String     @db.Text
+}
+
+model MentorTask {
+  id                String     @id @default(cuid())
+  mentorPlanId      String
+  mentorPlan        MentorPlan @relation(fields: [mentorPlanId], references: [id], onDelete: Cascade)
+  weekNumber        Int
+  title             String
+  taskType          String     // CODE | LEARN | CONTRIBUTE | BUILD | REVIEW
+  impactDescription String
+  estimatedHours    Int
+  completed         Boolean    @default(false)   // user can check these off — real engagement loop
+  completedAt       DateTime?
+}
+
+// ── Historical snapshots for real progress tracking ────────────────────
+model ReputationSnapshot {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analysisId      String
+  overallScore    Int?
+  reputationScore Int
+  dimensionScores Json     // { codeQuality: 76, testing: 48, ... }
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+

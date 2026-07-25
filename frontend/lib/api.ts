@@ -257,4 +257,13 @@ export const announcementsAPI = {
     api.post(`/projects/${projectId}/announcements/reopen`),
 };
 
+export const mentorAPI = {
+  analyze: (githubUsername: string) => api.post<{ analysisId: string; jobId: string; status: string; isCached?: boolean }>("/ai-mentor/analyze", { githubUsername }),
+  getAnalysis: (id: string) => api.get<any>(`/ai-mentor/analysis/${id}`),
+  getMine: () => api.get<any[]>("/ai-mentor/mine"),
+  getHistory: (userId: string) => api.get<any[]>(`/ai-mentor/history/${userId}`),
+  completeTask: (taskId: string) => api.post(`/ai-mentor/mentor-task/${taskId}/complete`),
+  deleteAnalysis: (id: string) => api.delete(`/ai-mentor/analysis/${id}`),
+};
+
 export default api;
