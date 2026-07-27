@@ -74,8 +74,14 @@ async function restGet(endpoint, token = null, params = {}) {
   }
 }
 
+function getRateLimitRemaining() {
+  return lastRateLimitRemaining;
+}
+
 async function headCheck(endpoint, token = null) {
-  checkRateLimitGuard();
+  if (lastRateLimitRemaining <= 5) {
+    return false;
+  }
   const url = endpoint.startsWith("http") ? endpoint : `${GITHUB_API_URL}${endpoint}`;
   try {
     const response = await axios.head(url, {
@@ -135,5 +141,6 @@ module.exports = {
   restGet,
   headCheck,
   graphqlQuery,
+  getRateLimitRemaining,
   GitHubRateLimitError,
 };

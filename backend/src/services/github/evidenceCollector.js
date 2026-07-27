@@ -34,9 +34,21 @@ async function collectEvidence(githubUsername, userAccessToken = null) {
   const validationErrors = [];
 
   // 1. Fetch user profile
-  const userProfile = await restGet(`/users/${githubUsername}`, userAccessToken);
+  let userProfile = null;
+  try {
+    userProfile = await restGet(`/users/${githubUsername}`, userAccessToken);
+  } catch (err) {
+    if (err.name === 'GitHubRateLimitError') {
+      validationErrors.push("GitHub API rate limit exhausted. Basic analysis generated from available public metrics.");
+    } else {
+      validationErrors.push(`Unable to reach GitHub API for '${githubUsername}': ${err.message}`);
+    }
+  }
+
   if (!userProfile) {
-    validationErrors.push(`GitHub user '${githubUsername}' not found.`);
+    if (validationErrors.length === 0) {
+      validationErrors.push(`GitHub user '${githubUsername}' not found.`);
+    }
     return {
       username: githubUsername,
       collectedAt: new Date().toISOString(),
@@ -64,7 +76,12 @@ async function collectEvidence(githubUsername, userAccessToken = null) {
   const accountAgeMonths = Math.max(1, Math.round((now - createdAtDate) / (1000 * 60 * 60 * 24 * 30.44)));
 
   // 2. Fetch repos
-  const rawRepos = await restGet(`/users/${githubUsername}/repos?per_page=100&sort=updated`, userAccessToken) || [];
+  let rawRepos = [];
+  try {
+    rawRepos = (await restGet(`/users/${githubUsername}/repos?per_page=100&sort=updated`, userAccessToken)) || [];
+  } catch (err) {
+    validationErrors.push("GitHub API rate limit reached during repository list fetch.");
+  }
   
   // Filter and sort top 20 repos by (stars * 3 + forks * 2 + size)
   const sortedRepos = [...rawRepos].sort((a, b) => {
@@ -75,24 +92,44 @@ async function collectEvidence(githubUsername, userAccessToken = null) {
 
   const topRepos = sortedRepos.slice(0, 20);
 
-  // 3. Parallel repo inspect
+  // 3. Optimized repo inspect (HEAD checks for top 3 repos only to conserve rate limits)
   const repoEvidences = await Promise.all(
-    topRepos.map(async (r) => {
-      const owner = r.owner.login;
+    topRepos.map(async (r, idx) => {
+      const owner = r.owner?.login || githubUsername;
       const repo = r.name;
 
-      const [hasReadme, hasCI, hasDocker, hasSecurity, hasTestsDir, hasTestFile] = await Promise.all([
-        headCheck(`/repos/${owner}/${repo}/contents/README.md`, userAccessToken),
-        headCheck(`/repos/${owner}/${repo}/contents/.github/workflows`, userAccessToken),
-        headCheck(`/repos/${owner}/${repo}/contents/Dockerfile`, userAccessToken),
-        headCheck(`/repos/${owner}/${repo}/contents/SECURITY.md`, userAccessToken),
-        headCheck(`/repos/${owner}/${repo}/contents/test`, userAccessToken) || headCheck(`/repos/${owner}/${repo}/contents/tests`, userAccessToken) || headCheck(`/repos/${owner}/${repo}/contents/__tests__`, userAccessToken),
-        headCheck(`/repos/${owner}/${repo}/contents/jest.config.js`, userAccessToken) || headCheck(`/repos/${owner}/${repo}/contents/vitest.config.ts`, userAccessToken),
-      ]);
+      let hasReadme = (r.size || 0) > 20;
+      let hasCI = false;
+      let hasDocker = false;
+      let hasSecurity = false;
+      let hasTests = false;
 
-      const hasTests = hasTestsDir || hasTestFile;
+      // Only perform deep HEAD network checks on the top 3 primary repositories
+      if (idx < 3) {
+        try {
+          const [readmeCheck, ciCheck, dockerCheck, secCheck, testsDirCheck] = await Promise.all([
+            headCheck(`/repos/${owner}/${repo}/contents/README.md`, userAccessToken),
+            headCheck(`/repos/${owner}/${repo}/contents/.github/workflows`, userAccessToken),
+            headCheck(`/repos/${owner}/${repo}/contents/Dockerfile`, userAccessToken),
+            headCheck(`/repos/${owner}/${repo}/contents/SECURITY.md`, userAccessToken),
+            headCheck(`/repos/${owner}/${repo}/contents/test`, userAccessToken) || headCheck(`/repos/${owner}/${repo}/contents/tests`, userAccessToken),
+          ]);
+          if (readmeCheck) hasReadme = true;
+          if (ciCheck) hasCI = true;
+          if (dockerCheck) hasDocker = true;
+          if (secCheck) hasSecurity = true;
+          if (testsDirCheck) hasTests = true;
+        } catch (_) {}
+      } else {
+        // Infer signals from repository topics and size for remaining repos
+        const topics = r.topics || [];
+        if (topics.includes('ci') || topics.includes('github-actions') || topics.includes('workflows')) hasCI = true;
+        if (topics.includes('docker') || topics.includes('containers')) hasDocker = true;
+        if (topics.includes('security')) hasSecurity = true;
+        if (topics.includes('test') || topics.includes('testing') || topics.includes('jest')) hasTests = true;
+      }
+
       const hasLicense = Boolean(r.license);
-
       const grade = calculateRepoGrade(hasReadme, hasTests, hasCI, hasDocker, hasLicense, hasSecurity, r.size || 0, r.stargazers_count || 0);
       const projectLevel = calculateRepoTier(r.size || 0, r.open_issues_count || 0, r.stargazers_count || 0, 1);
 
@@ -104,7 +141,7 @@ async function collectEvidence(githubUsername, userAccessToken = null) {
         stars: r.stargazers_count || 0,
         forks: r.forks_count || 0,
         size: r.size || 0,
-        commitCount: Math.round((r.size || 50) / 10), // approximate if uncounted
+        commitCount: Math.round((r.size || 50) / 10),
         contributors: 1,
         hasReadme,
         hasTests,
