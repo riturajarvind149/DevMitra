@@ -15,8 +15,8 @@ let lastRateLimitRemaining = 5000;
 let lastRateLimitReset = 0;
 
 function getAuthHeader(userAccessToken) {
-  const token = userAccessToken || process.env.GITHUB_PAT || process.env.GITHUB_CLIENT_SECRET;
-  if (!token) return {};
+  const token = userAccessToken || process.env.GITHUB_PAT;
+  if (!token || typeof token !== "string" || token.trim() === "") return {};
   return { Authorization: `Bearer ${token}` };
 }
 
@@ -60,6 +60,11 @@ async function restGet(endpoint, token = null, params = {}) {
       if (error.response.status === 404) {
         return null;
       }
+      // If auth token was invalid (401), retry once unauthenticated
+      if (error.response.status === 401 && token) {
+        console.warn("GitHub API token rejected with 401. Retrying unauthenticated public request...");
+        return restGet(endpoint, null, params);
+      }
       if (error.response.status === 403 && error.response.headers["x-ratelimit-remaining"] === "0") {
         const reset = parseInt(error.response.headers["x-ratelimit-reset"] || "0", 10);
         throw new GitHubRateLimitError("GitHub API rate limit exceeded", reset);
@@ -85,6 +90,9 @@ async function headCheck(endpoint, token = null) {
   } catch (error) {
     if (error.response) {
       updateRateLimit(error.response.headers);
+      if (error.response.status === 401 && token) {
+        return headCheck(endpoint, null);
+      }
     }
     return false;
   }
@@ -92,6 +100,12 @@ async function headCheck(endpoint, token = null) {
 
 async function graphqlQuery(query, variables = {}, token = null) {
   checkRateLimitGuard();
+  const authHeader = getAuthHeader(token);
+  // GraphQL API requires authentication. If no token, return null to allow fallback.
+  if (!authHeader.Authorization) {
+    return null;
+  }
+
   const url = `${GITHUB_API_URL}/graphql`;
   try {
     const response = await axios.post(
@@ -100,7 +114,7 @@ async function graphqlQuery(query, variables = {}, token = null) {
       {
         headers: {
           Accept: "application/json",
-          ...getAuthHeader(token),
+          ...authHeader,
         },
       }
     );
@@ -113,7 +127,7 @@ async function graphqlQuery(query, variables = {}, token = null) {
     if (error.response) {
       updateRateLimit(error.response.headers);
     }
-    throw error;
+    return null;
   }
 }
 
