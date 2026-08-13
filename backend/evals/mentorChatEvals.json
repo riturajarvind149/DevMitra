@@ -1,0 +1,62 @@
+[
+  {
+    "id": "eval-1",
+    "question": "Is the DevMitra backend written in TypeScript?",
+    "expectedFacts": [
+      "JavaScript",
+      "tsconfig.json"
+    ],
+    "negativeFacts": [
+      "backend is written in TypeScript",
+      "backend/tsconfig.json: YES"
+    ]
+  },
+  {
+    "id": "eval-2",
+    "question": "Does DevMitra have CI/CD set up?",
+    "expectedFacts": [
+      "no",
+      "CI"
+    ],
+    "negativeFacts": [
+      "CI/CD is already fully configured"
+    ]
+  },
+  {
+    "id": "eval-3",
+    "question": "Is testing already configured in DevMitra?",
+    "expectedFacts": [
+      "Jest"
+    ],
+    "negativeFacts": [
+      "Vitest is configured"
+    ]
+  },
+  {
+    "id": "eval-4",
+    "question": "What language is backend vs frontend in DevMitra?",
+    "expectedFacts": [
+      "backend",
+      "JavaScript",
+      "frontend",
+      "TypeScript"
+    ],
+    "negativeFacts": [
+      "backend is TypeScript"
+    ]
+  },
+  {
+    "id": "eval-5",
+    "question": "Does DevMitra have Jest configured and test files in backend/__tests__?",
+    "expectedFacts": [
+      "5 test file",
+      "ratingDuplication.test.js",
+      "backend/__tests__"
+    ],
+    "negativeFacts": [
+      "Test Files: None",
+      "0 test files found",
+      "no test files exist"
+    ]
+  }
+]

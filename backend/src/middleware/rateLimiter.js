@@ -28,4 +28,14 @@ const createLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-module.exports = { apiLimiter, authLimiter, createLimiter };
+// Chat message limiter — per-message LLM cost control
+const chatLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30,             // 30 messages/min per user
+  keyGenerator: (req) => req.user?.id || req.ip,
+  message: { message: "Too many messages. Please slow down." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+module.exports = { apiLimiter, authLimiter, createLimiter, chatLimiter };

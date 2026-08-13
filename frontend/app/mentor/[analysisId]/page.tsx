@@ -365,6 +365,22 @@ export default function MentorDashboardPage() {
                   />
                 </div>
                 <p className="text-xs text-gray-400 line-clamp-2 pt-1">{dim.reason}</p>
+                <div className="pt-2 flex justify-end">
+                  <button
+                    onClick={() => {
+                      if (typeof window !== "undefined" && (window as any).__openMentorChat) {
+                        (window as any).__openMentorChat(
+                          `Why did I get ${dim.score !== null ? `${dim.score}/100` : "this score"} in ${dim.label}?`,
+                          analysisId
+                        );
+                      }
+                    }}
+                    className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                  >
+                    <Sparkles className="w-3 h-3 text-indigo-400" />
+                    Ask AI why →
+                  </button>
+                </div>
               </div>
             ))}
           </div>

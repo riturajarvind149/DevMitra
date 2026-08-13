@@ -7,6 +7,7 @@ import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import RightSidebar from "./RightSidebar";
 import MobileNavDrawer from "./MobileNavDrawer";
+import MentorChatLauncher from "./MentorChatLauncher";
 
 // Pages that should use full-height, no padding, no centering
 const FULLSCREEN_PATHS = ["/messages"];
@@ -99,6 +100,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <RightSidebar />
         </div>
       </div>
+
+      {/* Floating AI Mentor Chat Launcher */}
+      <MentorChatLauncher />
     </div>
   );
 }
+

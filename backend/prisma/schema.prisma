@@ -40,6 +40,11 @@ model User {
   openForPaidWork   Boolean @default(false)
   totalEarnings     Float   @default(0)
 
+  // AI Mentor reputation (synced from latest GithubAnalysis)
+  aiReputationScore Int?
+  aiReputationTier  String?
+  aiAnalyzedAt      DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt @default(now())
 
@@ -79,6 +84,8 @@ model User {
   oppComments              OppComment[] @relation("OppCommentAuthor")
   githubAnalyses           GithubAnalysis[]
   reputationSnapshots      ReputationSnapshot[]
+  mentorChatSessions       MentorChatSession[]
+  chatFeedbacks            ChatFeedback[]
 }
 
 // ── Repository Access Request ────────────────────────────────────────────────
@@ -612,6 +619,7 @@ model GithubAnalysis {
 
   dimensions      DimensionResult[]
   mentorPlan      MentorPlan?
+  chatSessions    MentorChatSession[]
 
   @@index([userId])
   @@index([githubUsername])
@@ -686,5 +694,46 @@ model ReputationSnapshot {
   createdAt       DateTime @default(now())
 
   @@index([userId, createdAt])
+}
+
+// ── AI Mentor Chat ────────────────────────────────────────────────────
+model MentorChatSession {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analysisId   String?
+  analysis     GithubAnalysis? @relation(fields: [analysisId], references: [id])
+  title        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  messages     MentorChatMessage[]
+
+  @@index([userId])
+}
+
+model MentorChatMessage {
+  id          String   @id @default(cuid())
+  sessionId   String
+  session     MentorChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role        String   // user | assistant
+  content     String   @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model ChatFeedback {
+  id          String   @id @default(cuid())
+  sessionId   String
+  messageId   String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating      String   // UP | DOWN
+  reason      String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([sessionId])
 }
 

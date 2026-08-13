@@ -266,4 +266,71 @@ export const mentorAPI = {
   deleteAnalysis: (id: string) => api.delete(`/ai-mentor/analysis/${id}`),
 };
 
+export const mentorChatAPI = {
+  createSession: (analysisId?: string) =>
+    api.post<any>("/ai-mentor/chat/session", { analysisId }),
+  listSessions: () =>
+    api.get<any[]>("/ai-mentor/chat/sessions"),
+  getSession: (id: string) =>
+    api.get<any>(`/ai-mentor/chat/session/${id}`),
+  deleteSession: (id: string) =>
+    api.delete(`/ai-mentor/chat/session/${id}`),
+  sendFeedback: (payload: { sessionId: string; messageId?: string; rating: "UP" | "DOWN"; reason?: string }) =>
+    api.post("/ai-mentor/chat/feedback", payload),
+  /**
+   * Send a message and receive streamed SSE response.
+   * Uses native fetch (axios doesn't support SSE streaming).
+   * Returns an async generator that yields text chunks.
+   */
+  sendMessage: async function* (sessionId: string, content: string) {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+    const response = await fetch(`${API_BASE}/ai-mentor/chat/session/${sessionId}/message`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ content }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ message: "Chat request failed" }));
+      throw new Error(err.message || "Chat request failed");
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("No response stream");
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const data = line.slice(6).trim();
+        if (data === "[DONE]") return;
+
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.type === "chunk") {
+            yield { type: "chunk" as const, text: parsed.text };
+          } else if (parsed.type === "done") {
+            yield { type: "done" as const, fullText: parsed.fullText };
+          } else if (parsed.type === "error") {
+            yield { type: "error" as const, message: parsed.message };
+          }
+        } catch {
+          // Ignore malformed SSE lines
+        }
+      }
+    }
+  },
+};
+
 export default api;
+

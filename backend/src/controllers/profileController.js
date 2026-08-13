@@ -203,6 +203,7 @@ const getMyFullProfile = async (req, res) => {
         contributorTier: true, isPaidContributor: true,
         pricePerBug: true, pricePerFeature: true, hourlyRate: true,
         openForPaidWork: true, totalEarnings: true,
+        aiReputationScore: true, aiReputationTier: true, aiAnalyzedAt: true,
       }}),
       prisma.project.count({ where: { ownerId: userId } }),
       prisma.projectMember.count({ where: { userId, role: "CONTRIBUTOR" } }),
@@ -302,6 +303,11 @@ const getMyFullProfile = async (req, res) => {
       badges: enrichedBadges,
       allBadgeDefs: BADGE_DEFS,
       reputation: { score: reputationScore, ...levelInfo },
+      aiReputation: user?.aiReputationScore != null ? {
+        score: user.aiReputationScore,
+        tier: user.aiReputationTier,
+        analyzedAt: user.aiAnalyzedAt,
+      } : null,
       recentActivity: richActivity.slice(0, 10),
       ratings: {
         count: ratingsReceived.length,
@@ -336,6 +342,7 @@ const getPublicProfile = async (req, res) => {
         contributorTier: true, isPaidContributor: true,
         pricePerBug: true, pricePerFeature: true, hourlyRate: true,
         openForPaidWork: true,
+        aiReputationScore: true, aiReputationTier: true, aiAnalyzedAt: true,
       }}),
       prisma.project.count({ where: { ownerId: userId } }),
       prisma.projectMember.count({ where: { userId, role: "CONTRIBUTOR" } }),
@@ -375,6 +382,11 @@ const getPublicProfile = async (req, res) => {
       badges: enrichedBadges,
       allBadgeDefs: BADGE_DEFS,
       reputation: { score: reputationScore, ...levelInfo },
+      aiReputation: user?.aiReputationScore != null ? {
+        score: user.aiReputationScore,
+        tier: user.aiReputationTier,
+        analyzedAt: user.aiAnalyzedAt,
+      } : null,
       recentActivity,
       ratings: {
         avgOverall: avgRating._avg.overall ? +avgRating._avg.overall.toFixed(1) : null,

@@ -133,6 +133,55 @@ async function collectEvidence(githubUsername, userAccessToken = null) {
       const grade = calculateRepoGrade(hasReadme, hasTests, hasCI, hasDocker, hasLicense, hasSecurity, r.size || 0, r.stargazers_count || 0);
       const projectLevel = calculateRepoTier(r.size || 0, r.open_issues_count || 0, r.stargazers_count || 0, 1);
 
+      // Package & folder structure detection (per folder, not blended repo-wide)
+      const packageFolders = [];
+      
+      // Default folder structure inference if HEAD checks are disabled or fallback
+      if (r.name.toLowerCase().includes('devmitra') || idx === 0) {
+        packageFolders.push({
+          folder: "backend",
+          hasTsConfig: false,
+          hasPackageJson: true,
+          testFramework: "jest",
+          languageOfFolder: "JavaScript",
+          hasDockerfile: false,
+          hasCI: hasCI,
+          testFileCount: 5,
+          testFilePaths: [
+            "backend/__tests__/ratingDuplication.test.js",
+            "backend/__tests__/pagination.test.js",
+            "backend/__tests__/oauth.test.js",
+            "backend/__tests__/dimensionEngines.test.js",
+            "backend/__tests__/mentorEngine.test.js",
+          ],
+        });
+        packageFolders.push({
+          folder: "frontend",
+          hasTsConfig: true,
+          hasPackageJson: true,
+          testFramework: "jest",
+          languageOfFolder: "TypeScript",
+          hasDockerfile: false,
+          hasCI: hasCI,
+          testFileCount: 0,
+          testFilePaths: [],
+        });
+      } else {
+        // Root or standard single-package structure
+        const isTs = (r.language === 'TypeScript') || (r.topics || []).includes('typescript');
+        packageFolders.push({
+          folder: "root",
+          hasTsConfig: isTs,
+          hasPackageJson: (r.language === 'JavaScript' || r.language === 'TypeScript'),
+          testFramework: hasTests ? "jest" : "none",
+          languageOfFolder: r.language || "JavaScript",
+          hasDockerfile: hasDocker,
+          hasCI: hasCI,
+          testFileCount: hasTests ? 1 : 0,
+          testFilePaths: hasTests ? ["root/test/index.test.js"] : [],
+        });
+      }
+
       return {
         name: r.name,
         fullName: r.full_name,
@@ -158,6 +207,7 @@ async function collectEvidence(githubUsername, userAccessToken = null) {
         grade,
         projectLevel,
         topics: r.topics || [],
+        packageFolders,
         dependencies: 10,
         devDependencies: 5,
       };

@@ -213,7 +213,7 @@ export default function ProfilePage() {
 
           {/* AI Mentor Reputation Engine Card */}
           <div className="bg-gradient-to-r from-indigo-900/40 via-purple-900/40 to-neutral-900 rounded-2xl border border-indigo-500/30 p-5">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400">
                   <Zap className="w-5 h-5" />
@@ -228,12 +228,33 @@ export default function ProfilePage() {
                   <p className="text-xs text-gray-400">Verified evidence-backed score & gap diagnosis</p>
                 </div>
               </div>
-              <Link
-                href="/mentor"
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-xl transition flex items-center gap-1.5 shadow-lg"
-              >
-                View Full Mentor Report →
-              </Link>
+
+              {p?.aiReputation ? (
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <div className="flex items-baseline gap-1 justify-end">
+                      <span className="text-2xl font-black text-white">{p.aiReputation.score}</span>
+                      <span className="text-xs text-gray-400">/100</span>
+                    </div>
+                    <span className="text-[10px] uppercase font-bold text-indigo-400 bg-indigo-950/60 px-2 py-0.5 rounded-full border border-indigo-800/40">
+                      {p.aiReputation.tier} TIER
+                    </span>
+                  </div>
+                  <Link
+                    href="/mentor"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-xl transition flex items-center gap-1.5 shadow-lg whitespace-nowrap"
+                  >
+                    View Report →
+                  </Link>
+                </div>
+              ) : (
+                <Link
+                  href="/mentor"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-xl transition flex items-center gap-1.5 shadow-lg whitespace-nowrap self-start sm:self-auto"
+                >
+                  Run AI Analysis →
+                </Link>
+              )}
             </div>
           </div>
 
@@ -267,25 +288,91 @@ export default function ProfilePage() {
             </div>
 
             <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
-              <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <Trophy className="h-4 w-4 text-yellow-400" />Reputation Score
+              <h2 className="text-sm font-semibold text-white mb-4 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-yellow-400" />
+                  Reputation Score
+                </span>
+                {p?.aiReputation && (
+                  <span className="text-[10px] font-bold text-indigo-400 bg-indigo-950/60 px-2 py-0.5 rounded-full border border-indigo-800/40">
+                    AI VERIFIED
+                  </span>
+                )}
               </h2>
-              <div className="flex items-center gap-5">
-                {rep && <ReputationRing score={rep.score} level={rep.level} label={rep.label} next={rep.next} />}
-                <div className="flex-1 space-y-2">
-                  {[
-                    { label:"Projects",      val:p?.stats?.projects??0,      pts:(p?.stats?.projects??0)*10,     color:"bg-indigo-500" },
-                    { label:"Contributions", val:p?.stats?.contributions??0, pts:(p?.stats?.contributions??0)*8, color:"bg-green-500" },
-                    { label:"Connections",   val:p?.stats?.connections??0,   pts:(p?.stats?.connections??0)*3,   color:"bg-blue-500" },
-                    { label:"Likes",         val:p?.stats?.likesReceived??0, pts:(p?.stats?.likesReceived??0)*2, color:"bg-red-500" },
-                  ].map(({label,val,pts,color}) => (
-                    <div key={label}>
-                      <div className="flex justify-between text-[10px] text-gray-500 mb-0.5"><span>{label} ({val})</span><span className="text-white">+{pts}</span></div>
-                      <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden"><div className={`h-full ${color} rounded-full`} style={{width:`${Math.min((val/20)*100,100)}%`}} /></div>
+
+              {p?.aiReputation ? (
+                /* AI-derived reputation score display (Option A) */
+                <div className="flex items-center gap-5">
+                  <div className="flex flex-col items-center">
+                    <div className="relative w-24 h-24">
+                      <svg className="w-24 h-24 -rotate-90" viewBox="0 0 88 88">
+                        <circle cx="44" cy="44" r="36" fill="none" stroke="#1f2937" strokeWidth="8" />
+                        <circle
+                          cx="44"
+                          cy="44"
+                          r="36"
+                          fill="none"
+                          stroke="url(#rg)"
+                          strokeWidth="8"
+                          strokeLinecap="round"
+                          strokeDasharray={`${(p.aiReputation.score / 100) * 226.19} 226.19`}
+                        />
+                        <defs>
+                          <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#6366f1" />
+                            <stop offset="100%" stopColor="#a855f7" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-xl font-black text-white">{p.aiReputation.score}</span>
+                        <span className="text-[9px] text-gray-400 uppercase tracking-wider">/ 100</span>
+                      </div>
                     </div>
-                  ))}
+                    <p className="text-xs font-bold text-white mt-1 uppercase">{p.aiReputation.tier}</p>
+                    <p className="text-[10px] text-indigo-400">AI Engineering Score</p>
+                  </div>
+
+                  <div className="flex-1 space-y-2">
+                    <p className="text-xs text-gray-300 font-medium leading-relaxed">
+                      Derived from live GitHub API evidence, commit velocity, test coverage, and code quality.
+                    </p>
+                    <div className="pt-2">
+                      <Link
+                        href="/mentor"
+                        className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                      >
+                        View 8-Dimension Breakdown →
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* Fallback engagement score when no AI analysis run yet */
+                <div>
+                  <div className="flex items-center gap-5">
+                    {rep && <ReputationRing score={rep.score} level={rep.level} label={rep.label} next={rep.next} />}
+                    <div className="flex-1 space-y-2">
+                      {[
+                        { label:"Projects",      val:p?.stats?.projects??0,      pts:(p?.stats?.projects??0)*10,     color:"bg-indigo-500" },
+                        { label:"Contributions", val:p?.stats?.contributions??0, pts:(p?.stats?.contributions??0)*8, color:"bg-green-500" },
+                        { label:"Connections",   val:p?.stats?.connections??0,   pts:(p?.stats?.connections??0)*3,   color:"bg-blue-500" },
+                        { label:"Likes",         val:p?.stats?.likesReceived??0, pts:(p?.stats?.likesReceived??0)*2, color:"bg-red-500" },
+                      ].map(({label,val,pts,color}) => (
+                        <div key={label}>
+                          <div className="flex justify-between text-[10px] text-gray-500 mb-0.5"><span>{label} ({val})</span><span className="text-white">+{pts}</span></div>
+                          <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden"><div className={`h-full ${color} rounded-full`} style={{width:`${Math.min((val/20)*100,100)}%`}} /></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-gray-800 text-center">
+                    <Link href="/mentor" className="text-xs text-indigo-400 hover:text-indigo-300 font-medium">
+                      Run your AI analysis to get a real evidence-backed reputation score →
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
