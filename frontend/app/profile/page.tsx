@@ -10,7 +10,7 @@ import {
   TrendingUp, Zap, Star, Heart,
   DollarSign, Shield, Settings, Bookmark, Activity,
   KeyRound, AlertTriangle, GitPullRequest, LogOut,
-  X, ChevronRight,
+  X, ChevronRight, Bell,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
@@ -52,10 +52,10 @@ function ActivityHeatmap({ grid }: { grid: Record<string, number> }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-4 items-start">
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
         {/* Heatmap — left side */}
-        <div className="flex-1 min-w-0">
-          <div className="flex gap-0.5 flex-wrap">
+        <div className="flex-1 min-w-0 w-full overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          <div className="flex gap-0.5 min-w-max">
             {weeks.map((wk, i) => (
               <div key={i} title={`Week of ${wk.startDate}: ${wk.total} contributions`}
                 className={`w-4 h-8 rounded-sm cursor-default transition-opacity hover:opacity-80 ${getColor(wk.total)}`} />
@@ -71,7 +71,7 @@ function ActivityHeatmap({ grid }: { grid: Record<string, number> }) {
         </div>
 
         {/* Stats box — right side */}
-        <div className="flex-shrink-0 w-44 bg-gray-800/60 rounded-xl border border-gray-700/50 p-3 space-y-2">
+        <div className="w-full sm:w-44 flex-shrink-0 bg-gray-800/60 rounded-xl border border-gray-700/50 p-3 space-y-2">
           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Contribution Stats</p>
           {[
             { label: "Total contributions", value: totalContribs },
@@ -156,13 +156,88 @@ export default function ProfilePage() {
   const allDefs = p?.allBadgeDefs ?? [];
 
   return (
-    <div className="min-h-screen bg-gray-950 space-y-4">
+    <div className="min-h-screen bg-gray-950 space-y-4 overflow-x-hidden w-full max-w-full">
 
-      {/* Hero card */}
-      <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+      {/* ── Mobile/Tablet Dedicated Profile Top Header (lg:hidden) ────────── */}
+      <div className="sticky -top-4 sm:-top-6 -mx-3 sm:-mx-6 -mt-4 sm:-mt-6 mb-3 px-4 py-3 bg-gray-900 border-b border-gray-800 flex items-center justify-between z-30 lg:hidden">
+        <span className="font-bold text-white text-base truncate">
+          @{user.githubUsername || user.username}
+        </span>
+        <button
+          onClick={() => setMenuOpen(true)}
+          aria-label="Account Settings & Menu"
+          className="p-2 text-gray-300 hover:text-white rounded-xl bg-gray-800 border border-gray-700 transition flex items-center justify-center"
+        >
+          <Settings className="h-5 w-5 text-indigo-400" />
+        </button>
+      </div>
+
+      {/* ── Mobile/Tablet Compact Hero Card (lg:hidden) ───────────────────── */}
+      <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden lg:hidden">
+        <div className="h-16 bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900" />
+        <div className="px-4 pb-4 relative">
+          <div className="flex items-center gap-3 -mt-6 mb-3">
+            <div className="relative flex-shrink-0">
+              {user.avatarUrl
+                ? <img src={user.avatarUrl} alt={user.username} className="w-16 h-16 rounded-2xl border-4 border-gray-900 block object-cover" />
+                : <div className="w-16 h-16 rounded-2xl border-4 border-gray-900 bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
+                    <span className="text-xl font-bold text-white">{user.username.charAt(0).toUpperCase()}</span>
+                  </div>
+              }
+              <span className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-900" />
+            </div>
+
+            <div className="flex-1 min-w-0 pt-6">
+              <h1 className="text-base font-bold text-white truncate">{user.username}</h1>
+              {user.githubUsername && <p className="text-xs text-gray-400 truncate">@{user.githubUsername}</p>}
+
+              <div className="grid grid-cols-4 gap-1 mt-2 text-center border-t border-gray-800/80 pt-2">
+                {[
+                  { label: "Projects",      value: p?.stats?.projects ?? 0,      color: "text-indigo-400" },
+                  { label: "Contribs",      value: p?.stats?.contributions ?? 0, color: "text-green-400" },
+                  { label: "Connect",       value: p?.stats?.connections ?? 0,   color: "text-blue-400" },
+                  { label: "Likes",         value: p?.stats?.likesReceived ?? 0, color: "text-red-400" },
+                ].map(({ label, value, color }) => (
+                  <div key={label}>
+                    <div className={`text-base font-extrabold ${color}`}>{value}</div>
+                    <div className="text-[9px] text-gray-500 leading-none mt-0.5 truncate">{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Link href="/settings" className="flex-1 text-center text-xs font-medium text-white border border-gray-700 bg-gray-800/60 py-1.5 rounded-xl hover:bg-gray-800 transition">
+                Edit Profile
+              </Link>
+            </div>
+
+            {user.bio && <p className="text-xs text-gray-300 leading-relaxed">{user.bio}</p>}
+
+            <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+              {user.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{user.location}</span>}
+              <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />Joined {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}</span>
+              {user.website && <a href={user.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-indigo-400"><Globe className="h-3 w-3" />Website</a>}
+              {user.githubProfileUrl && <a href={user.githubProfileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-indigo-400"><ExternalLink className="h-3 w-3" />GitHub</a>}
+            </div>
+
+            {user.skills && user.skills.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {user.skills.map((s, i) => (
+                  <span key={i} className="text-[10px] text-indigo-300 bg-indigo-900/40 border border-indigo-800/40 px-2 py-0.5 rounded-full font-medium">{s}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Desktop Full Hero Card (hidden lg:block) ──────────────────────── */}
+      <div className="hidden lg:block bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
         <div className="h-24 bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900" />
         <div className="px-6 pb-6 relative">
-          {/* Avatar overlaps banner */}
           <div className="relative inline-block -mt-10 mb-3">
             {user.avatarUrl
               ? <img src={user.avatarUrl} alt={user.username} className="w-20 h-20 rounded-2xl border-4 border-gray-900 block" />
@@ -172,19 +247,10 @@ export default function ProfilePage() {
             }
             <span className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-green-400 rounded-full border-2 border-gray-900" />
           </div>
-          {/* Edit Profile button + Mobile Quick Actions button (Option C) */}
           <div className="flex items-center gap-2 mb-2">
             <Link href="/settings" className="text-xs font-medium text-white border border-gray-600 px-4 py-2 rounded-xl hover:bg-gray-800 transition">
               Edit Profile
             </Link>
-            <button
-              onClick={() => setMenuOpen(true)}
-              aria-label="Account Settings & Quick Actions"
-              title="Account Settings"
-              className="lg:hidden text-xs font-medium text-gray-300 border border-gray-700 p-2 rounded-xl hover:bg-gray-800 transition flex items-center gap-1.5"
-            >
-              <Settings className="h-4 w-4" />
-            </button>
           </div>
           <h1 className="text-xl font-bold text-white">{user.username}</h1>
           {user.githubUsername && <p className="text-sm text-gray-400">@{user.githubUsername}</p>}
@@ -216,7 +282,8 @@ export default function ProfilePage() {
                 <div className="text-[10px] text-gray-500 mt-0.5">{label}</div>
               </div>
             ))}
-          </div>        </div>
+          </div>
+        </div>
       </div>
 
       {/* Two-column layout */}
@@ -233,9 +300,9 @@ export default function ProfilePage() {
                   <Zap className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                    AI Mentor Engineering Rating
-                    <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  <h2 className="text-sm font-bold text-white flex flex-wrap items-center gap-2">
+                    <span>AI Mentor Engineering Rating</span>
+                    <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex-shrink-0">
                       Live GitHub Evidence
                     </span>
                   </h2>
@@ -278,23 +345,23 @@ export default function ProfilePage() {
               <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                 <Flame className="h-4 w-4 text-orange-400" />Contribution Streak
               </h2>
-              <div className="flex items-center gap-5">
-                <div className="text-center">
-                  <div className="text-4xl font-black text-orange-400">{streak?.currentStreak ?? 0}</div>
+              <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+                <div className="text-center flex-shrink-0">
+                  <div className="text-3xl sm:text-4xl font-black text-orange-400">{streak?.currentStreak ?? 0}</div>
                   <div className="text-xs text-gray-500 mt-0.5">Current</div>
                 </div>
-                <div className="flex-1 space-y-2.5">
-                  <div className="flex justify-between text-xs"><span className="text-gray-500">Longest</span><span className="text-white font-semibold">{streak?.longestStreak ?? 0} days</span></div>
-                  <div className="flex justify-between text-xs"><span className="text-gray-500">Total days</span><span className="text-white font-semibold">{streak?.totalActiveDays ?? 0}</span></div>
-                  <div className="flex justify-between text-xs"><span className="text-gray-500">Weekly</span><span className="text-orange-300 font-semibold">{streak?.weeklyStreak ?? 0} wks</span></div>
-                  <div className="flex justify-between text-xs"><span className="text-gray-500">Monthly</span><span className="text-orange-300 font-semibold">{streak?.monthlyStreak ?? 0} mo</span></div>
+                <div className="flex-1 min-w-0 space-y-2">
+                  <div className="flex justify-between text-xs gap-2"><span className="text-gray-500 flex-shrink-0">Longest</span><span className="text-white font-semibold flex-shrink-0">{streak?.longestStreak ?? 0} days</span></div>
+                  <div className="flex justify-between text-xs gap-2"><span className="text-gray-500 flex-shrink-0">Total days</span><span className="text-white font-semibold flex-shrink-0">{streak?.totalActiveDays ?? 0}</span></div>
+                  <div className="flex justify-between text-xs gap-2"><span className="text-gray-500 flex-shrink-0">Weekly</span><span className="text-orange-300 font-semibold flex-shrink-0">{streak?.weeklyStreak ?? 0} wks</span></div>
+                  <div className="flex justify-between text-xs gap-2"><span className="text-gray-500 flex-shrink-0">Monthly</span><span className="text-orange-300 font-semibold flex-shrink-0">{streak?.monthlyStreak ?? 0} mo</span></div>
                   <div className="flex gap-1">{[...Array(7)].map((_, i) => <div key={i} className={`flex-1 h-2 rounded-full ${i < Math.min(streak?.currentStreak ?? 0, 7) ? "bg-orange-400" : "bg-gray-800"}`} />)}</div>
                 </div>
               </div>
-              <div className="flex gap-2 mt-4 pt-4 border-t border-gray-800">
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-2 mt-4 pt-4 border-t border-gray-800">
                 {[{days:3,icon:"🔥",label:"3d"},{days:7,icon:"⚡",label:"7d"},{days:14,icon:"💫",label:"14d"},{days:30,icon:"💎",label:"30d"}].map(({days,icon,label}) => (
-                  <div key={days} className={`flex-1 flex flex-col items-center gap-0.5 p-2 rounded-xl border ${(streak?.longestStreak??0)>=days ? "border-orange-800/50 bg-orange-900/20" : "border-gray-800 opacity-40"}`}>
-                    <span className="text-base">{icon}</span>
+                  <div key={days} className={`flex flex-col items-center gap-0.5 p-1.5 sm:p-2 rounded-xl border min-w-0 ${(streak?.longestStreak??0)>=days ? "border-orange-800/50 bg-orange-900/20" : "border-gray-800 opacity-40"}`}>
+                    <span className="text-sm sm:text-base">{icon}</span>
                     <span className="text-[9px] text-gray-400">{label}</span>
                   </div>
                 ))}
@@ -316,8 +383,8 @@ export default function ProfilePage() {
 
               {p?.aiReputation ? (
                 /* AI-derived reputation score display (Option A) */
-                <div className="flex items-center gap-5">
-                  <div className="flex flex-col items-center">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5 min-w-0">
+                  <div className="flex flex-col items-center flex-shrink-0">
                     <div className="relative w-24 h-24">
                       <svg className="w-24 h-24 -rotate-90" viewBox="0 0 88 88">
                         <circle cx="44" cy="44" r="36" fill="none" stroke="#1f2937" strokeWidth="8" />
@@ -347,11 +414,11 @@ export default function ProfilePage() {
                     <p className="text-[10px] text-indigo-400">AI Engineering Score</p>
                   </div>
 
-                  <div className="flex-1 space-y-2">
-                    <p className="text-xs text-gray-300 font-medium leading-relaxed">
+                  <div className="flex-1 min-w-0 w-full text-center sm:text-left space-y-2">
+                    <p className="text-xs text-gray-300 font-medium leading-relaxed whitespace-normal break-words">
                       Derived from live GitHub API evidence, commit velocity, test coverage, and code quality.
                     </p>
-                    <div className="pt-2">
+                    <div className="pt-2 flex justify-center sm:justify-start">
                       <Link
                         href="/mentor"
                         className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
@@ -464,15 +531,15 @@ export default function ProfilePage() {
               </div>
               <div className="space-y-3">
                 {myProjects.slice(0, 4).map((proj: any) => (
-                  <Link key={proj.id} href={`/projects/${proj.id}`} className="flex items-center gap-3 p-3 rounded-xl bg-gray-800 hover:bg-gray-700 transition">
+                  <Link key={proj.id} href={`/projects/${proj.id}`} className="flex items-center gap-3 p-3 rounded-xl bg-gray-800 hover:bg-gray-700 transition min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-gray-700 flex-shrink-0 overflow-hidden">
                       {proj.coverImage ? <img src={proj.coverImage} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><FolderGit2 className="h-5 w-5 text-gray-500" /></div>}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-white truncate">{proj.title}</p>
-                      <p className="text-xs text-gray-500 truncate">{proj.description}</p>
+                      <p className="text-xs text-gray-500 line-clamp-1 text-ellipsis overflow-hidden">{proj.description}</p>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-gray-600 flex-shrink-0">
+                    <div className="flex items-center gap-2 sm:gap-3 text-xs text-gray-600 flex-shrink-0">
                       <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{proj._count?.likes ?? 0}</span>
                       <span className="flex items-center gap-1"><Users className="h-3 w-3" />{proj._count?.members ?? 0}</span>
                     </div>
@@ -483,8 +550,8 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* RIGHT — badges + activity (fixed width on lg+, stacked full width on mobile) */}
-        <div className="w-full lg:w-72 flex-shrink-0 space-y-4 lg:sticky lg:top-4">
+        {/* RIGHT — badges + activity (desktop only: hidden lg:block) */}
+        <div className="hidden lg:block w-72 flex-shrink-0 space-y-4 sticky top-4">
 
           {/* Badges */}
           <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4">
@@ -570,6 +637,7 @@ export default function ProfilePage() {
                 { name: "Settings",       href: "/settings",       icon: Settings,      desc: "Profile preferences & security" },
                 { name: "Saved Projects", href: "/saved",          icon: Bookmark,      desc: "Bookmarks & saved items" },
                 { name: "Your Activity",  href: "/activity",       icon: Activity,      desc: "Recent interactions & logs" },
+                { name: "Achievements",   href: "/profile",        icon: Star,          desc: "Badges & milestones" },
                 { name: "Repo Requests",  href: "/repo-requests",  icon: KeyRound,      desc: "Access requests & tokens" },
                 { name: "Bug Reports",    href: "/bug-reports",    icon: AlertTriangle, desc: "Submitted issues & feedback" },
                 { name: "Pull Requests",  href: "/pull-requests",  icon: GitPullRequest,desc: "Code contributions & PRs" },

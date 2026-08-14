@@ -44,8 +44,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Center column — no padding on mobile, 64px left padding on lg+ for sidebar */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden lg:pl-16">
-        {/* Hide TopBar on fullscreen pages (messages has its own header) */}
-        {!isFullscreen && <TopBar />}
+        {/* Hide TopBar on fullscreen pages, and hide on mobile/tablet for /profile (profile has its own header) */}
+        {!isFullscreen && (
+          <div className={pathname === "/profile" ? "hidden lg:block" : ""}>
+            <TopBar />
+          </div>
+        )}
 
         <main className={`flex-1 overflow-y-auto ${isFullscreen ? "overflow-hidden" : ""}`}>
           {isFullscreen ? (
@@ -56,7 +60,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           ) : (
             // Normal pages: centered, max-w-2xl, padded
             // Wide pages (profile, settings, mentor): full width with padding
-            <div className="px-6 py-6 pb-24 lg:pb-6 min-h-full flex flex-col items-center">
+            <div className="px-3 sm:px-6 py-4 sm:py-6 pb-24 lg:pb-6 min-h-full flex flex-col items-center">
               <div className={`w-full ${isWide ? "max-w-6xl" : "max-w-2xl"}`}>
                 {children}
               </div>

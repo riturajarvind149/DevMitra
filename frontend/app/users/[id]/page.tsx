@@ -43,9 +43,9 @@ function ActivityHeatmap({ grid }: { grid: Record<string, number> }) {
   const activeWeeks = weeks.filter(w => w.total > 0).length;
   return (
     <div className="space-y-3">
-      <div className="flex gap-3 items-start">
-        <div className="flex-1 min-w-0">
-          <div className="flex gap-0.5 flex-wrap">
+      <div className="flex flex-col sm:flex-row gap-3 items-start">
+        <div className="flex-1 min-w-0 w-full overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          <div className="flex gap-0.5 min-w-max">
             {weeks.map((wk, i) => (
               <div key={i} title={`Week of ${wk.startDate}: ${wk.total}`}
                 className={`w-4 h-8 rounded-sm cursor-default ${getColor(wk.total)}`} />
@@ -59,7 +59,7 @@ function ActivityHeatmap({ grid }: { grid: Record<string, number> }) {
             <span className="text-[10px] text-gray-600">More</span>
           </div>
         </div>
-        <div className="flex-shrink-0 w-36 bg-gray-800/60 rounded-xl border border-gray-700/50 p-2.5 space-y-1.5">
+        <div className="w-full sm:w-36 flex-shrink-0 bg-gray-800/60 rounded-xl border border-gray-700/50 p-2.5 space-y-1.5">
           <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">Stats</p>
           {[
             { label: "Total", value: totalContribs },
@@ -79,9 +79,9 @@ function ActivityHeatmap({ grid }: { grid: Record<string, number> }) {
 
 function BadgeCard({ badge, earned }: { badge: any; earned: boolean }) {
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-xl border ${earned ? "border-gray-700 bg-gray-800/60" : "border-gray-800 opacity-40 grayscale"}`}>
+    <div className={`flex items-center gap-3 p-3 rounded-xl border min-w-0 ${earned ? "border-gray-700 bg-gray-800/60" : "border-gray-800 opacity-40 grayscale"}`}>
       <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${badge.color} flex items-center justify-center text-base flex-shrink-0`}>{badge.icon}</div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-white truncate">{badge.label}</p>
         <p className="text-[10px] text-gray-500 truncate">{badge.desc}</p>
       </div>
@@ -128,13 +128,91 @@ export default function UserProfilePage() {
   const isSelf = me?.id === userId;
 
   return (
-    <div className="min-h-screen bg-gray-950 space-y-4">
+    <div className="min-h-screen bg-gray-950 space-y-4 overflow-x-hidden w-full max-w-full">
 
-      {/* ── Hero card ─────────────────────────────────────────────────────── */}
-      <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+      {/* ── Mobile/Tablet Dedicated Header (lg:hidden) ────────────────────── */}
+      <div className="sticky -top-4 sm:-top-6 -mx-3 sm:-mx-6 -mt-4 sm:-mt-6 mb-3 px-4 py-3 bg-gray-900 border-b border-gray-800 flex items-center justify-between z-30 lg:hidden">
+        <span className="font-bold text-white text-base truncate">
+          @{profile.githubUsername || profile.username}
+        </span>
+      </div>
+
+      {/* ── Mobile/Tablet Compact Hero Card (lg:hidden) ───────────────────── */}
+      <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden lg:hidden">
+        <div className="h-16 bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900" />
+        <div className="px-4 pb-4 relative">
+          <div className="flex items-center gap-3 -mt-6 mb-3">
+            <div className="relative flex-shrink-0">
+              {profile.avatarUrl
+                ? <img src={profile.avatarUrl} alt={profile.username} className="w-16 h-16 rounded-2xl border-4 border-gray-900 block object-cover" />
+                : <div className="w-16 h-16 rounded-2xl border-4 border-gray-900 bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
+                    <span className="text-xl font-bold text-white">{profile.username.charAt(0).toUpperCase()}</span>
+                  </div>
+              }
+              <span className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-900" />
+            </div>
+
+            <div className="flex-1 min-w-0 pt-6">
+              <h1 className="text-base font-bold text-white truncate">{profile.username}</h1>
+              {profile.githubUsername && <p className="text-xs text-gray-400 truncate">@{profile.githubUsername}</p>}
+
+              <div className="grid grid-cols-4 gap-1 mt-2 text-center border-t border-gray-800/80 pt-2">
+                {[
+                  { label: "Projects",      value: stats?.projects ?? 0,      color: "text-indigo-400" },
+                  { label: "Contribs",      value: stats?.contributions ?? 0, color: "text-green-400" },
+                  { label: "Connect",       value: stats?.connections ?? 0,   color: "text-blue-400" },
+                  { label: "Likes",         value: stats?.likesReceived ?? 0, color: "text-red-400" },
+                ].map(({ label, value, color }) => (
+                  <div key={label}>
+                    <div className={`text-base font-extrabold ${color}`}>{value}</div>
+                    <div className="text-[9px] text-gray-500 leading-none mt-0.5 truncate">{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              {!isSelf ? (
+                <>
+                  <ConnectButton userId={userId} />
+                  <Link href={`/messages?user=${userId}`}
+                    className="text-xs text-gray-300 border border-gray-700 px-3 py-1.5 rounded-xl hover:bg-gray-800 transition whitespace-nowrap">
+                    Message
+                  </Link>
+                </>
+              ) : (
+                <Link href="/settings" className="text-xs text-indigo-400 border border-indigo-800 px-3 py-1.5 rounded-xl hover:bg-indigo-900/30 transition whitespace-nowrap">
+                  Edit Profile
+                </Link>
+              )}
+            </div>
+
+            {profile.bio && <p className="text-xs text-gray-300 leading-relaxed">{profile.bio}</p>}
+
+            <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+              {profile.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{profile.location}</span>}
+              <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />Joined {formatDistanceToNow(new Date(profile.createdAt), { addSuffix: true })}</span>
+              {profile.website && <a href={profile.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-indigo-400"><Globe className="h-3 w-3" />Website</a>}
+              {profile.githubProfileUrl && <a href={profile.githubProfileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-indigo-400"><ExternalLink className="h-3 w-3" />GitHub</a>}
+            </div>
+
+            {profile.skills?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {(profile.skills as string[]).map((s: string, i: number) => (
+                  <span key={i} className="text-[10px] text-indigo-300 bg-indigo-900/40 border border-indigo-800/40 px-2 py-0.5 rounded-full font-medium">{s}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Desktop Full Hero card (hidden lg:block) ───────────────────────── */}
+      <div className="hidden lg:block bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
         <div className="h-20 bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900" />
         <div className="px-5 pb-5 relative">
-          {/* Avatar — overlaps the banner */}
           <div className="relative inline-block -mt-8 mb-3">
             {profile.avatarUrl
               ? <img src={profile.avatarUrl} alt={profile.username} className="w-16 h-16 rounded-2xl border-4 border-gray-900 block" />
@@ -145,7 +223,6 @@ export default function UserProfilePage() {
             <span className="absolute bottom-1 right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-900" />
           </div>
 
-          {/* Buttons — sit in normal flow, never overlap banner */}
           <div className="flex gap-2 flex-wrap items-center mb-3">
             {!isSelf ? (
               <>
@@ -195,7 +272,8 @@ export default function UserProfilePage() {
                 <div className="text-[10px] text-gray-500 mt-0.5">{label}</div>
               </div>
             ))}
-          </div>        </div>
+          </div>
+        </div>
       </div>
 
       {/* ── Two-column: left = streak/rep/heatmap/projects, right = badges/activity ── */}
@@ -211,9 +289,9 @@ export default function UserProfilePage() {
                     <Zap className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                      AI Mentor Engineering Rating
-                      <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    <h2 className="text-sm font-bold text-white flex flex-wrap items-center gap-2">
+                      <span>AI Mentor Engineering Rating</span>
+                      <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex-shrink-0">
                         Live GitHub Evidence
                       </span>
                     </h2>
@@ -342,7 +420,7 @@ export default function UserProfilePage() {
               <div className="space-y-3">
                 {userProjects.slice(0, 6).map((proj: any) => (
                   <Link key={proj.id} href={`/projects/${proj.id}`}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-gray-800 hover:bg-gray-700 transition">
+                    className="flex items-center gap-3 p-3 rounded-xl bg-gray-800 hover:bg-gray-700 transition min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-gray-700 flex-shrink-0 overflow-hidden">
                       {proj.coverImage
                         ? <img src={proj.coverImage} alt="" className="w-full h-full object-cover" />
@@ -353,9 +431,9 @@ export default function UserProfilePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-white truncate">{proj.title}</p>
-                      <p className="text-xs text-gray-500 truncate">{proj.description}</p>
+                      <p className="text-xs text-gray-500 line-clamp-1 text-ellipsis overflow-hidden">{proj.description}</p>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-gray-600 flex-shrink-0">
+                    <div className="flex items-center gap-2 sm:gap-3 text-xs text-gray-600 flex-shrink-0">
                       <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{proj._count?.likes ?? 0}</span>
                       <span className="flex items-center gap-1"><Users className="h-3 w-3" />{proj._count?.members ?? 0}</span>
                     </div>
@@ -366,8 +444,8 @@ export default function UserProfilePage() {
           )}
         </div>
 
-        {/* RIGHT — badges + activity */}
-        <div className="w-full lg:w-[272px] flex-shrink-0 space-y-4 lg:sticky lg:top-4">
+        {/* RIGHT — badges + activity (desktop only: hidden lg:block) */}
+        <div className="hidden lg:block w-[272px] flex-shrink-0 space-y-4 sticky top-4">
           {/* Badges */}
           <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4">
             <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">

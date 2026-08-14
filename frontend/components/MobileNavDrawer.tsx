@@ -1,14 +1,13 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, Bell, MessageSquare, User } from "lucide-react";
+import { Home, Compass, MessageSquare, User } from "lucide-react";
 
 const NAV_ITEMS = [
-  { name: "Home",          href: "/",              icon: Home },
-  { name: "Explore",       href: "/explore",       icon: Compass },
-  { name: "Notifications", href: "/notifications", icon: Bell },
-  { name: "Messages",      href: "/messages",      icon: MessageSquare },
-  { name: "Profile",       href: "/profile",       icon: User },
+  { name: "Home",     href: "/",         icon: Home },
+  { name: "Explore",  href: "/explore",  icon: Compass },
+  { name: "Messages", href: "/messages", icon: MessageSquare },
+  { name: "Profile",  href: "/profile",  icon: User },
 ];
 
 export default function MobileNavDrawer() {
