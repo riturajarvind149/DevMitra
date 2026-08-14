@@ -28,7 +28,7 @@ export default function MentorChatLauncher() {
             setInitialAnalysisId(null);
             setIsOpen(true);
           }}
-          className="fixed bottom-6 right-6 z-50 group"
+          className="fixed bottom-20 right-4 z-30 lg:bottom-6 lg:right-6 group"
           aria-label="Open AI Mentor"
         >
           {/* Glow ring */}

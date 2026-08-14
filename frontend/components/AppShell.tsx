@@ -56,7 +56,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           ) : (
             // Normal pages: centered, max-w-2xl, padded
             // Wide pages (profile, settings, mentor): full width with padding
-            <div className="px-6 py-6 min-h-full flex flex-col items-center">
+            <div className="px-6 py-6 pb-24 lg:pb-6 min-h-full flex flex-col items-center">
               <div className={`w-full ${isWide ? "max-w-6xl" : "max-w-2xl"}`}>
                 {children}
               </div>
@@ -65,18 +65,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      {/* Mobile nav drawer — only visible below sm breakpoint */}
-      <div className="sm:hidden">
+      {/* Mobile bottom nav bar — visible on mobile and tablet (<1024px) */}
+      <div className="lg:hidden">
         <MobileNavDrawer />
       </div>
 
-      {/* Mobile Nav Drawer — visible only on screens < 640px */}
-      <div className="sm:hidden">
-        <MobileNavDrawer />
-      </div>
-
-      {/* Right sidebar — collapsible, arrow always visible */}
-      <div className="relative flex-shrink-0 h-screen flex">
+      {/* Right sidebar — desktop only (>=1024px) */}
+      <div className="hidden lg:flex relative flex-shrink-0 h-screen">
         {/* Toggle arrow — outside overflow-hidden, always visible */}
         <button
           onClick={() => setRightVisible(v => !v)}

@@ -199,7 +199,7 @@ export default function UserProfilePage() {
       </div>
 
       {/* ── Two-column: left = streak/rep/heatmap/projects, right = badges/activity ── */}
-      <div className="flex gap-4 items-start">
+      <div className="flex flex-col lg:flex-row gap-4 items-start">
         {/* LEFT */}
         <div className="flex-1 min-w-0 space-y-4">
           {/* AI Mentor Reputation Engine Card */}
@@ -367,7 +367,7 @@ export default function UserProfilePage() {
         </div>
 
         {/* RIGHT — badges + activity */}
-        <div className="w-68 flex-shrink-0 space-y-4 sticky top-4" style={{ width: 272 }}>
+        <div className="w-full lg:w-[272px] flex-shrink-0 space-y-4 lg:sticky lg:top-4">
           {/* Badges */}
           <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4">
             <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">

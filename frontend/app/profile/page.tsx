@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { profileDataAPI, usersAPI } from "@/lib/api";
@@ -7,10 +8,13 @@ import {
   Calendar, FolderGit2, Users, ExternalLink,
   MapPin, Globe, Clock, Link2, Flame, Trophy,
   TrendingUp, Zap, Star, Heart,
-  DollarSign, Shield,
+  DollarSign, Shield, Settings, Bookmark, Activity,
+  KeyRound, AlertTriangle, GitPullRequest, LogOut,
+  X, ChevronRight,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
+import LogoutConfirmModal from "@/components/LogoutConfirmModal";
 
 function ActivityHeatmap({ grid }: { grid: Record<string, number> }) {
   const today = new Date();
@@ -125,7 +129,9 @@ function ReputationRing({ score, level, label, next }: { score: number; level: n
 }
 
 export default function ProfilePage() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: ["fullProfile", user?.id],
@@ -166,11 +172,19 @@ export default function ProfilePage() {
             }
             <span className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-green-400 rounded-full border-2 border-gray-900" />
           </div>
-          {/* Edit Profile button — in normal flow, never overlaps banner */}
-          <div className="flex mb-2">
+          {/* Edit Profile button + Mobile Quick Actions button (Option C) */}
+          <div className="flex items-center gap-2 mb-2">
             <Link href="/settings" className="text-xs font-medium text-white border border-gray-600 px-4 py-2 rounded-xl hover:bg-gray-800 transition">
               Edit Profile
             </Link>
+            <button
+              onClick={() => setMenuOpen(true)}
+              aria-label="Account Settings & Quick Actions"
+              title="Account Settings"
+              className="lg:hidden text-xs font-medium text-gray-300 border border-gray-700 p-2 rounded-xl hover:bg-gray-800 transition flex items-center gap-1.5"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
           </div>
           <h1 className="text-xl font-bold text-white">{user.username}</h1>
           {user.githubUsername && <p className="text-sm text-gray-400">@{user.githubUsername}</p>}
@@ -206,7 +220,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Two-column layout */}
-      <div className="flex gap-4 items-start">
+      <div className="flex flex-col lg:flex-row gap-4 items-start">
 
         {/* LEFT — streak, reputation, heatmap, projects */}
         <div className="flex-1 min-w-0 space-y-4">
@@ -469,8 +483,8 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* RIGHT — badges + activity (fixed width, sticky) */}
-        <div className="w-72 flex-shrink-0 space-y-4 sticky top-4">
+        {/* RIGHT — badges + activity (fixed width on lg+, stacked full width on mobile) */}
+        <div className="w-full lg:w-72 flex-shrink-0 space-y-4 lg:sticky lg:top-4">
 
           {/* Badges */}
           <div className="bg-gray-900 rounded-2xl border border-gray-800 p-4">
@@ -528,6 +542,86 @@ export default function ProfilePage() {
 
         </div>
       </div>
+
+      {/* ── Mobile/Tablet Account Quick Actions Sheet (Option C) ─────────── */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="relative bg-gray-900 border-t border-gray-800 rounded-t-3xl p-5 pb-8 max-h-[85vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-800 mb-2">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Settings className="h-4 w-4 text-indigo-400" /> Account & Menu
+              </h3>
+              <button
+                onClick={() => setMenuOpen(false)}
+                className="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800 transition"
+                aria-label="Close menu"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-1 py-2">
+              {[
+                { name: "Settings",       href: "/settings",       icon: Settings,      desc: "Profile preferences & security" },
+                { name: "Saved Projects", href: "/saved",          icon: Bookmark,      desc: "Bookmarks & saved items" },
+                { name: "Your Activity",  href: "/activity",       icon: Activity,      desc: "Recent interactions & logs" },
+                { name: "Repo Requests",  href: "/repo-requests",  icon: KeyRound,      desc: "Access requests & tokens" },
+                { name: "Bug Reports",    href: "/bug-reports",    icon: AlertTriangle, desc: "Submitted issues & feedback" },
+                { name: "Pull Requests",  href: "/pull-requests",  icon: GitPullRequest,desc: "Code contributions & PRs" },
+              ].map(({ name, href, icon: Icon, desc }) => (
+                <Link
+                  key={name}
+                  href={href}
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-800 transition group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-gray-800 text-gray-400 group-hover:bg-indigo-600/20 group-hover:text-indigo-400 transition">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white">{name}</p>
+                      <p className="text-[11px] text-gray-500">{desc}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-gray-600 group-hover:text-gray-400 transition" />
+                </Link>
+              ))}
+            </div>
+
+            <div className="pt-3 mt-2 border-t border-gray-800">
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  setConfirmLogout(true);
+                }}
+                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-red-950/30 text-red-400 transition group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-red-950/40 text-red-400">
+                    <LogOut className="h-4 w-4" />
+                  </div>
+                  <span className="text-sm font-semibold">Log Out</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-red-600" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logout Modal */}
+      {confirmLogout && (
+        <LogoutConfirmModal
+          onConfirm={logout}
+          onCancel={() => setConfirmLogout(false)}
+        />
+      )}
     </div>
   );
 }
