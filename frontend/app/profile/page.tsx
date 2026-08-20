@@ -51,20 +51,23 @@ function ActivityHeatmap({ grid }: { grid: Record<string, number> }) {
   const activeWeeks = weeks.filter(w => w.total > 0).length;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-4 items-start">
-        {/* Heatmap — left side */}
-        <div className="flex-1 min-w-0 w-full overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-          <div className="flex gap-0.5 min-w-max">
+    <div className="space-y-4 w-full min-w-0 max-w-full overflow-hidden">
+      <div className="flex flex-col sm:flex-row gap-4 items-start w-full min-w-0 max-w-full">
+        {/* Heatmap — left side scrollable */}
+        <div className="w-full sm:flex-1 min-w-0 max-w-full overflow-x-auto pb-2 scrollbar-hide">
+          <div className="inline-flex gap-1 min-w-max pb-1">
             {weeks.map((wk, i) => (
-              <div key={i} title={`Week of ${wk.startDate}: ${wk.total} contributions`}
-                className={`w-4 h-8 rounded-sm cursor-default transition-opacity hover:opacity-80 ${getColor(wk.total)}`} />
+              <div
+                key={i}
+                title={`Week of ${wk.startDate}: ${wk.total} contributions`}
+                className={`w-3.5 h-7 sm:w-4 sm:h-8 rounded-sm cursor-default transition-opacity hover:opacity-80 flex-shrink-0 ${getColor(wk.total)}`}
+              />
             ))}
           </div>
           <div className="flex items-center gap-1.5 mt-2">
             <span className="text-[10px] text-gray-600">Less</span>
             {["bg-gray-800","bg-indigo-900","bg-indigo-700","bg-indigo-500","bg-indigo-400"].map(c => (
-              <div key={c} className={`w-3 h-3 rounded-sm ${c}`} />
+              <div key={c} className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm flex-shrink-0 ${c}`} />
             ))}
             <span className="text-[10px] text-gray-600">More</span>
           </div>
@@ -156,7 +159,7 @@ export default function ProfilePage() {
   const allDefs = p?.allBadgeDefs ?? [];
 
   return (
-    <div className="min-h-screen bg-gray-950 space-y-4 overflow-x-hidden w-full max-w-full">
+    <div className="min-h-screen bg-gray-950 space-y-4 overflow-x-hidden w-full min-w-0 max-w-full">
 
       {/* ── Mobile/Tablet Dedicated Profile Top Header (lg:hidden) ────────── */}
       <div className="sticky -top-4 sm:-top-6 -mx-3 sm:-mx-6 -mt-4 sm:-mt-6 mb-3 px-4 py-3 bg-gray-900 border-b border-gray-800 flex items-center justify-between z-30 lg:hidden">
@@ -173,7 +176,7 @@ export default function ProfilePage() {
       </div>
 
       {/* ── Mobile/Tablet Compact Hero Card (lg:hidden) ───────────────────── */}
-      <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden lg:hidden">
+      <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden w-full min-w-0 max-w-full lg:hidden">
         <div className="h-16 bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900" />
         <div className="px-4 pb-4 relative">
           <div className="flex items-center gap-3 -mt-6 mb-3">
@@ -287,13 +290,13 @@ export default function ProfilePage() {
       </div>
 
       {/* Two-column layout */}
-      <div className="flex flex-col lg:flex-row gap-4 items-start">
+      <div className="flex flex-col lg:flex-row gap-4 items-start w-full min-w-0 max-w-full">
 
         {/* LEFT — streak, reputation, heatmap, projects */}
-        <div className="flex-1 min-w-0 space-y-4">
+        <div className="w-full lg:flex-1 min-w-0 max-w-full space-y-4">
 
           {/* AI Mentor Reputation Engine Card */}
-          <div className="bg-gradient-to-r from-indigo-900/40 via-purple-900/40 to-neutral-900 rounded-2xl border border-indigo-500/30 p-5">
+          <div className="bg-gradient-to-r from-indigo-900/40 via-purple-900/40 to-neutral-900 rounded-2xl border border-indigo-500/30 p-3.5 sm:p-5 w-full min-w-0 max-w-full overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400">
@@ -340,36 +343,82 @@ export default function ProfilePage() {
           </div>
 
           {/* Streak + Reputation */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
-              <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 w-full min-w-0 max-w-full">
+            {/* Contribution Streak Card */}
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-3.5 sm:p-5 w-full min-w-0 max-w-full overflow-hidden">
+              <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                 <Flame className="h-4 w-4 text-orange-400" />Contribution Streak
               </h2>
-              <div className="flex items-center gap-3 sm:gap-5 min-w-0">
-                <div className="text-center flex-shrink-0">
-                  <div className="text-3xl sm:text-4xl font-black text-orange-400">{streak?.currentStreak ?? 0}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">Current</div>
+              {/* Streak main status */}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-800/40 border border-gray-800/80">
+                <div className="text-center flex-shrink-0 min-w-[64px] border-r border-gray-800 pr-3">
+                  <div className="text-3xl font-black text-orange-400">{streak?.currentStreak ?? 0}</div>
+                  <div className="text-[10px] text-gray-500 font-medium mt-0.5 uppercase tracking-wide">Current</div>
                 </div>
-                <div className="flex-1 min-w-0 space-y-2">
-                  <div className="flex justify-between text-xs gap-2"><span className="text-gray-500 flex-shrink-0">Longest</span><span className="text-white font-semibold flex-shrink-0">{streak?.longestStreak ?? 0} days</span></div>
-                  <div className="flex justify-between text-xs gap-2"><span className="text-gray-500 flex-shrink-0">Total days</span><span className="text-white font-semibold flex-shrink-0">{streak?.totalActiveDays ?? 0}</span></div>
-                  <div className="flex justify-between text-xs gap-2"><span className="text-gray-500 flex-shrink-0">Weekly</span><span className="text-orange-300 font-semibold flex-shrink-0">{streak?.weeklyStreak ?? 0} wks</span></div>
-                  <div className="flex justify-between text-xs gap-2"><span className="text-gray-500 flex-shrink-0">Monthly</span><span className="text-orange-300 font-semibold flex-shrink-0">{streak?.monthlyStreak ?? 0} mo</span></div>
-                  <div className="flex gap-1">{[...Array(7)].map((_, i) => <div key={i} className={`flex-1 h-2 rounded-full ${i < Math.min(streak?.currentStreak ?? 0, 7) ? "bg-orange-400" : "bg-gray-800"}`} />)}</div>
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>Daily Progress</span>
+                    <span className="text-orange-300 font-bold">{streak?.currentStreak ?? 0}d active</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {[...Array(7)].map((_, i) => (
+                      <div
+                        key={i}
+                        className={`flex-1 h-2 rounded-full ${
+                          i < Math.min(streak?.currentStreak ?? 0, 7) ? "bg-orange-400" : "bg-gray-800"
+                        }`}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div className="grid grid-cols-4 gap-1.5 sm:gap-2 mt-4 pt-4 border-t border-gray-800">
-                {[{days:3,icon:"🔥",label:"3d"},{days:7,icon:"⚡",label:"7d"},{days:14,icon:"💫",label:"14d"},{days:30,icon:"💎",label:"30d"}].map(({days,icon,label}) => (
-                  <div key={days} className={`flex flex-col items-center gap-0.5 p-1.5 sm:p-2 rounded-xl border min-w-0 ${(streak?.longestStreak??0)>=days ? "border-orange-800/50 bg-orange-900/20" : "border-gray-800 opacity-40"}`}>
-                    <span className="text-sm sm:text-base">{icon}</span>
-                    <span className="text-[9px] text-gray-400">{label}</span>
+
+              {/* 4 Individual Pill-Box Stat Cards */}
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                <div className="flex items-center justify-between p-2 rounded-xl bg-gray-800/40 border border-gray-800/80">
+                  <span className="text-[11px] text-gray-400">Longest</span>
+                  <span className="text-xs font-bold text-white bg-gray-800 px-2 py-0.5 rounded-md">{streak?.longestStreak ?? 0}d</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-xl bg-gray-800/40 border border-gray-800/80">
+                  <span className="text-[11px] text-gray-400">Total</span>
+                  <span className="text-xs font-bold text-white bg-gray-800 px-2 py-0.5 rounded-md">{streak?.totalActiveDays ?? 0}d</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-xl bg-gray-800/40 border border-gray-800/80">
+                  <span className="text-[11px] text-gray-400">Weekly</span>
+                  <span className="text-xs font-bold text-orange-300 bg-orange-950/40 border border-orange-800/40 px-2 py-0.5 rounded-md">{streak?.weeklyStreak ?? 0} wks</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-xl bg-gray-800/40 border border-gray-800/80">
+                  <span className="text-[11px] text-gray-400">Monthly</span>
+                  <span className="text-xs font-bold text-orange-300 bg-orange-950/40 border border-orange-800/40 px-2 py-0.5 rounded-md">{streak?.monthlyStreak ?? 0} mo</span>
+                </div>
+              </div>
+
+              {/* 4-Badge Milestone Row */}
+              <div className="grid grid-cols-4 gap-1.5 mt-3 pt-3 border-t border-gray-800/80">
+                {[
+                  { days: 3, icon: "🔥", label: "3d" },
+                  { days: 7, icon: "⚡", label: "7d" },
+                  { days: 14, icon: "💫", label: "14d" },
+                  { days: 30, icon: "💎", label: "30d" },
+                ].map(({ days, icon, label }) => (
+                  <div
+                    key={days}
+                    className={`flex flex-col items-center gap-0.5 p-1.5 rounded-xl border text-center min-w-0 ${
+                      (streak?.longestStreak ?? 0) >= days
+                        ? "border-orange-500/40 bg-orange-500/10 text-orange-300"
+                        : "border-gray-800/80 bg-gray-800/30 opacity-40"
+                    }`}
+                  >
+                    <span className="text-sm">{icon}</span>
+                    <span className="text-[10px] font-medium text-gray-400">{label}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
-              <h2 className="text-sm font-semibold text-white mb-4 flex items-center justify-between">
+            {/* Reputation Score Card */}
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-3.5 sm:p-5 w-full min-w-0 max-w-full overflow-hidden">
+              <h2 className="text-sm font-semibold text-white mb-3 flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   <Trophy className="h-4 w-4 text-yellow-400" />
                   Reputation Score
@@ -382,74 +431,49 @@ export default function ProfilePage() {
               </h2>
 
               {p?.aiReputation ? (
-                /* AI-derived reputation score display (Option A) */
-                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5 min-w-0">
-                  <div className="flex flex-col items-center flex-shrink-0">
-                    <div className="relative w-24 h-24">
-                      <svg className="w-24 h-24 -rotate-90" viewBox="0 0 88 88">
-                        <circle cx="44" cy="44" r="36" fill="none" stroke="#1f2937" strokeWidth="8" />
-                        <circle
-                          cx="44"
-                          cy="44"
-                          r="36"
-                          fill="none"
-                          stroke="url(#rg)"
-                          strokeWidth="8"
-                          strokeLinecap="round"
-                          strokeDasharray={`${(p.aiReputation.score / 100) * 226.19} 226.19`}
-                        />
-                        <defs>
-                          <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#6366f1" />
-                            <stop offset="100%" stopColor="#a855f7" />
-                          </linearGradient>
-                        </defs>
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-xl font-black text-white">{p.aiReputation.score}</span>
-                        <span className="text-[9px] text-gray-400 uppercase tracking-wider">/ 100</span>
-                      </div>
-                    </div>
-                    <p className="text-xs font-bold text-white mt-1 uppercase">{p.aiReputation.tier}</p>
-                    <p className="text-[10px] text-indigo-400">AI Engineering Score</p>
+                /* AI-derived reputation score display */
+                <div className="flex items-center gap-3.5 p-3 rounded-xl bg-gray-800/40 border border-gray-800/80">
+                  <div className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-indigo-950/50 border border-indigo-500/30 flex-shrink-0 min-w-[76px]">
+                    <span className="text-2xl font-black text-white leading-none">{p.aiReputation.score}</span>
+                    <span className="text-[9px] font-extrabold text-indigo-400 uppercase tracking-wide mt-1">{p.aiReputation.tier}</span>
                   </div>
 
-                  <div className="flex-1 min-w-0 w-full text-center sm:text-left space-y-2">
-                    <p className="text-xs text-gray-300 font-medium leading-relaxed whitespace-normal break-words">
-                      Derived from live GitHub API evidence, commit velocity, test coverage, and code quality.
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <p className="text-xs text-gray-300 leading-snug">
+                      Live GitHub API evidence, commit velocity & code quality score.
                     </p>
-                    <div className="pt-2 flex justify-center sm:justify-start">
-                      <Link
-                        href="/mentor"
-                        className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
-                      >
-                        View 8-Dimension Breakdown →
-                      </Link>
-                    </div>
+                    <Link href="/mentor" className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-400 hover:text-indigo-300 pt-0.5">
+                      View Breakdown →
+                    </Link>
                   </div>
                 </div>
               ) : (
-                /* Fallback engagement score when no AI analysis run yet */
-                <div>
-                  <div className="flex items-center gap-5">
-                    {rep && <ReputationRing score={rep.score} level={rep.level} label={rep.label} next={rep.next} />}
-                    <div className="flex-1 space-y-2">
+                /* Fallback engagement score */
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-800/40 border border-gray-800/80">
+                    <div className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-indigo-950/50 border border-indigo-500/30 flex-shrink-0 min-w-[76px]">
+                      <span className="text-2xl font-black text-indigo-400 leading-none">{rep?.level ?? 1}</span>
+                      <span className="text-[9px] font-bold text-gray-300 uppercase tracking-wide mt-1">{rep?.label ?? "Beginner"}</span>
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-1">
                       {[
-                        { label:"Projects",      val:p?.stats?.projects??0,      pts:(p?.stats?.projects??0)*10,     color:"bg-indigo-500" },
-                        { label:"Contributions", val:p?.stats?.contributions??0, pts:(p?.stats?.contributions??0)*8, color:"bg-green-500" },
-                        { label:"Connections",   val:p?.stats?.connections??0,   pts:(p?.stats?.connections??0)*3,   color:"bg-blue-500" },
-                        { label:"Likes",         val:p?.stats?.likesReceived??0, pts:(p?.stats?.likesReceived??0)*2, color:"bg-red-500" },
-                      ].map(({label,val,pts,color}) => (
-                        <div key={label}>
-                          <div className="flex justify-between text-[10px] text-gray-500 mb-0.5"><span>{label} ({val})</span><span className="text-white">+{pts}</span></div>
-                          <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden"><div className={`h-full ${color} rounded-full`} style={{width:`${Math.min((val/20)*100,100)}%`}} /></div>
+                        { label: "Projects", val: p?.stats?.projects ?? 0, color: "bg-indigo-500" },
+                        { label: "Contribs", val: p?.stats?.contributions ?? 0, color: "bg-green-500" },
+                        { label: "Connect",  val: p?.stats?.connections ?? 0, color: "bg-blue-500" },
+                        { label: "Likes",    val: p?.stats?.likesReceived ?? 0, color: "bg-red-500" },
+                      ].map(({ label, val, color }) => (
+                        <div key={label} className="flex items-center gap-2 text-[10px]">
+                          <span className="text-gray-400 w-14 flex-shrink-0">{label} ({val})</span>
+                          <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                            <div className={`h-full ${color} rounded-full`} style={{ width: `${Math.min((val / 20) * 100, 100)}%` }} />
+                          </div>
                         </div>
                       ))}
                     </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-gray-800 text-center">
+                  <div className="text-center pt-0.5">
                     <Link href="/mentor" className="text-xs text-indigo-400 hover:text-indigo-300 font-medium">
-                      Run your AI analysis to get a real evidence-backed reputation score →
+                      Run AI Analysis for Evidence Score →
                     </Link>
                   </div>
                 </div>
@@ -458,7 +482,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Heatmap */}
-          <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+          <div className="bg-gray-900 rounded-2xl border border-gray-800 p-3.5 sm:p-5 w-full min-w-0 max-w-full overflow-hidden">
             <h2 className="text-sm font-semibold text-white mb-1 flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-indigo-400" />Contribution Activity
             </h2>
@@ -471,7 +495,7 @@ export default function ProfilePage() {
 
           {/* Contributor Tier + Ratings */}
           {(p?.stats?.prsSubmitted > 0 || p?.ratings?.count > 0 || p?.user?.isPaidContributor) && (
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-3.5 sm:p-5 w-full min-w-0 max-w-full overflow-hidden">
               <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                 <Shield className="h-4 w-4 text-purple-400" /> Contributor Profile
               </h2>
@@ -524,7 +548,8 @@ export default function ProfilePage() {
           )}
 
           {/* Owned Projects */}
-          {myProjects && myProjects.length > 0 && (            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+          {myProjects && myProjects.length > 0 && (
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-3.5 sm:p-5 w-full min-w-0 max-w-full overflow-hidden">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-semibold text-white flex items-center gap-2"><FolderGit2 className="h-4 w-4 text-indigo-400" />Projects</h2>
                 <Link href="/my-projects" className="text-xs text-indigo-400 hover:text-indigo-300">View all →</Link>

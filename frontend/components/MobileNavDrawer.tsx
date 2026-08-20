@@ -11,7 +11,8 @@ const NAV_ITEMS = [
 ];
 
 export default function MobileNavDrawer() {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname || "";
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 bg-gray-900 border-t border-gray-800

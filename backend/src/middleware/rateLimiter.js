@@ -32,7 +32,8 @@ const createLimiter = rateLimit({
 const chatLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 30,             // 30 messages/min per user
-  keyGenerator: (req) => req.user?.id || req.ip,
+  keyGenerator: (req) => String(req.user?.id || req.ip || "127.0.0.1"),
+  validate: { xForwardedForHeader: false, default: false },
   message: { message: "Too many messages. Please slow down." },
   standardHeaders: true,
   legacyHeaders: false,

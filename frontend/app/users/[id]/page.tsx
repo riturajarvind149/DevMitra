@@ -42,19 +42,19 @@ function ActivityHeatmap({ grid }: { grid: Record<string, number> }) {
   const maxWeekVal = Math.max(...weeks.map(w => w.total));
   const activeWeeks = weeks.filter(w => w.total > 0).length;
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col sm:flex-row gap-3 items-start">
-        <div className="flex-1 min-w-0 w-full overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-          <div className="flex gap-0.5 min-w-max">
+    <div className="space-y-3 w-full min-w-0 max-w-full overflow-hidden">
+      <div className="flex flex-col sm:flex-row gap-3 items-start w-full min-w-0 max-w-full">
+        <div className="w-full sm:flex-1 min-w-0 max-w-full overflow-x-auto pb-2 scrollbar-hide">
+          <div className="inline-flex gap-1 min-w-max pb-1">
             {weeks.map((wk, i) => (
               <div key={i} title={`Week of ${wk.startDate}: ${wk.total}`}
-                className={`w-4 h-8 rounded-sm cursor-default ${getColor(wk.total)}`} />
+                className={`w-3.5 h-7 sm:w-4 sm:h-8 rounded-sm cursor-default flex-shrink-0 ${getColor(wk.total)}`} />
             ))}
           </div>
           <div className="flex items-center gap-1.5 mt-2">
             <span className="text-[10px] text-gray-600">Less</span>
             {["bg-gray-800","bg-indigo-900","bg-indigo-700","bg-indigo-500","bg-indigo-400"].map(c => (
-              <div key={c} className={`w-3 h-3 rounded-sm ${c}`} />
+              <div key={c} className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm flex-shrink-0 ${c}`} />
             ))}
             <span className="text-[10px] text-gray-600">More</span>
           </div>
@@ -277,12 +277,12 @@ export default function UserProfilePage() {
       </div>
 
       {/* ── Two-column: left = streak/rep/heatmap/projects, right = badges/activity ── */}
-      <div className="flex flex-col lg:flex-row gap-4 items-start">
+      <div className="flex flex-col lg:flex-row gap-4 items-start w-full min-w-0 max-w-full">
         {/* LEFT */}
-        <div className="flex-1 min-w-0 space-y-4">
+        <div className="w-full lg:flex-1 min-w-0 max-w-full space-y-4">
           {/* AI Mentor Reputation Engine Card */}
           {profile.githubUsername && (
-            <div className="bg-gradient-to-r from-indigo-900/40 via-purple-900/40 to-neutral-900 rounded-2xl border border-indigo-500/30 p-4">
+            <div className="bg-gradient-to-r from-indigo-900/40 via-purple-900/40 to-neutral-900 rounded-2xl border border-indigo-500/30 p-3.5 sm:p-4 w-full min-w-0 max-w-full overflow-hidden">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400">
@@ -308,44 +308,82 @@ export default function UserProfilePage() {
             </div>
           )}
           {/* Streak + Reputation */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 w-full min-w-0 max-w-full">
+            {/* Contribution Streak Card */}
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-3.5 sm:p-5 w-full min-w-0 max-w-full overflow-hidden">
               <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                 <Flame className="h-4 w-4 text-orange-400" />Daily Streak
               </h2>
-              <div className="flex items-center gap-4">
-                <div className="text-center">
+              {/* Streak main status */}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-800/40 border border-gray-800/80">
+                <div className="text-center flex-shrink-0 min-w-[64px] border-r border-gray-800 pr-3">
                   <div className="text-3xl font-black text-orange-400">{streak?.currentStreak ?? 0}</div>
-                  <div className="text-[10px] text-gray-500">Current</div>
+                  <div className="text-[10px] text-gray-500 font-medium mt-0.5 uppercase tracking-wide">Current</div>
                 </div>
-                <div className="flex-1 space-y-2 text-xs">
-                  <div className="flex justify-between"><span className="text-gray-500">Longest</span><span className="text-white font-semibold">{streak?.longestStreak ?? 0}d</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Total days</span><span className="text-white font-semibold">{streak?.totalActiveDays ?? 0}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Weekly</span><span className="text-orange-300 font-semibold">{streak?.weeklyStreak ?? 0} wks</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Monthly</span><span className="text-orange-300 font-semibold">{streak?.monthlyStreak ?? 0} mo</span></div>
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>Daily Progress</span>
+                    <span className="text-orange-300 font-bold">{streak?.currentStreak ?? 0}d active</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {[...Array(7)].map((_, i) => (
+                      <div
+                        key={i}
+                        className={`flex-1 h-2 rounded-full ${
+                          i < Math.min(streak?.currentStreak ?? 0, 7) ? "bg-orange-400" : "bg-gray-800"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 4 Individual Pill-Box Stat Cards */}
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                <div className="flex items-center justify-between p-2 rounded-xl bg-gray-800/40 border border-gray-800/80">
+                  <span className="text-[11px] text-gray-400">Longest</span>
+                  <span className="text-xs font-bold text-white bg-gray-800 px-2 py-0.5 rounded-md">{streak?.longestStreak ?? 0}d</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-xl bg-gray-800/40 border border-gray-800/80">
+                  <span className="text-[11px] text-gray-400">Total</span>
+                  <span className="text-xs font-bold text-white bg-gray-800 px-2 py-0.5 rounded-md">{streak?.totalActiveDays ?? 0}d</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-xl bg-gray-800/40 border border-gray-800/80">
+                  <span className="text-[11px] text-gray-400">Weekly</span>
+                  <span className="text-xs font-bold text-orange-300 bg-orange-950/40 border border-orange-800/40 px-2 py-0.5 rounded-md">{streak?.weeklyStreak ?? 0} wks</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-xl bg-gray-800/40 border border-gray-800/80">
+                  <span className="text-[11px] text-gray-400">Monthly</span>
+                  <span className="text-xs font-bold text-orange-300 bg-orange-950/40 border border-orange-800/40 px-2 py-0.5 rounded-md">{streak?.monthlyStreak ?? 0} mo</span>
                 </div>
               </div>
             </div>
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+
+            {/* Reputation Score Card */}
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-3.5 sm:p-5 w-full min-w-0 max-w-full overflow-hidden">
               <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-yellow-400" />Reputation
               </h2>
-              <div className="flex items-center gap-3">
-                <div className="text-center">
-                  <div className="text-3xl font-black text-indigo-400">{rep?.level ?? 0}</div>
-                  <div className="text-[10px] text-gray-500">Level</div>
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-800/40 border border-gray-800/80">
+                <div className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-indigo-950/50 border border-indigo-500/30 flex-shrink-0 min-w-[64px]">
+                  <span className="text-2xl font-black text-indigo-400 leading-none">{rep?.level ?? 1}</span>
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wide mt-1">Level</span>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-white">{rep?.label ?? "Beginner"}</p>
-                  <p className="text-xs text-gray-500">{rep?.score?.toLocaleString() ?? 0} pts</p>
-                  {rep?.next && <p className="text-[10px] text-indigo-400">{(rep.next - rep.score).toLocaleString()} to Level {(rep.level ?? 0) + 1}</p>}
+                <div className="flex-1 min-w-0 space-y-1">
+                  <p className="text-xs font-bold text-white truncate">{rep?.label ?? "Beginner"}</p>
+                  <p className="text-[11px] text-gray-400">{rep?.score?.toLocaleString() ?? 0} pts</p>
+                  {rep?.next && (
+                    <p className="text-[10px] text-indigo-400">
+                      {(rep.next - rep.score).toLocaleString()} to Lv {(rep.level ?? 0) + 1}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
           {/* Heatmap */}
-          <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+          <div className="bg-gray-900 rounded-2xl border border-gray-800 p-3.5 sm:p-5 w-full min-w-0 max-w-full overflow-hidden">
             <h2 className="text-sm font-semibold text-white mb-1 flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-indigo-400" />Contribution Activity
             </h2>
@@ -358,7 +396,7 @@ export default function UserProfilePage() {
 
           {/* Contributor Profile */}
           {(stats?.prsSubmitted > 0 || profileFull?.ratings?.avgOverall || profile?.isPaidContributor) && (
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-3.5 sm:p-5 w-full min-w-0 max-w-full overflow-hidden">
               <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                 <Shield className="h-4 w-4 text-purple-400" /> Contributor Profile
               </h2>

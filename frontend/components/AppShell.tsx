@@ -18,7 +18,8 @@ const WIDE_PATHS = ["/profile", "/users/", "/settings", "/projects/", "/mentor"]
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const [rightVisible, setRightVisible] = useState(true);
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname || "";
 
   const isFullscreen = FULLSCREEN_PATHS.some(p => pathname.startsWith(p));
   const isWide = WIDE_PATHS.some(p => pathname.startsWith(p));
@@ -51,17 +52,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        <main className={`flex-1 overflow-y-auto ${isFullscreen ? "overflow-hidden" : ""}`}>
+        <main className={`flex-1 overflow-y-auto w-full min-w-0 max-w-full overflow-x-hidden ${isFullscreen ? "overflow-hidden" : ""}`}>
           {isFullscreen ? (
             // Fullscreen pages: no padding, no centering, full height
-            <div className="h-full">
+            <div className="h-full w-full">
               {children}
             </div>
           ) : (
             // Normal pages: centered, max-w-2xl, padded
             // Wide pages (profile, settings, mentor): full width with padding
-            <div className="px-3 sm:px-6 py-4 sm:py-6 pb-24 lg:pb-6 min-h-full flex flex-col items-center">
-              <div className={`w-full ${isWide ? "max-w-6xl" : "max-w-2xl"}`}>
+            <div className="px-3 sm:px-6 py-4 sm:py-6 pb-24 lg:pb-6 min-h-full w-full min-w-0 max-w-full flex flex-col items-center">
+              <div className={`w-full min-w-0 max-w-full ${isWide ? "max-w-6xl" : "max-w-2xl"}`}>
                 {children}
               </div>
             </div>
