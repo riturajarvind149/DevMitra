@@ -38,16 +38,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-gray-950 overflow-hidden relative">
-      {/* Left Sidebar — hidden below lg (1024px), shown on lg+ */}
-      <div className="hidden lg:block absolute top-0 left-0 h-full z-30">
+      {/* Left Sidebar — absolute overlay on desktop/laptop (>=768px), expands on hover without pushing center */}
+      <div className="hidden md:block absolute top-0 left-0 h-full z-30">
         <Sidebar />
       </div>
 
-      {/* Center column — no padding on mobile, 64px left padding on lg+ for sidebar */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden lg:pl-16">
-        {/* Hide TopBar on fullscreen pages, and hide on mobile/tablet for /profile (profile has its own header) */}
+      {/* Center column — 64px left padding for collapsed sidebar, fills remaining space up to right sidebar */}
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden md:pl-16">
+        {/* Hide TopBar on fullscreen pages, and hide on mobile for /profile */}
         {!isFullscreen && (
-          <div className={pathname === "/profile" ? "hidden lg:block" : ""}>
+          <div className={pathname === "/profile" ? "hidden md:block" : ""}>
             <TopBar />
           </div>
         )}
@@ -60,9 +60,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           ) : (
             // Normal pages: centered, max-w-2xl, padded
-            // Wide pages (profile, settings, mentor): full width with padding
-            <div className="px-3 sm:px-6 py-4 sm:py-6 pb-24 lg:pb-6 min-h-full w-full min-w-0 max-w-full flex flex-col items-center">
-              <div className={`w-full min-w-0 max-w-full ${isWide ? "max-w-6xl" : "max-w-2xl"}`}>
+            // Wide pages (profile, settings, mentor): max-w-5xl, centered with padding
+            <div className="px-3 sm:px-6 py-4 sm:py-6 pb-24 md:pb-6 min-h-full w-full min-w-0 max-w-full flex flex-col items-center">
+              <div className={`w-full ${isWide ? "max-w-5xl" : "max-w-2xl"}`}>
                 {children}
               </div>
             </div>
@@ -70,13 +70,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      {/* Mobile bottom nav bar — visible on mobile and tablet (<1024px) */}
-      <div className="lg:hidden">
+      {/* Mobile bottom nav bar — visible only on mobile (<768px) */}
+      <div className="md:hidden">
         <MobileNavDrawer />
       </div>
 
-      {/* Right sidebar — desktop only (>=1024px) */}
-      <div className="hidden lg:flex relative flex-shrink-0 h-screen">
+      {/* Right sidebar — desktop & laptop (>=768px) */}
+      <div className="hidden md:flex relative flex-shrink-0 h-screen">
         {/* Toggle arrow — outside overflow-hidden, always visible */}
         <button
           onClick={() => setRightVisible(v => !v)}

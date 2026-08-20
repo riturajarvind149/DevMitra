@@ -44,7 +44,7 @@ export default function RightSidebar() {
             <Link href="/trending" className="text-[10px] text-indigo-400 hover:text-indigo-300">All →</Link>
           </div>
           <div className="space-y-0.5">
-            {projectsData?.projects.slice(0, 5).map((project, i) => (
+            {projectsData?.projects?.slice(0, 5).map((project, i) => (
               <Link key={project.id} href={`/projects/${project.id}`}
                 className="flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-gray-800 transition group">
                 <span className="text-[10px] font-bold text-gray-700 w-4 flex-shrink-0 text-center">{i + 1}</span>
@@ -57,7 +57,7 @@ export default function RightSidebar() {
                 </div>
               </Link>
             ))}
-            {(!projectsData || projectsData.projects.length === 0) && (
+            {(!projectsData?.projects || projectsData.projects.length === 0) && (
               <p className="text-[10px] text-gray-600 px-2 py-2">No projects yet</p>
             )}
           </div>
