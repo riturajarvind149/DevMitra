@@ -44,14 +44,39 @@ function ActivityHeatmap({ grid }: { grid: Record<string, number> }) {
   return (
     <div className="space-y-3 w-full min-w-0 max-w-full overflow-hidden">
       <div className="flex flex-col sm:flex-row gap-3 items-start w-full min-w-0 max-w-full">
+        {/* Heatmap — 2 lines (26 weeks per row) */}
         <div className="w-full sm:flex-1 min-w-0 max-w-full overflow-x-auto pb-2 scrollbar-hide">
-          <div className="inline-flex gap-1 min-w-max pb-1">
-            {weeks.map((wk, i) => (
-              <div key={i} title={`Week of ${wk.startDate}: ${wk.total}`}
-                className={`w-3.5 h-7 sm:w-4 sm:h-8 rounded-sm cursor-default flex-shrink-0 ${getColor(wk.total)}`} />
-            ))}
+          <div className="flex flex-col gap-1.5 min-w-max pb-1">
+            {/* Top row: Weeks 1 - 26 */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-medium text-gray-500 w-10 flex-shrink-0">W1–26</span>
+              <div className="flex gap-1">
+                {weeks.slice(0, 26).map((wk, i) => (
+                  <div
+                    key={i}
+                    title={`Week of ${wk.startDate}: ${wk.total}`}
+                    className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-sm cursor-default transition-all hover:scale-125 flex-shrink-0 ${getColor(wk.total)}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Bottom row: Weeks 27 - 52 */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-medium text-gray-500 w-10 flex-shrink-0">W27–52</span>
+              <div className="flex gap-1">
+                {weeks.slice(26, 52).map((wk, i) => (
+                  <div
+                    key={i}
+                    title={`Week of ${wk.startDate}: ${wk.total}`}
+                    className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-sm cursor-default transition-all hover:scale-125 flex-shrink-0 ${getColor(wk.total)}`}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 mt-2">
+
+          <div className="flex items-center gap-1.5 mt-2 pl-11">
             <span className="text-[10px] text-gray-600">Less</span>
             {["bg-gray-800","bg-indigo-900","bg-indigo-700","bg-indigo-500","bg-indigo-400"].map(c => (
               <div key={c} className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm flex-shrink-0 ${c}`} />
