@@ -58,5 +58,24 @@
       "0 test files found",
       "no test files exist"
     ]
+  },
+  {
+    "id": "eval-6",
+    "question": "What is the exact formula and weights used to calculate my overall score?",
+    "expectedFacts": [
+      "Code Quality",
+      "20%",
+      "Architecture",
+      "18%",
+      "Testing",
+      "15%",
+      "Consistency",
+      "7%"
+    ],
+    "negativeFacts": [
+      "Technical Competence * 0.60",
+      "Technical Competence (60%",
+      "Community & Collaboration * 0.20"
+    ]
   }
 ]
