@@ -141,13 +141,14 @@ const sendMessage = async (req, res) => {
       data: { updatedAt: new Date() },
     });
 
-    // Set up SSE headers
-    res.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no", // Disable nginx buffering
-    });
+    // Set up SSE headers with cloud proxy optimizations
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    if (typeof res.flushHeaders === "function") {
+      res.flushHeaders();
+    }
 
     let fullResponse = "";
 
