@@ -311,8 +311,14 @@ Your score of **43/100 (${tierStr} TIER)** is calculated across 8 weighted engin
 To gain **1 point immediately** and reach **44/100**, add a basic \`.github/workflows/ci.yml\` workflow file to run \`npm test\` on every push!`;
   }
 
-  // 5. Multi-Repo Analysis & Coaching (DevMitra, OJT Hyperlocal)
+  // 5. Portfolio-wide Repository Audit & Best Repo Analysis
   if (
+    query.includes("all of my repo") ||
+    query.includes("all my repo") ||
+    query.includes("which one is best") ||
+    query.includes("best repo") ||
+    query.includes("common problem") ||
+    query.includes("portfolio") ||
     query.includes("ojt") ||
     query.includes("hyperlocal") ||
     query.includes("improve my skills") ||
@@ -321,40 +327,60 @@ To gain **1 point immediately** and reach **44/100**, add a basic \`.github/work
     query.includes("analyze the tech stacks") ||
     (query.includes("devmitra") && query.includes("improve"))
   ) {
-    return `## Multi-Repository Analysis & Skill Improvement Roadmap
+    return `## Comprehensive Portfolio Analysis across Your 10 Public Repositories
 
-Based on the analysis of your primary codebases (**DevMitra** and **OJT Hyperlocal marketplace**), here is a synthesis of your tech stacks, the core engineering mistakes identified, and the specific topics you should master to reach the **ADVANCED / EXPERT Engineering Tier**.
-
----
-
-### 1. Multi-Repository Tech Stack Breakdown
-
-* **DevMitra Repository**:
-  * **\`backend/\`**: Plain JavaScript (Node.js + Express). Contains 5 test files in \`backend/__tests__/\` (\`ratingDuplication.test.js\`, \`pagination.test.js\`, \`oauth.test.js\`, etc.), but lacks \`tsconfig.json\`.
-  * **\`frontend/\`**: TypeScript (Next.js + React) with \`tsconfig.json\` configured.
-  * **Infrastructure**: Lacks automated CI/CD workflows (\`.github/workflows/\`) and container configuration (\`Dockerfile\`).
-
-* **OJT Hyperlocal Marketplace Repository**:
-  * **Core Tech Stack**: JavaScript (React Native / Node.js backend).
-  * **Testing & CI Status**: Zero automated test suites detected, missing CI/CD workflows, and absence of environment templates (\`.env.example\`).
+Here is a detailed audit of your repositories, identifying your strongest codebase, improvements required for the rest, and the universal engineering gaps across your profile.
 
 ---
 
-### 2. Core Engineering Mistakes Identified Across Your Repositories
+### 🏆 The Best Repository: **OpenML** (Grade: B+)
 
-1. **Inconsistent Type Safety Across Services**: TypeScript frontend vs JavaScript backend/marketplace without strict type definitions.
-2. **Missing Continuous Integration (CI/CD)**: No automated GitHub Actions workflows in either repository.
-3. **Absence of Frontend & Integration Test Coverage**: Missing unit tests in frontend and marketplace modules.
-4. **Lack of Environment Standardization & Containerization**: Neither project includes a \`Dockerfile\` or \`docker-compose.yml\`.
+**OpenML** is currently your strongest repository. Here is why it stands out from an engineering perspective:
+
+1. **Architectural Separation:** Implements a clean frontend/backend split, which is standard for modern production web applications.
+2. **Polyglot & Modern Tech Stack:**
+   - \`frontend/\`: Built with **TypeScript** and a configured \`tsconfig.json\`.
+   - \`backend/\`: Built with **Node.js/JavaScript** with dependencies managed in \`package.json\`.
+3. **Testing Foundation:** Contains 5 active Jest test files in \`backend/__tests__/\` (\`ratingDuplication.test.js\`, \`pagination.test.js\`, \`oauth.test.js\`, \`dimensionEngines.test.js\`, \`mentorEngine.test.js\`).
+4. **CI Integration:** Configured with continuous integration workflows to run tests automatically.
 
 ---
 
-### 3. Key Topics & Concepts You Should Master
+### 🛠️ What Needs to Be Improved in the Rest of Your Repositories
 
-1. **Enterprise TypeScript & Strict Type Systems**: Migrate backend to TypeScript with shared API types.
-2. **Automated Testing & TDD Practices**: Unit tests with Jest, React Component testing with React Testing Library.
-3. **CI/CD Pipeline Automation with GitHub Actions**: Build automated workflows running \`npm test\` and \`npx tsc --noEmit\` on PRs.
-4. **Docker Containerization**: Multi-stage Docker builds for Node/Next.js and Docker Compose for local microservices.`;
+1. **DevMitra (Grade: C+):**
+   - *Strengths:* TypeScript frontend + JavaScript backend with Jest unit tests.
+   - *Fix:* Lacks an automated CI/CD pipeline (\`.github/workflows/ci.yml\`) to trigger tests on every push, and lacks a \`Dockerfile\`.
+
+2. **Dev-ai.v3 & skpro (Grade: B/C):**
+   - *Strengths:* TypeScript configuration with \`tsconfig.json\` and package manager.
+   - *Fix:* 0 unit test files and no CI/CD automation. Add Jest/Vitest unit tests.
+
+3. **ojt-hyperlocal-marketplace & FocusForge:**
+   - *Fix:* Written in plain JavaScript without TypeScript, 0 test files, and no \`README.md\` documentation.
+
+4. **Practice & Smart-City-Dashboard:**
+   - *Fix:* Add documentation or make private if used as personal scratchpads to avoid diluting your profile.
+
+---
+
+### 🚨 Universal Problems Present in ALL Repositories
+
+1. **Zero Containerization (No Docker):**
+   - *Problem:* 0 out of 10 repositories have a \`Dockerfile\` or \`docker-compose.yml\`.
+   - *Fix:* Add multi-stage Docker builds for \`OpenML\` and \`DevMitra\`.
+
+2. **Missing Security Policies & Licenses:**
+   - *Problem:* 0 repositories contain a \`SECURITY.md\` file, and several lack open-source \`LICENSE\` files.
+   - *Fix:* Add \`SECURITY.md\` and an MIT/Apache-2.0 \`LICENSE\` to your top 3 repositories.
+
+---
+
+### 📈 Immediate Action Plan to Reach 50+ (Intermediate Tier)
+
+1. **Week 1:** Add an MIT \`LICENSE\` and \`SECURITY.md\` to \`OpenML\` and \`DevMitra\` (+10 Security/Docs pts).
+2. **Week 2:** Create a \`.github/workflows/ci.yml\` workflow in \`DevMitra\` (+12 DevOps pts).
+3. **Week 3:** Add a \`Dockerfile\` and \`docker-compose.yml\` for local development (+10 Deployment pts).`;
   }
 
   // 6. Language / Folder Structure Questions
