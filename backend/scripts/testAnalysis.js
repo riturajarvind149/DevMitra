@@ -23,7 +23,7 @@ async function main() {
 
     console.log("\n3. Running Scoring Engines...");
     const dimensions = runAllEngines(evidence);
-    Object.entries(dimensions).forEach(([key, dim]) => {
+    Object.entries(dimensions).forEach(([_, dim]) => {
       console.log(`   - ${dim.icon} ${dim.label}: Score = ${dim.score !== null ? dim.score : "INSUFFICIENT"}, Status = ${dim.status}`);
       if (dim.reason) console.log(`     Reason: ${dim.reason}`);
     });

@@ -106,7 +106,6 @@ async function recordDailyActivity(userId) {
   let newWeekly = streak.weeklyStreak;
   if (lastWeek !== thisWeek) {
     // Was last active week exactly 1 iso-week before?
-    const [ly, lw] = lastWeek ? lastWeek.split("-").map(Number) : [0, 0];
     const [ty, tw] = thisWeek.split("-").map(Number);
     const prevWeek = tw === 1 ? `${ty - 1}-52` : `${ty}-${String(tw - 1).padStart(2, "0")}`;
     newWeekly = lastWeek === prevWeek ? newWeekly + 1 : 1;
@@ -115,7 +114,6 @@ async function recordDailyActivity(userId) {
   // ── Monthly streak ────────────────────────────────────────────────────────
   let newMonthly = streak.monthlyStreak;
   if (lastMon !== thisMonth) {
-    const [ly2, lm2] = lastMon ? lastMon.split("-").map(Number) : [0, 0];
     const [ty2, tm2] = thisMonth.split("-").map(Number);
     const prevMonth = tm2 === 1 ? `${ty2 - 1}-12` : `${ty2}-${String(tm2 - 1).padStart(2, "0")}`;
     newMonthly = lastMon === prevMonth ? newMonthly + 1 : 1;

@@ -292,7 +292,7 @@ export default function MentorChatPanel({
   // Simple markdown rendering for assistant messages
   function renderContent(text: string) {
     // Convert bold, code blocks, bullet lists
-    let html = text
+    const html = text
       .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="bg-gray-950 border border-gray-800 rounded-xl p-3 my-2 overflow-x-auto text-xs"><code>$2</code></pre>')
       .replace(/`([^`]+)`/g, '<code class="bg-gray-800 px-1.5 py-0.5 rounded text-indigo-300 text-xs">$1</code>')
       .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")

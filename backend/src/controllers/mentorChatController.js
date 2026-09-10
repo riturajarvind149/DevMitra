@@ -2,7 +2,6 @@ const prisma = require("../config/db");
 const {
   streamChatResponse,
   generateSessionTitle,
-  MAX_MESSAGES_PER_SESSION,
 } = require("../services/ai/mentorChatEngine");
 
 /**

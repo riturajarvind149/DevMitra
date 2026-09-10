@@ -192,10 +192,7 @@ const updateUser = async (req, res) => {
 
     // Validate paid contributor unlock: must have level >= 6 OR badges >= 5
     if (isPaidContributor === true) {
-      const [badgeCount, user] = await Promise.all([
-        prisma.userBadge.count({ where: { userId: id } }),
-        prisma.user.findUnique({ where: { id } }),
-      ]);
+      const badgeCount = await prisma.userBadge.count({ where: { userId: id } });
       // We'll allow it if they pass the check — the frontend billing tab enforces the UI lock,
       // but for safety we also check here
       // (reputation level is computed dynamically, so we just check badge count as proxy)

@@ -119,7 +119,9 @@ async function collectEvidence(githubUsername, userAccessToken = null) {
           if (dockerCheck) hasDocker = true;
           if (secCheck) hasSecurity = true;
           if (testsDirCheck) hasTests = true;
-        } catch (_) {}
+        } catch (_) {
+          // Ignore probe check failures for secondary repos
+        }
       } else {
         // Infer signals from repository topics and size for remaining repos
         const topics = r.topics || [];
@@ -244,7 +246,9 @@ async function collectEvidence(githubUsername, userAccessToken = null) {
       const mergedSearch = await restGet(`/search/issues?q=author:${githubUsername}+type:pr+is:merged`, userAccessToken);
       if (mergedSearch) prMerged = mergedSearch.total_count || 0;
     }
-  } catch (_) {}
+  } catch (_) {
+    // Ignore PR search rate limit / permissions failures
+  }
 
   // 6. Issues Search
   let issueTotal = 0;
@@ -256,7 +260,9 @@ async function collectEvidence(githubUsername, userAccessToken = null) {
       const closedSearch = await restGet(`/search/issues?q=author:${githubUsername}+type:issue+is:closed`, userAccessToken);
       if (closedSearch) issueClosed = closedSearch.total_count || 0;
     }
-  } catch (_) {}
+  } catch (_) {
+    // Ignore issue search rate limit / permissions failures
+  }
 
   // 7. GraphQL activity & contributions query
   let contributionGraph = new Array(52).fill(0);

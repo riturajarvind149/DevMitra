@@ -146,7 +146,7 @@ async function processAnalysisJob(analysisId) {
     });
 
     // 2. SCORING (all CPU-bound, no network — safe to run before tx)
-    const qualityGate = runQualityGate(evidence);
+    runQualityGate(evidence);
     const dimensions = runAllEngines(evidence);
     const overall = calculateOverallScore(dimensions);
     const reputation = calculateReputation(evidence, dimensions);

@@ -16,7 +16,7 @@ const likeProject = async (req, res) => {
     });
     if (existing) return res.status(400).json({ message: "Already liked" });
 
-    const like = await prisma.projectLike.create({ data: { projectId, userId } });
+    await prisma.projectLike.create({ data: { projectId, userId } });
 
     // Notify project owner
     if (project.ownerId !== userId) {

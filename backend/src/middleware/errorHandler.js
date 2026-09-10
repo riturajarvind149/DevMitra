@@ -1,5 +1,5 @@
 // Global error handler middleware
-const errorHandler = (err, req, res, next) => {
+const errorHandler = (err, req, res, _next) => {
   console.error(err.stack);
 
   // Prisma errors
@@ -43,7 +43,7 @@ const errorHandler = (err, req, res, next) => {
 };
 
 // 404 handler
-const notFound = (req, res, next) => {
+const notFound = (req, res) => {
   res.status(404).json({
     message: `Route ${req.originalUrl} not found`,
   });

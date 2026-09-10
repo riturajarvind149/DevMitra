@@ -105,7 +105,6 @@ DevMitra/
 │   ├── hooks/              # Custom React hooks
 │   ├── lib/                # API client and utilities
 │   └── __tests__/          # Frontend component tests
-└── .kiro/                  # Kiro spec files
 ```
 
 ## Running Tests

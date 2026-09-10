@@ -6,15 +6,12 @@
  * and exact numerical score impacts.
  */
 
-const { tierFromScore } = require("./dimensionEngines");
-
 function buildMentorPlan(dimensions, evidence, reputationScore) {
   const pubRepos = (evidence.repositories || []).filter((r) => r.visibility === 'public' && !r.isArchived);
   
   // Find top repos by activity/stars
   const mainRepo = pubRepos[0] || null;
   const secondRepo = pubRepos[1] || mainRepo;
-  const thirdRepo = pubRepos[2] || secondRepo;
 
   // 1. Rank scored dimensions by gap size * confidence
   const scoredDimensions = Object.entries(dimensions)
@@ -155,7 +152,7 @@ function buildMentorPlan(dimensions, evidence, reputationScore) {
 /**
  * Compares current evidence against past analysis to highlight user progress.
  */
-function diffWithPreviousAnalysis(currentDimensions, previousDimensions, completedTaskTitles = []) {
+function diffWithPreviousAnalysis(currentDimensions, previousDimensions, _completedTaskTitles = []) {
   const callouts = [];
 
   for (const [key, curr] of Object.entries(currentDimensions)) {

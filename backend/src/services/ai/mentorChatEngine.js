@@ -207,7 +207,9 @@ async function generateIntelligentFallbackResponse(session, userMessage) {
         },
       });
     }
-  } catch (_) {}
+  } catch (_) {
+    // Ignore DB query errors during fallback response generation
+  }
 
   const query = userMessage.trim().toLowerCase();
   const scoreStr = analysis?.overallScore !== null && analysis?.overallScore !== undefined ? `${analysis.overallScore}/100` : "43/100";
