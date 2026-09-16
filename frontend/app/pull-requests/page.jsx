@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { pullRequestsAPI, projectsAPI, bugReportsAPI } from "@/lib/api";
+import { pullRequestsAPI, projectsAPI } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
-import { GitPullRequest, Plus, CheckCircle, Clock, GitMerge, XCircle, DollarSign } from "lucide-react";
+import { GitPullRequest, Plus, Clock, GitMerge, XCircle, DollarSign } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 

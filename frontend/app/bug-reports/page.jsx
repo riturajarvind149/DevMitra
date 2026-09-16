@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { bugReportsAPI, projectsAPI } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
-import { Bug, Plus, ChevronDown, CheckCircle, Clock, AlertTriangle, XCircle, Flame, Zap } from "lucide-react";
+import { Bug, Plus, CheckCircle, Clock, XCircle, Flame } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 

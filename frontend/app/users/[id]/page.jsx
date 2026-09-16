@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { usersAPI, profileDataAPI, connectionsAPI } from "@/lib/api";
+import { usersAPI, profileDataAPI } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Calendar, FolderGit2, Users, ExternalLink, MapPin,

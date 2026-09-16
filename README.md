@@ -5,7 +5,7 @@ A collaborative developer platform where developers can showcase projects, find 
 ## Tech Stack
 
 - **Backend**: Node.js, Express, Prisma ORM, PostgreSQL
-- **Frontend**: Next.js 16, TypeScript, Tailwind CSS
+- **Frontend**: Next.js 16, JavaScript (React 19), Tailwind CSS
 - **Auth**: GitHub OAuth (JWT cookie)
 
 ## Prerequisites

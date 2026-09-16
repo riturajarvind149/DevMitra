@@ -21,12 +21,8 @@ import {
   CheckSquare,
   Square,
   Info,
-  GitBranch,
-  Star,
-  GitFork,
   Check,
   X,
-  Zap,
 } from "lucide-react";
 import {
   RadarChart,

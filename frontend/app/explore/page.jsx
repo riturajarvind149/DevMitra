@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Search, Compass, Briefcase, FolderGit2, Clock, ChevronRight,
-  Wifi, DollarSign, Plus, Users, GitPullRequest, ExternalLink, Calendar,
+  Wifi, DollarSign, Plus, Users, GitPullRequest, ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";

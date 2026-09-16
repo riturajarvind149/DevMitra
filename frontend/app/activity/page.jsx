@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { usersAPI, savesAPI, repoRequestsAPI, opportunitiesAPI, accessRequestsAPI, activitiesAPI, bugReportsAPI, pullRequestsAPI } from "@/lib/api";
+import { usersAPI, savesAPI, repoRequestsAPI, accessRequestsAPI, activitiesAPI, bugReportsAPI, pullRequestsAPI } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Heart, MessageSquare, Bookmark, KeyRound, Briefcase,
-  Activity, CheckCircle, Clock, XCircle, FolderGit2,
-  UserPlus, GitPullRequest, AlertTriangle, GitMerge,
+  Activity, CheckCircle, XCircle, FolderGit2,
+  UserPlus, GitPullRequest, AlertTriangle,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";

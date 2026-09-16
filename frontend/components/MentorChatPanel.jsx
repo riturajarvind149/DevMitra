@@ -11,13 +11,11 @@ import {
   Plus,
   Trash2,
   Loader2,
-  ChevronDown,
   Bot,
   User as UserIcon,
   AlertCircle,
   ThumbsUp,
   ThumbsDown,
-  Check,
 } from "lucide-react";
 
 export default function MentorChatPanel({

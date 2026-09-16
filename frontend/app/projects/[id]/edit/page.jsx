@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { projectsAPI } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, FolderGit2, Globe, EyeOff, Lock, Plus, X } from "lucide-react";
+import { ArrowLeft, Globe, EyeOff, Lock, Plus, X } from "lucide-react";
 import Link from "next/link";
 import FileUploader from "@/components/FileUploader";
 

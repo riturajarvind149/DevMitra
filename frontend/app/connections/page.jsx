@@ -7,7 +7,6 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   Users, UserPlus, Check, X, Search,
   AlertTriangle, MapPin, Clock, FolderGit2,
-  ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";

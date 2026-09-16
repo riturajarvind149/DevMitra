@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { notificationsAPI } from "@/lib/api";
 import {
-  Bell, CheckCheck, Check, GitPullRequest, CheckCircle,
+  Bell, CheckCheck, GitPullRequest, CheckCircle,
   XCircle, Users, Heart, MessageSquare, KeyRound, Briefcase,
 } from "lucide-react";
 import { formatDistanceToNow, isToday, isYesterday, subDays } from "date-fns";

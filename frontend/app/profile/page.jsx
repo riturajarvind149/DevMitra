@@ -10,7 +10,7 @@ import {
   TrendingUp, Zap, Star, Heart,
   DollarSign, Shield, Settings, Bookmark, Activity,
   KeyRound, AlertTriangle, GitPullRequest, LogOut,
-  X, ChevronRight, Bell,
+  X, ChevronRight,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";

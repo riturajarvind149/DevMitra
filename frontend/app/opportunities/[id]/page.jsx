@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { opportunitiesAPI, messagesAPI } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
-import { Briefcase, Clock, DollarSign, Wifi, Users, Check, X, MessageSquare, ArrowLeft, Trash2 } from "lucide-react";
+import { Clock, DollarSign, Wifi, Users, Check, X, MessageSquare, ArrowLeft, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 

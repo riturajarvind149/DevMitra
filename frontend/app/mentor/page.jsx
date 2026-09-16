@@ -14,10 +14,6 @@ import {
   Cpu,
   Code2,
   Zap,
-  CheckCircle,
-  TrendingUp,
-  Award,
-  Layers,
 } from "lucide-react";
 
 export default function MentorLandingPage() {
