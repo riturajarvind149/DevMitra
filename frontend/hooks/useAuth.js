@@ -11,7 +11,7 @@ export function useAuth() {
       setUser(data);
     } catch {
       if (typeof window !== "undefined") {
-        localStorage.removeItem("devmitra_token");
+        localStorage.removeItem("buildr_token");
       }
       setUser(null);
     } finally {
@@ -24,7 +24,7 @@ export function useAuth() {
       const params = new URLSearchParams(window.location.search);
       const urlToken = params.get("token");
       if (urlToken) {
-        localStorage.setItem("devmitra_token", urlToken);
+        localStorage.setItem("buildr_token", urlToken);
         params.delete("token");
         const newSearch = params.toString();
         const newUrl = window.location.pathname + (newSearch ? `?${newSearch}` : "");
@@ -42,7 +42,7 @@ export function useAuth() {
   const logout = async () => {
     try {
       if (typeof window !== "undefined") {
-        localStorage.removeItem("devmitra_token");
+        localStorage.removeItem("buildr_token");
       }
       await authAPI.logout();
       storeLogout();
