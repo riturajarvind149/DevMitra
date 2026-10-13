@@ -1,0 +1,326 @@
+@import "tailwindcss";
+
+/* ── DevMitra Technical Design System ──────────────────────────────────────
+   Precision Developer Workstation Theme Engine (Charcoal Slate & Amber)
+   Strictly Enforced:
+   - Full Light & Dark Theme integration with smooth transitions
+   - Automatic neutralization of all legacy purple / indigo / harsh gradients
+   - No pure blinding white (#ffffff) canvas in light mode (uses #edf1f6)
+   - Crisp geometric geometry (max 4px radius)
+   - Zero drop shadows
+─────────────────────────────────────────────────────────────────────────── */
+
+/* ── THEME TOKENS ────────────────────────────────────────────────────────── */
+:root, html.dark {
+  color-scheme: dark;
+  --bg-base:        #090d14; /* Deep technical carbon base */
+  --bg-sidebar:     #090d14; /* Seamlessly matches base canvas */
+  --bg-card:        #10151f; /* Card canvas */
+  --bg-raised:      #161c28; /* Elevated panel & input background */
+  --bg-input:       #131a26;
+  --bg-hover:       #1c2434;
+  --bd-subtle:      #1e2738;
+  --bd-normal:      #2b3850;
+  --tx-primary:     #f1f5f9;
+  --tx-secondary:   #cbd5e1;
+  --tx-muted:       #94a3b8;
+  --tx-faint:       #64748b;
+  --tx-placeholder: #475569;
+
+  /* Accent: International Engineering Amber */
+  --accent:         #f59e0b;
+  --accent-hover:   #d97706;
+  --accent-fg:      #090d14; /* Dark contrast text on amber */
+  --accent-light:   #fbbf24;
+  --accent-subtle:  rgba(245, 158, 11, 0.12);
+  --accent-border:  rgba(245, 158, 11, 0.35);
+
+  --chip-blue-bg:   rgba(14, 165, 233, 0.12);
+  --chip-blue-tx:   #38bdf8;
+  --chip-green-bg:  rgba(16, 185, 129, 0.12);
+  --chip-green-tx:  #34d399;
+  --chip-yellow-bg: rgba(245, 158, 11, 0.12);
+  --chip-yellow-tx: #fbbf24;
+  --chip-red-bg:    rgba(239, 68, 68, 0.12);
+  --chip-red-tx:    #f87171;
+}
+
+html.light {
+  color-scheme: light;
+  --bg-base:        #edf1f6; /* Engineered technical slate / paper */
+  --bg-sidebar:     #edf1f6; /* Seamlessly matches base canvas */
+  --bg-card:        #ffffff; /* Clean card surface */
+  --bg-raised:      #dee6f0; /* Distinct raised surface */
+  --bg-input:       #ffffff;
+  --bg-hover:       #d4dfec;
+  --bd-subtle:      #cbd5e1;
+  --bd-normal:      #94a3b8;
+  --tx-primary:     #0f172a;
+  --tx-secondary:   #1e293b;
+  --tx-muted:       #475569;
+  --tx-faint:       #64748b;
+  --tx-placeholder: #94a3b8;
+
+  /* Accent: High-contrast Engineering Amber */
+  --accent:         #f59e0b;
+  --accent-hover:   #d97706;
+  --accent-fg:      #090d14;
+  --accent-light:   #b45309;
+  --accent-subtle:  #fef3c7;
+  --accent-border:  #fcd34d;
+
+  --chip-blue-bg:   #e0f2fe;
+  --chip-blue-tx:   #0369a1;
+  --chip-green-bg:  #dcfce7;
+  --chip-green-tx:  #15803d;
+  --chip-yellow-bg: #fef3c7;
+  --chip-yellow-tx: #b45309;
+  --chip-red-bg:    #fee2e2;
+  --chip-red-tx:    #b91c1c;
+}
+
+/* ── BASE APPLICATION STYLING ────────────────────────────────────────────── */
+body {
+  background-color: var(--bg-base);
+  color: var(--tx-primary);
+  font-family: var(--font-sans, ui-sans-serif, system-ui, -apple-system, sans-serif);
+  letter-spacing: -0.01em;
+  transition: background-color 150ms ease, color 150ms ease;
+  overflow-x: hidden;
+}
+
+/* Enforce crisp corners across all elements */
+.rounded-2xl, .rounded-3xl, .rounded-xl {
+  border-radius: 4px !important;
+}
+
+/* Strictly eliminate all blurry drop shadows */
+* {
+  box-shadow: none !important;
+}
+
+/* ── SEMANTIC UTILITIES FOR PAGES ────────────────────────────────────────── */
+.surface-base    { background-color: var(--bg-base) !important; color: var(--tx-primary); }
+.surface-sidebar { background-color: var(--bg-sidebar) !important; color: var(--tx-primary); }
+.surface-card    { background-color: var(--bg-card) !important; color: var(--tx-primary); }
+.surface-raised  { background-color: var(--bg-raised) !important; color: var(--tx-primary); }
+.surface-input   { background-color: var(--bg-input) !important; color: var(--tx-primary); }
+.border-subtle   { border-color: var(--bd-subtle) !important; }
+.border-normal   { border-color: var(--bd-normal) !important; }
+.text-primary    { color: var(--tx-primary) !important; }
+.text-secondary  { color: var(--tx-secondary) !important; }
+.text-muted      { color: var(--tx-muted) !important; }
+
+/* ── GLOBAL LEGACY NEUTRALIZATION (OVERWRITES INDIGO / PURPLE / SLOP) ─────── */
+.bg-indigo-600,
+.bg-purple-600,
+.bg-indigo-700,
+.bg-purple-700 {
+  background-color: var(--accent) !important;
+  color: var(--accent-fg) !important;
+  font-weight: 700 !important;
+}
+.hover\:bg-indigo-700:hover,
+.hover\:bg-indigo-600:hover,
+.hover\:bg-indigo-500:hover,
+.hover\:bg-purple-700:hover {
+  background-color: var(--accent-hover) !important;
+}
+
+.text-indigo-400,
+.text-purple-400,
+.text-indigo-500,
+.text-purple-500 {
+  color: var(--accent) !important;
+}
+.text-indigo-300,
+.text-purple-300 {
+  color: var(--accent-light) !important;
+}
+.hover\:text-indigo-400:hover,
+.hover\:text-indigo-300:hover {
+  color: var(--accent-hover) !important;
+}
+
+.bg-indigo-900\/40,
+.bg-purple-900\/40,
+.bg-indigo-900\/30,
+.bg-purple-900\/30,
+.bg-indigo-900\/20 {
+  background-color: var(--accent-subtle) !important;
+  color: var(--accent) !important;
+}
+.border-indigo-800\/40,
+.border-indigo-800\/60,
+.border-indigo-700,
+.border-indigo-600,
+.border-purple-800\/40,
+.border-indigo-500\/30 {
+  border-color: var(--accent-border) !important;
+}
+
+/* Eliminate harsh linear gradients across entire site */
+[class*="from-indigo-"],
+[class*="via-purple-"],
+[class*="to-pink-"],
+[class*="from-purple-"] {
+  background-image: none !important;
+  background-color: var(--bg-raised) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   FULL LIGHT THEME SYSTEM OVERRIDES
+   Ensures ALL shells, sidebars, headers, cards, and inputs turn light!
+══════════════════════════════════════════════════════════════════════ */
+html.light body,
+html.light #__next,
+html.light main,
+html.light .surface-base {
+  background-color: var(--bg-base) !important;
+  color: var(--tx-primary) !important;
+}
+
+/* Layout Shells & Canvas */
+html.light .bg-gray-950,
+html.light [class*="090d14"] {
+  background-color: var(--bg-base) !important;
+  color: var(--tx-primary) !important;
+}
+
+/* Sidebars & Top Bars */
+html.light .surface-sidebar,
+html.light [class*="0c1017"],
+html.light [class*="0e121a"] {
+  background-color: var(--bg-sidebar) !important;
+  border-color: var(--bd-subtle) !important;
+}
+
+/* Primary Cards */
+html.light .bg-gray-900,
+html.light .surface-card,
+html.light [class*="10141d"],
+html.light [class*="10151f"],
+html.light [class*="111621"],
+html.light [class*="111622"],
+html.light [class*="111722"] {
+  background-color: var(--bg-card) !important;
+  border-color: var(--bd-subtle) !important;
+  color: var(--tx-primary) !important;
+}
+
+/* Raised Surfaces & Secondary Panels */
+html.light .bg-gray-800,
+html.light .bg-gray-850,
+html.light .surface-raised,
+html.light [class*="141b27"],
+html.light [class*="151c28"],
+html.light [class*="151c29"],
+html.light [class*="161c28"],
+html.light [class*="161d2a"],
+html.light [class*="171e2b"],
+html.light [class*="17202d"],
+html.light [class*="17202e"],
+html.light [class*="182130"] {
+  background-color: var(--bg-raised) !important;
+  border-color: var(--bd-subtle) !important;
+}
+
+/* Hover States & Inputs */
+html.light .bg-gray-700,
+html.light [class*="1e2638"],
+html.light [class*="1e283b"],
+html.light [class*="1f2a3d"],
+html.light [class*="20293a"] {
+  background-color: var(--bg-hover) !important;
+}
+
+/* Inputs, Textareas, Selects */
+html.light input,
+html.light textarea,
+html.light select,
+html.light .surface-input {
+  background-color: var(--bg-input) !important;
+  border-color: var(--bd-normal) !important;
+  color: var(--tx-primary) !important;
+}
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: var(--tx-placeholder) !important;
+}
+
+/* Borders */
+html.light .border-gray-800,
+html.light .border-gray-700,
+html.light .border-subtle,
+html.light [class*="1b2332"],
+html.light [class*="1c2434"],
+html.light [class*="1c2435"],
+html.light [class*="1e2434"],
+html.light [class*="1e2638"],
+html.light [class*="1e2738"],
+html.light [class*="1f293b"],
+html.light [class*="20293a"],
+html.light [class*="20293b"],
+html.light [class*="212c3f"],
+html.light [class*="222b3d"],
+html.light [class*="222d3f"],
+html.light [class*="242d3d"],
+html.light [class*="253247"],
+html.light [class*="263246"],
+html.light [class*="273449"],
+html.light [class*="27354c"],
+html.light [class*="28354c"],
+html.light [class*="29354a"],
+html.light [class*="2b3850"] {
+  border-color: var(--bd-subtle) !important;
+}
+
+/* Typography in Light Mode */
+html.light .text-white {
+  color: var(--tx-primary) !important;
+}
+html.light .text-gray-100,
+html.light .text-gray-200 {
+  color: var(--tx-primary) !important;
+}
+html.light .text-gray-300 {
+  color: var(--tx-secondary) !important;
+}
+html.light .text-gray-400 {
+  color: var(--tx-muted) !important;
+}
+html.light .text-gray-500 {
+  color: var(--tx-faint) !important;
+}
+html.light .text-gray-600 {
+  color: #64748b !important;
+}
+
+/* Heatmap cells in light mode */
+html.light .bg-\[\#141b27\] { background-color: #dce4ed !important; }
+html.light .bg-\[\#78350f\] { background-color: #fde68a !important; }
+html.light .bg-\[\#b45309\] { background-color: #f59e0b !important; }
+html.light .bg-\[\#d97706\] { background-color: #d97706 !important; }
+html.light .bg-\[\#f59e0b\] { background-color: #b45309 !important; }
+
+/* Dividers */
+html.light .divide-gray-800 > * + *,
+html.light [class*="1b2332"] > * + * {
+  border-color: var(--bd-subtle) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SCROLLBAR
+══════════════════════════════════════════════════════════════════════ */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #263143; border-radius: 0px; }
+::-webkit-scrollbar-thumb:hover { background: #3b4961; }
+html.light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+html.light ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }

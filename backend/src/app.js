@@ -1,0 +1,114 @@
+const express = require("express");
+const helmet = require("helmet");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+
+const userRoutes           = require("./routes/userRoutes");
+const projectRoutes        = require("./routes/projectRoutes");
+const projectMemberRoutes  = require("./routes/projectMemberRoutes");
+const accessRequestRoutes  = require("./routes/accessRequestRoutes");
+const authRoutes           = require("./routes/authRoutes");
+const activityRoutes       = require("./routes/activityRoutes");
+const notificationRoutes   = require("./routes/notificationRoutes");
+const storyRoutes          = require("./routes/storyRoutes");
+const messageRoutes        = require("./routes/messageRoutes");
+const connectionRoutes     = require("./routes/connectionRoutes");
+const likeRoutes           = require("./routes/likeRoutes");
+const commentRoutes        = require("./routes/commentRoutes");
+const commentStandaloneRoutes = require("./routes/commentStandaloneRoutes");
+const saveRoutes           = require("./routes/saveRoutes");
+const savedProjectsRoutes  = require("./routes/savedProjectsRoutes");
+const repoAccessRoutes     = require("./routes/repoAccessRoutes");
+const opportunityRoutes    = require("./routes/opportunityRoutes");
+const developerRoutes      = require("./routes/developerRoutes");
+const aiRoutes             = require("./routes/aiRoutes");
+const profileRoutes        = require("./routes/profileRoutes");
+const bugReportRoutes      = require("./routes/bugReportRoutes");
+const pullRequestRoutes    = require("./routes/pullRequestRoutes");
+const ratingRoutes         = require("./routes/ratingRoutes");
+const projectResourceRoutes = require("./routes/projectResourceRoutes");
+const announcementRoutes    = require("./routes/announcementRoutes");
+const mentorRoutes          = require("./routes/mentorRoutes");
+
+const { getPlatformStats } = require("./controllers/statsController");
+const { errorHandler, notFound } = require("./middleware/errorHandler");
+const { apiLimiter } = require("./middleware/rateLimiter");
+
+const app = express();
+
+// Trust Railway/Vercel proxy — required for secure cookies and correct IP detection
+app.set("trust proxy", 1);
+
+// Security headers — must be first
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: { defaultSrc: ["'self'"] },
+  },
+}));
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://dev-mitra.vercel.app",
+  (process.env.FRONTEND_URL || "").replace(/\/+$/, ""),
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const cleanOrigin = origin.replace(/\/+$/, "");
+    if (allowedOrigins.includes(cleanOrigin) || cleanOrigin.endsWith(".vercel.app")) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+}));
+app.use(express.json({ limit: "55mb" }));
+app.use(express.urlencoded({ extended: true, limit: "55mb" }));
+app.use(cookieParser());
+app.use(apiLimiter);
+
+// Core
+app.use("/auth",             authRoutes);
+app.use("/users",            userRoutes);
+app.use("/projects",         projectRoutes);
+app.use("/projects",         projectMemberRoutes);
+app.use("/access-requests",  accessRequestRoutes);
+app.use("/",                 activityRoutes);
+
+// Social
+app.use("/notifications",    notificationRoutes);
+app.use("/stories",          storyRoutes);
+app.use("/messages",         messageRoutes);
+app.use("/connections",      connectionRoutes);
+app.use("/saved-projects",   savedProjectsRoutes);
+
+// Phase 3 new routes
+app.use("/repo-requests",    repoAccessRoutes);
+app.use("/opportunities",    opportunityRoutes);
+app.use("/developers",       developerRoutes);
+app.use("/ai",               aiRoutes);
+app.use("/ai-mentor",        mentorRoutes);
+app.use("/profile-data",     profileRoutes);
+
+// Phase 4 new routes
+app.use("/bug-reports",      bugReportRoutes);
+app.use("/pull-requests",    pullRequestRoutes);
+app.use("/ratings",          ratingRoutes);
+
+// Nested project routes
+app.use("/projects/:projectId/likes",          likeRoutes);
+app.use("/projects/:projectId/comments",       commentRoutes);
+app.use("/projects/:projectId/save",           saveRoutes);
+app.use("/projects/:projectId/resources",      projectResourceRoutes);
+app.use("/projects/:projectId/announcements",  announcementRoutes);
+
+// Standalone
+app.use("/comments", commentStandaloneRoutes);
+
+app.get("/",      (req, res) => res.json({ success: true, message: "BuildR API Running" }));
+app.get("/stats", getPlatformStats);
+
+app.use(notFound);
+app.use(errorHandler);
+
+module.exports = app;

@@ -1,0 +1,58 @@
+const prisma = require("../config/db");
+const cache = require("../utils/cache");
+
+const STATS_CACHE_KEY = "platform_stats";
+const STATS_TTL_SECONDS = 60;
+
+const getPlatformStats = async (req, res) => {
+  try {
+    const stats = await cache.wrap(STATS_CACHE_KEY, STATS_TTL_SECONDS, async () => {
+      const [
+        totalUsers, totalProjects, totalMembers,
+        totalContributors,
+        totalAccessRequests, pendingRequests, recentActivities,
+        totalLikes, totalConnections, totalComments,
+        totalRepoRequests, totalOpportunities,
+      ] = await Promise.all([
+        prisma.user.count(),
+        prisma.project.count(),
+        prisma.projectMember.count(),
+        // Contributors = non-owner memberships only
+        prisma.projectMember.count({ where: { role: "CONTRIBUTOR" } }),
+        prisma.projectAccessRequest.count(),
+        prisma.projectAccessRequest.count({ where: { status: "PENDING" } }),
+        prisma.activityLog.count(),
+        prisma.projectLike.count(),
+        prisma.connection.count({ where: { status: "ACCEPTED" } }),
+        prisma.projectComment.count(),
+        prisma.repositoryAccessRequest.count(),
+        prisma.opportunity.count({ where: { status: "OPEN" } }),
+      ]);
+
+      return {
+        users: totalUsers,
+        projects: totalProjects,
+        memberships: totalMembers,
+        contributors: totalContributors,
+        likes: totalLikes,
+        connections: totalConnections,
+        comments: totalComments,
+        repoRequests: totalRepoRequests,
+        openOpportunities: totalOpportunities,
+        accessRequests: {
+          total: totalAccessRequests,
+          pending: pendingRequests,
+          processed: totalAccessRequests - pendingRequests,
+        },
+        activities: recentActivities,
+      };
+    });
+
+    res.status(200).json(stats);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch platform stats" });
+  }
+};
+
+module.exports = { getPlatformStats };
